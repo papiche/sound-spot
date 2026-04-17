@@ -156,9 +156,10 @@ fi
 # ════════════════════════════════════════════════════════════════
 hdr "Enceinte Bluetooth"
 
-# Préparation du contrôleur
-log "Initialisation du Bluetooth..."
-rfkill unblock bluetooth 2>/dev/null || true
+# Reset complet du contrôleur
+log "Réinitialisation du Bluetooth (power off/on)..."
+bluetoothctl power off >/dev/null 2>&1 || true
+sleep 1
 bluetoothctl power on >/dev/null 2>&1 || true
 sleep 1
 
@@ -169,12 +170,20 @@ ask "Prêt pour le scan ? [Appuyez sur Entrée]"
 read -r _READY
 
 log "Scan en cours (15 s)..."
-bluetoothctl scan on >/dev/null 2>&1 &
+# On capture le flux brut du scan dans un fichier temporaire pour le debug
+BT_LOG="/tmp/bt_scan.log"
+rm -f "$BT_LOG"
+bluetoothctl scan on > "$BT_LOG" 2>&1 &
 SCAN_PID=$!
 
-# Barre de progression simple
+# Affichage des découvertes brutes "à la volée" (DEBUG)
 for i in $(seq 1 15); do
-    echo -ne "\r  Recherche d'appareils... $i/15s"
+    # On cherche les lignes contenant "Device" dans le log et on affiche les nouvelles
+    NEW_DEVS=$(grep "Device" "$BT_LOG" | grep -E "\[NEW\]|\[CHG\]" | sed 's/.*Device //' | tail -n 3)
+    if [ -n "$NEW_DEVS" ]; then
+        echo -e "${DIM}  [Détecté] $NEW_DEVS${N}"
+    fi
+    echo -ne "\r  Recherche... $i/15s "
     sleep 1
 done
 echo -e "\n"
@@ -182,31 +191,37 @@ echo -e "\n"
 kill $SCAN_PID 2>/dev/null || true
 bluetoothctl scan off >/dev/null 2>&1 || true
 
-# Récupération et filtrage des appareils
-hdr "Appareils détectés"
-SPEAKER_PAT="speaker|audio|sound|w-king|jbl|bose|marshall|anker|tribit|jabra|ultimate|beats|sony|philips"
-DEVICES=$(bluetoothctl devices | grep -iE "$SPEAKER_PAT" || bluetoothctl devices | head -n 10)
+# Extraction des MACs uniques trouvées pendant le scan + les devices connus
+log "Analyse des résultats..."
+# Liste propre : fusionne 'bluetoothctl devices' et les découvertes du log
+DEVICES=$( (bluetoothctl devices; grep "Device" "$BT_LOG" | sed 's/.*Device //') | sort -u -k1,1 )
 
 if [ -z "$DEVICES" ]; then
-    warn "Aucun appareil trouvé automatiquement."
+    warn "Aucun appareil détecté par le contrôleur."
+    echo -e "${R}DEBUG : Contenu du log de scan :${N}"
+    cat "$BT_LOG" | head -n 20
+    echo ""
     ask "Adresse MAC manuelle (ou Entrée pour ignorer) : "
     read -r BT_INPUT
 else
-    # Affichage d'une liste numérotée
-    IFS=$'\n'
-    PS3=$(echo -e "\n${M}?${N} Choisissez le numéro de l'enceinte (ou 0 pour ignorer) : ")
+    hdr "Appareils détectés"
+    echo -e "Note: Si votre enceinte n'a pas de nom, cherchez son adresse MAC.\n"
     
-    # Préparer la liste pour 'select'
+    # Transformation en tableau pour le menu select
     mapfile -t DEV_LIST < <(echo "$DEVICES")
     
+    # Menu interactif
+    PS3=$(echo -e "\n${M}?${N} Choisissez le numéro de l'enceinte (ou 0 pour ignorer) : ")
     select opt in "${DEV_LIST[@]}"; do
         if [ "$REPLY" = "0" ]; then
             BT_INPUT=""
             break
         elif [ -n "$opt" ]; then
-            # Extraire la MAC de la ligne "Device XX:XX:XX:XX:XX:XX Nom"
-            BT_INPUT=$(echo "$opt" | awk '{print $2}')
-            log "Sélectionné : ${W}$opt${N}"
+            BT_INPUT=$(echo "$opt" | awk '{print $1}') # La MAC est souvent en 1er dans le log brut
+            # Si le premier champ n'est pas une MAC, on prend le deuxième (cas 'Device XX:XX...')
+            [[ "$BT_INPUT" == "Device" ]] && BT_INPUT=$(echo "$opt" | awk '{print $2}')
+            
+            log "Sélectionné : ${W}$BT_INPUT${N}"
             break
         else
             warn "Choix invalide."
@@ -219,13 +234,9 @@ export BT_MACS=""
 if [[ "${BT_INPUT:-}" =~ ^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$ ]]; then
     export BT_MAC="$BT_INPUT"
     export BT_MACS="$BT_INPUT"
-    
-    # Tentative de couplage immédiat pour valider
-    log "Tentative d'appairage de ${BT_MAC}..."
-    bluetoothctl pair "$BT_MAC" <<EOF
-trust $BT_MAC
-exit
-EOF
+    log "Appairage et confiance (trust)..."
+    # Commande non-bloquante pour préparer l'enceinte
+    (echo "pair $BT_MAC"; sleep 3; echo "trust $BT_MAC"; sleep 2; echo "quit") | bluetoothctl >/dev/null 2>&1 &
 fi
 
 # ════════════════════════════════════════════════════════════════
