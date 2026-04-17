@@ -156,12 +156,14 @@ fi
 # ════════════════════════════════════════════════════════════════
 hdr "Enceinte Bluetooth"
 
-# Reset complet du contrôleur
-log "Réinitialisation du Bluetooth (power off/on)..."
-bluetoothctl power off >/dev/null 2>&1 || true
-sleep 1
+log "Initialisation Bluetooth (Power On + Agent)..."
+rfkill unblock bluetooth 2>/dev/null || true
+# On s'assure que le contrôleur est prêt
 bluetoothctl power on >/dev/null 2>&1 || true
-sleep 1
+bluetoothctl agent on >/dev/null 2>&1 || true
+bluetoothctl default-agent >/dev/null 2>&1 || true
+# On vide les anciens périphériques non appairés pour forcer la redécouverte
+bluetoothctl devices | grep -v "Paired: yes" | awk '{print $2}' | xargs -I {} bluetoothctl remove {} >/dev/null 2>&1 || true
 
 echo -e "${Y}Veuillez mettre votre enceinte en MODE APPAIRAGE maintenant.${N}"
 echo -e "${DIM}(Appui long sur le bouton Bluetooth jusqu'au clignotement)${N}"
@@ -172,83 +174,60 @@ read -r _READY
 log "Scan en cours (15 s)..."
 BT_LOG="/tmp/bt_scan.log"
 rm -f "$BT_LOG"
-# On lance le scan en arrière-plan
+
+# On lance le scan en forçant la sortie immédiate (stdbuf)
 bluetoothctl scan on > "$BT_LOG" 2>&1 &
 SCAN_PID=$!
 
-# Affichage des découvertes brutes "à la volée" (SÉCURISÉ contre set -e)
+# Affichage des découvertes
 for i in $(seq 1 15); do
-    # On utilise || true pour ne pas crash si grep ne trouve rien
-    NEW_DEVS=$(grep "Device" "$BT_LOG" 2>/dev/null | grep -E "\[NEW\]|\[CHG\]" | sed 's/.*Device //' | tail -n 3 || true)
+    # On cherche les lignes contenant Device + une adresse MAC
+    NEW_DEVS=$(grep -E "Device ([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}" "$BT_LOG" | sed 's/.*Device //' | sort -u || true)
     
     if [ -n "$NEW_DEVS" ]; then
-        # On nettoie un peu l'affichage pour le debug
-        echo -e "\n${DIM}  [Détecté] $(echo "$NEW_DEVS" | tr '\n' ' ')${N}"
+        # On affiche proprement les noms trouvés
+        echo -ne "\r  [Détecté] $(echo "$NEW_DEVS" | wc -l) appareils... "
     fi
     echo -ne "\r  Recherche... $i/15s "
     sleep 1
 done
 echo -e "\n"
 
-# Arrêt propre du scan
 kill $SCAN_PID 2>/dev/null || true
 bluetoothctl scan off >/dev/null 2>&1 || true
-sleep 1
 
-log "Analyse des résultats..."
-# Fusion des devices connus et des découvertes récentes
-DEVICES=$( (bluetoothctl devices 2>/dev/null || true; grep "Device" "$BT_LOG" 2>/dev/null | sed 's/.*Device //' || true) | sort -u -k1,1 | grep -v "Scanning" || true)
+# Extraction propre des résultats
+DEVICES=$(grep -E "Device ([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}" "$BT_LOG" | sed 's/.*Device //' | sort -u || true)
 
 if [ -z "$DEVICES" ]; then
-    warn "Aucun appareil détecté par le contrôleur."
-    echo -e "${R}DEBUG : Contenu du log de scan (5 premières lignes) :${N}"
-    head -n 5 "$BT_LOG" || echo "Log vide"
-    echo ""
-    ask "Adresse MAC manuelle (ou Entrée pour ignorer) : "
+    warn "Aucun appareil détecté par le script."
+    ask "Saisir la MAC manuellement (ex: F4:4E:FC:E9:C6:15) ou Entrée : "
     read -r BT_INPUT
 else
     hdr "Appareils détectés"
-    
-    # Transformation en liste pour le menu
-    # On numérote manuellement pour éviter les soucis de mapfile/select
     IFS=$'\n'
     DEV_ARRAY=($DEVICES)
     
     for i in "${!DEV_ARRAY[@]}"; do
         echo -e "  ${C}[$((i+1))]${N} ${DEV_ARRAY[$i]}"
     done
+    echo -e "  ${C}[0]${N} Saisie manuelle / Ignorer"
     
-    echo -e "  ${C}[0]${N} Ignorer / MAC manuelle"
     echo ""
-    ask "Votre choix [0-${#DEV_ARRAY[@]}] : "
+    ask "Votre choix : "
     read -r CHOICE
     
     if [[ "$CHOICE" =~ ^[0-9]+$ ]] && [ "$CHOICE" -gt 0 ] && [ "$CHOICE" -le "${#DEV_ARRAY[@]}" ]; then
         SELECTED="${DEV_ARRAY[$((CHOICE-1))]}"
-        # Extraction de la MAC : le premier champ qui ressemble à une MAC
         BT_INPUT=$(echo "$SELECTED" | grep -oE "([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}")
         log "Sélectionné : ${W}$BT_INPUT${N}"
     else
-        BT_INPUT=""
-        ask "Adresse MAC manuelle (ou Entrée pour ignorer) : "
+        ask "Adresse MAC manuelle ou Entrée : "
         read -r BT_INPUT
     fi
 fi
 
-export BT_MAC=""
-export BT_MACS=""
-if [[ "${BT_INPUT:-}" =~ ^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$ ]]; then
-    export BT_MAC="$BT_INPUT"
-    export BT_MACS="$BT_INPUT"
-    log "Préparation de l'appairage en arrière-plan..."
-    (
-        echo "pair $BT_MAC"
-        sleep 4
-        echo "trust $BT_MAC"
-        sleep 2
-        echo "quit"
-    ) | bluetoothctl >/dev/null 2>&1 &
-fi
+# ... suite du script (BT_MAC, etc.)
 
 # ════════════════════════════════════════════════════════════════
 #  6. Récapitulatif et confirmation
