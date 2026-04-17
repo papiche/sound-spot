@@ -155,30 +155,77 @@ fi
 #  5. Enceinte Bluetooth
 # ════════════════════════════════════════════════════════════════
 hdr "Enceinte Bluetooth"
-log "Scan des appareils à proximité (10 s)..."
-bluetoothctl power on >/dev/null 2>&1 || true
-timeout 12 bluetoothctl scan on 2>/dev/null || true
 
-echo -e "\nAppareils détectés :"
-SPEAKER_PAT="speaker|audio|sound|w-king|jbl|bose|marshall|anker|tribit|jabra|ultimate|beats"
-BT_SPEAKERS=$(bluetoothctl devices 2>/dev/null | grep -iE "$SPEAKER_PAT" || true)
-if [ -n "$BT_SPEAKERS" ]; then
-    echo -e "$BT_SPEAKERS"
+# Préparation du contrôleur
+log "Initialisation du Bluetooth..."
+rfkill unblock bluetooth 2>/dev/null || true
+bluetoothctl power on >/dev/null 2>&1 || true
+sleep 1
+
+echo -e "${Y}Veuillez mettre votre enceinte en MODE APPAIRAGE maintenant.${N}"
+echo -e "${DIM}(Généralement un appui long sur le bouton Bluetooth jusqu'au clignotement)${N}"
+echo ""
+ask "Prêt pour le scan ? [Appuyez sur Entrée]"
+read -r _READY
+
+log "Scan en cours (15 s)..."
+bluetoothctl scan on >/dev/null 2>&1 &
+SCAN_PID=$!
+
+# Barre de progression simple
+for i in $(seq 1 15); do
+    echo -ne "\r  Recherche d'appareils... $i/15s"
+    sleep 1
+done
+echo -e "\n"
+
+kill $SCAN_PID 2>/dev/null || true
+bluetoothctl scan off >/dev/null 2>&1 || true
+
+# Récupération et filtrage des appareils
+hdr "Appareils détectés"
+SPEAKER_PAT="speaker|audio|sound|w-king|jbl|bose|marshall|anker|tribit|jabra|ultimate|beats|sony|philips"
+DEVICES=$(bluetoothctl devices | grep -iE "$SPEAKER_PAT" || bluetoothctl devices | head -n 10)
+
+if [ -z "$DEVICES" ]; then
+    warn "Aucun appareil trouvé automatiquement."
+    ask "Adresse MAC manuelle (ou Entrée pour ignorer) : "
+    read -r BT_INPUT
 else
-    bluetoothctl devices 2>/dev/null | head -10 || echo "  Aucun appareil détecté."
+    # Affichage d'une liste numérotée
+    IFS=$'\n'
+    PS3=$(echo -e "\n${M}?${N} Choisissez le numéro de l'enceinte (ou 0 pour ignorer) : ")
+    
+    # Préparer la liste pour 'select'
+    mapfile -t DEV_LIST < <(echo "$DEVICES")
+    
+    select opt in "${DEV_LIST[@]}"; do
+        if [ "$REPLY" = "0" ]; then
+            BT_INPUT=""
+            break
+        elif [ -n "$opt" ]; then
+            # Extraire la MAC de la ligne "Device XX:XX:XX:XX:XX:XX Nom"
+            BT_INPUT=$(echo "$opt" | awk '{print $2}')
+            log "Sélectionné : ${W}$opt${N}"
+            break
+        else
+            warn "Choix invalide."
+        fi
+    done
 fi
 
-echo ""
-ask "Adresse MAC de l'enceinte (XX:XX:XX:XX:XX:XX ou Entrée pour ignorer) : "
-read -r BT_INPUT
 export BT_MAC=""
 export BT_MACS=""
 if [[ "${BT_INPUT:-}" =~ ^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$ ]]; then
     export BT_MAC="$BT_INPUT"
     export BT_MACS="$BT_INPUT"
-    log "Enceinte BT : ${C}${BT_MAC}${N}"
-else
-    warn "Pas d'enceinte — configurable après installation avec : bash bt_update.sh"
+    
+    # Tentative de couplage immédiat pour valider
+    log "Tentative d'appairage de ${BT_MAC}..."
+    bluetoothctl pair "$BT_MAC" <<EOF
+trust $BT_MAC
+exit
+EOF
 fi
 
 # ════════════════════════════════════════════════════════════════
