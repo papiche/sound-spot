@@ -52,7 +52,7 @@ apt install -y --no-install-recommends \
     icecast2 \
     bluez bluez-alsa-utils \
     pipewire pipewire-alsa pipewire-pulse wireplumber \
-    snapcast \
+    snapserver snapclient \
     avahi-daemon \
     iptables-persistent netfilter-persistent \
     python3 python3-opencv python3-picamera2 \

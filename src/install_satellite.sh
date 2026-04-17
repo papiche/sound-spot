@@ -39,7 +39,7 @@ apt update -y
 apt install -y --no-install-recommends \
     bluez bluez-alsa-utils \
     pipewire pipewire-alsa pipewire-pulse wireplumber \
-    snapcast \
+    snapclient \
     iw wireless-tools
 
 mkdir -p "$INSTALL_DIR"

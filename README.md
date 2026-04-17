@@ -110,8 +110,7 @@ Installer Snapclient et Mixxx sur le PC :
 
 ```bash
 # Snapclient
-sudo apt install snapclient   # ou télécharger depuis github.com/badaix/snapcast/releases
-
+sudo apt install snapclient
 # Mixxx
 sudo apt install mixxx
 ```

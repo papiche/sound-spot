@@ -261,6 +261,17 @@ if [[ "${BT_INPUT:-}" =~ ^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$ ]]; then
     
     if bluetoothctl info "$BT_MAC" | grep -q "Paired: yes"; then
         log "Succès : ${G}Enceinte appairée et mémorisée !${N}"
+        
+        # --- TEST SONORE ---
+        log "Test de connexion audio..."
+        bluetoothctl connect "$BT_MAC" >/dev/null 2>&1 || true
+        sleep 3 # On laisse le temps au sink audio de se créer
+        
+        if command -v speaker-test >/dev/null; then
+            log "Envoi d'un signal sonore (429.62 Hz) vers l'enceinte... (cf. Marc Henry)"
+            # Utilisation de 429.62 Hz
+            (timeout 2s speaker-test -t sine -f 429.62 -c 2 >/dev/null 2>&1) &
+        fi
     else
         warn "Appairage automatique incomplet (souvent normal, il se fera au premier son)."
     fi
