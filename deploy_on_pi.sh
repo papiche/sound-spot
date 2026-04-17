@@ -164,69 +164,75 @@ bluetoothctl power on >/dev/null 2>&1 || true
 sleep 1
 
 echo -e "${Y}Veuillez mettre votre enceinte en MODE APPAIRAGE maintenant.${N}"
-echo -e "${DIM}(Généralement un appui long sur le bouton Bluetooth jusqu'au clignotement)${N}"
+echo -e "${DIM}(Appui long sur le bouton Bluetooth jusqu'au clignotement)${N}"
 echo ""
 ask "Prêt pour le scan ? [Appuyez sur Entrée]"
 read -r _READY
 
 log "Scan en cours (15 s)..."
-# On capture le flux brut du scan dans un fichier temporaire pour le debug
 BT_LOG="/tmp/bt_scan.log"
 rm -f "$BT_LOG"
+# On lance le scan en arrière-plan
 bluetoothctl scan on > "$BT_LOG" 2>&1 &
 SCAN_PID=$!
 
-# Affichage des découvertes brutes "à la volée" (DEBUG)
+# Affichage des découvertes brutes "à la volée" (SÉCURISÉ contre set -e)
 for i in $(seq 1 15); do
-    # On cherche les lignes contenant "Device" dans le log et on affiche les nouvelles
-    NEW_DEVS=$(grep "Device" "$BT_LOG" | grep -E "\[NEW\]|\[CHG\]" | sed 's/.*Device //' | tail -n 3)
+    # On utilise || true pour ne pas crash si grep ne trouve rien
+    NEW_DEVS=$(grep "Device" "$BT_LOG" 2>/dev/null | grep -E "\[NEW\]|\[CHG\]" | sed 's/.*Device //' | tail -n 3 || true)
+    
     if [ -n "$NEW_DEVS" ]; then
-        echo -e "${DIM}  [Détecté] $NEW_DEVS${N}"
+        # On nettoie un peu l'affichage pour le debug
+        echo -e "\n${DIM}  [Détecté] $(echo "$NEW_DEVS" | tr '\n' ' ')${N}"
     fi
     echo -ne "\r  Recherche... $i/15s "
     sleep 1
 done
 echo -e "\n"
 
+# Arrêt propre du scan
 kill $SCAN_PID 2>/dev/null || true
 bluetoothctl scan off >/dev/null 2>&1 || true
+sleep 1
 
-# Extraction des MACs uniques trouvées pendant le scan + les devices connus
 log "Analyse des résultats..."
-# Liste propre : fusionne 'bluetoothctl devices' et les découvertes du log
-DEVICES=$( (bluetoothctl devices; grep "Device" "$BT_LOG" | sed 's/.*Device //') | sort -u -k1,1 )
+# Fusion des devices connus et des découvertes récentes
+DEVICES=$( (bluetoothctl devices 2>/dev/null || true; grep "Device" "$BT_LOG" 2>/dev/null | sed 's/.*Device //' || true) | sort -u -k1,1 | grep -v "Scanning" || true)
 
 if [ -z "$DEVICES" ]; then
     warn "Aucun appareil détecté par le contrôleur."
-    echo -e "${R}DEBUG : Contenu du log de scan :${N}"
-    cat "$BT_LOG" | head -n 20
+    echo -e "${R}DEBUG : Contenu du log de scan (5 premières lignes) :${N}"
+    head -n 5 "$BT_LOG" || echo "Log vide"
     echo ""
     ask "Adresse MAC manuelle (ou Entrée pour ignorer) : "
     read -r BT_INPUT
 else
     hdr "Appareils détectés"
-    echo -e "Note: Si votre enceinte n'a pas de nom, cherchez son adresse MAC.\n"
     
-    # Transformation en tableau pour le menu select
-    mapfile -t DEV_LIST < <(echo "$DEVICES")
+    # Transformation en liste pour le menu
+    # On numérote manuellement pour éviter les soucis de mapfile/select
+    IFS=$'\n'
+    DEV_ARRAY=($DEVICES)
     
-    # Menu interactif
-    PS3=$(echo -e "\n${M}?${N} Choisissez le numéro de l'enceinte (ou 0 pour ignorer) : ")
-    select opt in "${DEV_LIST[@]}"; do
-        if [ "$REPLY" = "0" ]; then
-            BT_INPUT=""
-            break
-        elif [ -n "$opt" ]; then
-            BT_INPUT=$(echo "$opt" | awk '{print $1}') # La MAC est souvent en 1er dans le log brut
-            # Si le premier champ n'est pas une MAC, on prend le deuxième (cas 'Device XX:XX...')
-            [[ "$BT_INPUT" == "Device" ]] && BT_INPUT=$(echo "$opt" | awk '{print $2}')
-            
-            log "Sélectionné : ${W}$BT_INPUT${N}"
-            break
-        else
-            warn "Choix invalide."
-        fi
+    for i in "${!DEV_ARRAY[@]}"; do
+        echo -e "  ${C}[$((i+1))]${N} ${DEV_ARRAY[$i]}"
     done
+    
+    echo -e "  ${C}[0]${N} Ignorer / MAC manuelle"
+    echo ""
+    ask "Votre choix [0-${#DEV_ARRAY[@]}] : "
+    read -r CHOICE
+    
+    if [[ "$CHOICE" =~ ^[0-9]+$ ]] && [ "$CHOICE" -gt 0 ] && [ "$CHOICE" -le "${#DEV_ARRAY[@]}" ]; then
+        SELECTED="${DEV_ARRAY[$((CHOICE-1))]}"
+        # Extraction de la MAC : le premier champ qui ressemble à une MAC
+        BT_INPUT=$(echo "$SELECTED" | grep -oE "([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}")
+        log "Sélectionné : ${W}$BT_INPUT${N}"
+    else
+        BT_INPUT=""
+        ask "Adresse MAC manuelle (ou Entrée pour ignorer) : "
+        read -r BT_INPUT
+    fi
 fi
 
 export BT_MAC=""
@@ -234,9 +240,14 @@ export BT_MACS=""
 if [[ "${BT_INPUT:-}" =~ ^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$ ]]; then
     export BT_MAC="$BT_INPUT"
     export BT_MACS="$BT_INPUT"
-    log "Appairage et confiance (trust)..."
-    # Commande non-bloquante pour préparer l'enceinte
-    (echo "pair $BT_MAC"; sleep 3; echo "trust $BT_MAC"; sleep 2; echo "quit") | bluetoothctl >/dev/null 2>&1 &
+    log "Préparation de l'appairage en arrière-plan..."
+    (
+        echo "pair $BT_MAC"
+        sleep 4
+        echo "trust $BT_MAC"
+        sleep 2
+        echo "quit"
+    ) | bluetoothctl >/dev/null 2>&1 &
 fi
 
 # ════════════════════════════════════════════════════════════════
