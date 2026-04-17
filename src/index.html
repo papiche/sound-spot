@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SoundSpot — Infrastructure Audio Libre (UPlanet)</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap');
+
+    :root {
+      --bg: #0a0a0f;
+      --card: #1a1a24;
+      --border: #2e2e42;
+      --accent: #7fff6e;
+      --accent2: #4ecdc4;
+      --text: #e8e8f0;
+      --muted: #7a7a99;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      line-height: 1.6;
+      display: flex;
+      justify-content: center;
+      padding: 40px 20px;
+      position: relative;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 40px 40px;
+      opacity: 0.15;
+      z-index: -1;
+    }
+
+    .container {
+      max-width: 800px;
+      width: 100%;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 60px;
+    }
+
+    .badge {
+      display: inline-block;
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    h1 {
+      font-size: clamp(2.5rem, 6vw, 4.5rem);
+      font-weight: 800;
+      letter-spacing: -1px;
+      margin-bottom: 10px;
+    }
+    h1 span { color: var(--accent); }
+
+    .subtitle {
+      color: var(--muted);
+      font-family: 'Space Mono', monospace;
+      font-size: 14px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      padding: 40px;
+      border-radius: 4px;
+      margin-bottom: 30px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::top {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+    }
+
+    h2 {
+      font-size: 24px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    h2::before {
+      content: '▶';
+      color: var(--accent);
+      font-size: 16px;
+    }
+
+    p { margin-bottom: 20px; color: #b0b0c8; }
+    
+    strong { color: #fff; }
+
+    .terminal {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      padding: 20px;
+      border-radius: 4px;
+      font-family: 'Space Mono', monospace;
+      font-size: 13px;
+      color: var(--accent2);
+      overflow-x: auto;
+      margin-bottom: 20px;
+    }
+
+    .terminal .comment { color: var(--muted); }
+    .terminal .cmd { color: #fff; }
+
+    ul {
+      list-style: none;
+      margin-bottom: 20px;
+    }
+    ul li {
+      margin-bottom: 10px;
+      padding-left: 20px;
+      position: relative;
+      color: #b0b0c8;
+    }
+    ul li::before {
+      content: '—';
+      position: absolute;
+      left: 0;
+      color: var(--accent);
+    }
+
+    .footer {
+      text-align: center;
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 60px;
+    }
+
+    a { color: var(--accent2); text-decoration: none; border-bottom: 1px solid transparent; transition: 0.2s; }
+    a:hover { border-bottom-color: var(--accent2); }
+
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    
+    <div class="header">
+      <div class="badge">UPlanet Distributed Node</div>
+      <h1>Sound<span>Spot</span></h1>
+      <p class="subtitle">// Nœud Audio Collectif & Bien Commun — G1FabLab</p>
+    </div>
+
+    <div class="card">
+      <h2>L'Œuvre & Le Commun</h2>
+      <p><strong>SoundSpot</strong> est une infrastructure sonore décentralisée pour l'espace public. Il transforme un Raspberry Pi Zero 2W en un routeur audio WiFi (Snapcast + Icecast) totalement autonome.</p>
+      <p>C'est un "Bien Commun" : n'importe quel passant peut s'y connecter en WiFi pour écouter la session musicale en mode "Silent Disco" via son casque, et n'importe quel DJ peut s'y connecter pour prendre l'antenne et diffuser son mix en temps réel sur les enceintes solaires du lieu.</p>
+      <p>Ne détruisez pas les SoundSpots que vous croisez dans la rue. Dupliquez-les ! Ce code est libre et vous donne le pouvoir de créer votre propre radio locale.</p>
+    </div>
+
+    <div class="card">
+      <h2>Architecture Technique V2</h2>
+      <ul>
+        <li><strong>Réseau :</strong> WiFi AP (hostapd), Portail Captif (OpenNDS v9+)</li>
+        <li><strong>Audio :</strong> Mixxx Live Broadcasting → Icecast2 → Ffmpeg → Snapcast → PipeWire</li>
+        <li><strong>IA Edge :</strong> OpenCV Haar Cascade (Détection de présence pour message d'accueil)</li>
+        <li><strong>Hardware :</strong> RPi Zero 2W, Pi Camera V3, Capteur batterie INA219, Enceinte Bluetooth</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>Récupérer & Déployer</h2>
+      <p>Pour déployer votre propre nœud, vous avez besoin d'un PC Linux (Debian/Ubuntu) connecté à un réseau WiFi qui servira de base. Depuis un terminal :</p>
+      
+      <div class="terminal">
+        <span class="comment"># 1. Cloner le code source (via IPFS, IPNS ou Github)</span><br>
+        <span class="cmd">git clone https://github.com/papiche/sound-spot</span><br>
+        <span class="cmd">cd sound-spot</span><br><br>
+        
+        <span class="comment"># 2. Brancher une carte SD vierge et lancer l'installeur interactif</span><br>
+        <span class="cmd">bash deploy_soundspot.sh</span><br><br>
+
+        <span class="comment"># L'installeur va flasher l'OS, configurer le réseau, installer Mixxx</span><br>
+        <span class="comment"># sur votre PC, et préparer la carte SD. Insérez-la ensuite dans le Raspberry Pi !</span>
+      </div>
+      
+      <p>Une fois la carte insérée dans le Raspberry Pi et l'alimentation branchée, le nœud s'auto-configure en 10 minutes. Lancez ensuite la commande <code>~/zicmama_play.sh</code> sur votre PC pour commencer à diffuser !</p>
+    </div>
+
+    <div class="footer">
+      <p>Conçu par le <a href="https://g1sms.fr" target="_blank">G1FabLab</a> — UPlanet ẐEN (<a href="https://qo-op.com" target="_blank">qo-op.com</a>)</p>
+      <p style="margin-top: 10px;">Licence AGPL-3.0 — Code publié sur le web distribué UPlanet.</p>
+    </div>
+
+  </div>
+
+</body>
+</html>

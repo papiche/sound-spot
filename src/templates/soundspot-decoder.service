@@ -1,0 +1,15 @@
+[Unit]
+Description=SoundSpot — Décodeur Icecast → Snapcast (ffmpeg)
+After=icecast2.service snapserver.service
+Wants=icecast2.service snapserver.service
+
+[Service]
+Type=simple
+ExecStart=${INSTALL_DIR}/decoder.sh
+Restart=always
+RestartSec=3
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

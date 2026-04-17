@@ -1,0 +1,15 @@
+[Unit]
+Description=Reconnexion automatique enceinte Bluetooth
+After=bluetooth.service
+Wants=bluetooth.service
+
+[Service]
+Type=simple
+EnvironmentFile=${INSTALL_DIR}/soundspot.conf
+ExecStartPre=/bin/sleep 10
+ExecStart=${INSTALL_DIR}/bt-connect.sh
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target

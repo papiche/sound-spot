@@ -1,0 +1,21 @@
+[Unit]
+Description=SoundSpot — Snapclient local (BT speaker)
+After=snapserver.service bluetooth.service
+Wants=snapserver.service bluetooth.service
+
+[Service]
+Type=simple
+EnvironmentFile=${INSTALL_DIR}/soundspot.conf
+Environment="XDG_RUNTIME_DIR=/run/user/%U"
+ExecStartPre=/bin/sleep 8
+ExecStart=/usr/bin/snapclient -h 127.0.0.1 -p ${SNAPCAST_PORT} --player pulse:buffer_time=50
+# Cri de naissance : le SoundSpot annonce qu'il est prêt dès le premier boot
+ExecStartPost=/bin/sleep 5
+ExecStartPost=${INSTALL_DIR}/play_welcome.sh
+Restart=always
+RestartSec=5
+User=${SOUNDSPOT_USER}
+StandardOutput=journal
+
+[Install]
+WantedBy=multi-user.target

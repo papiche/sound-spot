@@ -1,0 +1,14 @@
+[Unit]
+Description=SoundSpot — Synchronisation canal WiFi (hostapd ↔ réseau amont)
+After=wpa_supplicant@wlan0.service
+Before=hostapd.service
+
+[Service]
+Type=oneshot
+ExecStart=${INSTALL_DIR}/sync_channel.sh
+RemainAfterExit=yes
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

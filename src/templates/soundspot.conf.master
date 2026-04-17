@@ -1,0 +1,12 @@
+# SoundSpot — configuration centrale
+# Modifiable sans relancer le script d'installation
+
+SPOT_NAME="${SPOT_NAME}"
+SPOT_IP="${SPOT_IP}"
+WIFI_SSID="${WIFI_SSID}"
+WIFI_CHANNEL="${WIFI_CHANNEL}"
+BT_MAC="${BT_MAC}"
+BT_MACS="${BT_MACS}"
+SNAPCAST_PORT="${SNAPCAST_PORT}"
+PRESENCE_COOLDOWN="${PRESENCE_COOLDOWN}"
+INSTALL_DIR="${INSTALL_DIR}"

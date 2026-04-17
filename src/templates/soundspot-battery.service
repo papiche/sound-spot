@@ -1,0 +1,18 @@
+[Unit]
+Description=SoundSpot — Monitoring batterie solaire (INA219)
+After=soundspot-presence.service
+
+[Service]
+Type=simple
+EnvironmentFile=${INSTALL_DIR}/soundspot.conf
+Environment="XDG_RUNTIME_DIR=/run/user/%U"
+ExecStart=${INSTALL_DIR}/venv/bin/python3 ${INSTALL_DIR}/battery_monitor.py
+# Restart=on-failure : si le capteur INA219 est absent (sys.exit 0), pas de relance
+Restart=on-failure
+RestartSec=60
+User=${SOUNDSPOT_USER}
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

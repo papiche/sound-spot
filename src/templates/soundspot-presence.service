@@ -1,0 +1,18 @@
+[Unit]
+Description=SoundSpot — détecteur de présence caméra
+After=soundspot-client-master.service
+Wants=soundspot-client-master.service
+
+[Service]
+Type=simple
+EnvironmentFile=${INSTALL_DIR}/soundspot.conf
+Environment="XDG_RUNTIME_DIR=/run/user/%U"
+ExecStart=/usr/bin/python3 ${INSTALL_DIR}/presence_detector.py
+Restart=always
+RestartSec=15
+User=${SOUNDSPOT_USER}
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

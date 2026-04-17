@@ -1,0 +1,6 @@
+# SoundSpot Satellite — configuration
+MASTER_HOST="${MASTER_HOST}"
+SNAPCAST_PORT="${SNAPCAST_PORT}"
+BT_MAC="${BT_MAC}"
+BT_MACS="${BT_MACS}"
+INSTALL_DIR="${INSTALL_DIR}"
