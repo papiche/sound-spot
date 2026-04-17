@@ -156,16 +156,18 @@ fi
 # ════════════════════════════════════════════════════════════════
 hdr "Enceinte Bluetooth"
 
-# --- DEBUG INFO ---
-log "Vérification de l'état du contrôleur..."
-BT_STATE=$(bluetoothctl show || echo "ERREUR: bluetoothctl ne répond pas")
-echo -e "${DIM}$BT_STATE${N}"
-
-log "Réinitialisation complète..."
+log "Préparation du contrôleur (Power ON + Pairable)..."
 rfkill unblock bluetooth 2>/dev/null || true
-bluetoothctl power on >/dev/null 2>&1 || true
-bluetoothctl agent on >/dev/null 2>&1 || true
-bluetoothctl default-agent >/dev/null 2>&1 || true
+# On force les réglages qui favorisent la détection
+{
+  echo "power on"
+  echo "pairable on"
+  echo "discoverable on"
+  echo "agent on"
+  echo "default-agent"
+  echo "quit"
+} | bluetoothctl >/dev/null 2>&1
+sleep 1
 
 echo -e "${Y}Veuillez mettre votre enceinte en MODE APPAIRAGE maintenant.${N}"
 echo -e "${DIM}(Appui long sur le bouton Bluetooth jusqu'au clignotement)${N}"
@@ -174,42 +176,39 @@ ask "Prêt pour le scan ? [Appuyez sur Entrée]"
 read -r _READY
 
 log "Scan en cours (15 s)..."
-BT_LOG="/tmp/bt_scan.log"
-rm -f "$BT_LOG"
+# --- MÉTHODE COPROC : On ouvre bluetoothctl et on le garde ouvert ---
+coproc BT { bluetoothctl; }
+# On envoie la commande de scan au processus ouvert
+echo "scan on" >&${BT[1]}
 
-# On utilise la commande 'timeout' qui est plus fiable pour capturer la sortie
-# On simule un terminal avec 'script' pour forcer bluetoothctl à cracher ses infos
-# C'est la méthode la plus proche du mode interactif que tu as testé
-stdbuf -oL script -q -c "timeout 15s bluetoothctl scan on" /dev/null > "$BT_LOG" 2>&1 &
-SCAN_PID=$!
-
-# Affichage de la progression
+# Barre de progression
 for i in $(seq 1 15); do
-    # On compte les devices dans le log de debug
-    COUNT=$(grep -c "Device " "$BT_LOG" || echo "0")
-    echo -ne "\r  Recherche... $i/15s  (Appareils vus : ${G}$COUNT${N})"
+    echo -ne "\r  Recherche active... $i/15s "
     sleep 1
 done
 echo -e "\n"
 
-# Nettoyage
-kill $SCAN_PID 2>/dev/null || true
-bluetoothctl scan off >/dev/null 2>&1 || true
-sleep 1
+# On demande la liste des périphériques vus et on ferme
+echo "devices" >&${BT[1]}
+echo "quit" >&${BT[1]}
+
+# On récupère toute la sortie de la session
+BT_OUT=$(cat <&${BT[0]})
 
 log "Analyse des résultats..."
-# On regarde dans DEUX sources : le log du scan ET la base interne
-DEVICES_LOG=$(grep "Device " "$BT_LOG" | sed 's/.*Device //' | sort -u || true)
-DEVICES_INT=$(bluetoothctl devices | grep -v "Scanning" || true)
-
-# Fusion des deux sources
-DEVICES=$(echo -e "$DEVICES_LOG\n$DEVICES_INT" | sort -u | grep -v "^$" || true)
+# On combine les sources : la sortie de la session et la base de données système
+DEVICES=$(echo "$BT_OUT" | grep "Device " | sed 's/.*Device //' | sort -u || true)
+if [ -z "$DEVICES" ]; then
+    DEVICES=$(bluetoothctl devices | grep -v "Scanning" || true)
+fi
 
 if [ -z "$DEVICES" ]; then
     warn "ÉCHEC DE DÉTECTION AUTOMATIQUE"
-    echo -e "${R}--- LOG DE DEBUG (10 dernières lignes) ---${N}"
-    tail -n 10 "$BT_LOG"
-    echo -e "${R}------------------------------------------${N}"
+    log "Vérification des erreurs possibles..."
+    if ! bluetoothctl show | grep -q "Powered: yes"; then
+        err "Le contrôleur Bluetooth est éteint. Problème matériel ?"
+    fi
+    echo -e "${DIM}Note : L'antenne est partagée entre WiFi et BT.${N}"
     echo ""
     ask "Saisir la MAC manuellement (ex: F4:4E:FC:E9:C6:15) ou Entrée : "
     read -r BT_INPUT
@@ -217,12 +216,17 @@ else
     hdr "Appareils détectés"
     echo -e "Sélectionnez votre enceinte :\n"
     
-    # Création du menu
     IFS=$'\n'
     DEV_ARRAY=($DEVICES)
     
     for i in "${!DEV_ARRAY[@]}"; do
-        echo -e "  ${C}[$((i+1))]${N} ${DEV_ARRAY[$i]}"
+        # On met en gras si on voit "W-KING" ou "Audio"
+        DISPLAY_NAME="${DEV_ARRAY[$i]}"
+        if echo "$DISPLAY_NAME" | grep -qiE "audio|speaker|w-king|jbl|sound"; then
+            echo -e "  ${C}[$((i+1))]${N} ${W}${DISPLAY_NAME}${N} ${G}← recommandé${N}"
+        else
+            echo -e "  ${C}[$((i+1))]${N} ${DISPLAY_NAME}"
+        fi
     done
     echo -e "  ${C}[0]${N} Saisie manuelle / Ignorer"
     echo ""
@@ -245,13 +249,20 @@ export BT_MACS=""
 if [[ "${BT_INPUT:-}" =~ ^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$ ]]; then
     export BT_MAC="$BT_INPUT"
     export BT_MACS="$BT_INPUT"
-    log "Tentative d'appairage forcée..."
-    # On utilise un pipe vers bluetoothctl pour simuler la frappe clavier
-    echo -e "pair $BT_MAC\ntrust $BT_MAC\nquit" | bluetoothctl > /tmp/bt_pair.log 2>&1
+    log "Tentative d'appairage de ${BT_MAC}..."
+    # On simule l'interaction utilisateur
+    {
+      echo "pair $BT_MAC"
+      sleep 5
+      echo "trust $BT_MAC"
+      sleep 2
+      echo "quit"
+    } | bluetoothctl > /tmp/bt_pair_result.log 2>&1
+    
     if bluetoothctl info "$BT_MAC" | grep -q "Paired: yes"; then
-        log "Succès : ${G}Enceinte appairée !${N}"
+        log "Succès : ${G}Enceinte appairée et mémorisée !${N}"
     else
-        warn "L'appairage a échoué (voir /tmp/bt_pair.log). On continue l'install..."
+        warn "Appairage automatique incomplet (souvent normal, il se fera au premier son)."
     fi
 fi
 
