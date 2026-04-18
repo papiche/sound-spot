@@ -19,10 +19,14 @@ fi
 
 # ── 2. Liens symboliques vers les outils fréquemment utilisés ────
 mkdir -p "$HOME/.local/bin"
-ln -sf "$HOME/.zen/Astroport.ONE/tools/keygen"         "$HOME/.local/bin/keygen"
-ln -sf "$HOME/.zen/Astroport.ONE/tools/solar_time.sh"  "$HOME/.local/bin/solar_time"
-ln -sf "$HOME/.zen/Astroport.ONE/tools/cpcode"         "$HOME/.local/bin/cpcode"   2>/dev/null || true
-ln -sf "$HOME/.zen/Astroport.ONE/tools/cpscript"       "$HOME/.local/bin/cpscript" 2>/dev/null || true
+ln -sf "$HOME/.zen/Astroport.ONE/tools/keygen"              "$HOME/.local/bin/keygen"
+ln -sf "$HOME/.zen/Astroport.ONE/tools/solar_time.sh"       "$HOME/.local/bin/solar_time"
+ln -sf "$HOME/.zen/Astroport.ONE/tools/astrosystemctl.sh"   "$HOME/.local/bin/astrosystemctl"
+ln -sf "$HOME/.zen/Astroport.ONE/tools/cpcode"              "$HOME/.local/bin/cpcode"   2>/dev/null || true
+ln -sf "$HOME/.zen/Astroport.ONE/tools/cpscript"            "$HOME/.local/bin/cpscript" 2>/dev/null || true
+# S'assurer que ~/.local/bin est dans le PATH pour la session courante
+grep -qxF 'export PATH="$HOME/.local/bin:$PATH"' "$HOME/.bashrc" 2>/dev/null \
+    || echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
 echo "▶ Liens symboliques outils créés dans ~/.local/bin"
 
 # ── 3. Venv Python ~/.astro/ (compatible Astroport.ONE) ───────────
