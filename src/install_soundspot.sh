@@ -49,6 +49,9 @@ setup_picoport() {
     # Copie des sources picoport vers INSTALL_DIR
     cp -r "$SCRIPT_DIR/picoport" "$INSTALL_DIR/"
     chmod +x "$INSTALL_DIR/picoport/"*.sh
+    # Permettre à SOUNDSPOT_USER d'écrire dans le dossier picoport
+    # (picoport_20h12.sh et les clés sont créés par le user, pas root)
+    chown -R "${SOUNDSPOT_USER}:${SOUNDSPOT_USER}" "$INSTALL_DIR/picoport" 2>/dev/null || true
 
     # Maintenance (clone Astroport.ONE, venv Python, outils) — exécuté comme SOUNDSPOT_USER
     # $HOME en sudo pointe vers /root ; on corrige via getent

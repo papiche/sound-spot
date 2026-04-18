@@ -36,7 +36,7 @@ fi
 # shellcheck disable=SC1090
 source "$HOME/.astro/bin/activate"
 echo "▶ Vérification des packages Python (keygen + Nostr + G1 + uDRIVE)..."
-pip install -q --upgrade pip 2>/dev/null || true
+pip install --upgrade pip 2>/dev/null || true
 # Format "paquet_pip:module_python" — vérifie l'import avant d'installer
 # Liste complète exigée par keygen (imports top-level → tous obligatoires)
 _PYPACKAGES=(

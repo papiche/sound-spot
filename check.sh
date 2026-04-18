@@ -149,11 +149,11 @@ if ip -4 addr show $IFACE_AP 2>/dev/null | grep -q "inet ${SPOT_IP}"; then
     CHAN_AP=$(iw dev $IFACE_AP info 2>/dev/null | awk '/channel/{print $2}')
     CHAN_HOSTAPD=$(grep -E "^channel=" /etc/hostapd/hostapd.conf 2>/dev/null | cut -d= -f2)
     ok "$IFACE_AP up  ${D}IP:${N} ${SPOT_IP}  ${D}MAC:${N} ${AP_MAC}  ${D}canal radio:${N} ${CHAN_AP:-?}  ${D}hostapd.conf:${N} ${CHAN_HOSTAPD:-?}"
-    if[ -n "$CHAN_WLAN" ] && [ -n "$CHAN_AP" ]; then
-        if[ "$IFACE_AP" = "uap0" ] &&[ "$CHAN_WLAN" != "$CHAN_AP" ]; then
+    if [ -n "$CHAN_WLAN" ] && [ -n "$CHAN_AP" ]; then
+        if [ "$IFACE_AP" = "uap0" ] && [ "$CHAN_WLAN" != "$CHAN_AP" ]; then
             warn "Mode Monocarte : Canal $IFACE_WAN (${CHAN_WLAN}) ≠ $IFACE_AP (${CHAN_AP}) — instabilité garantie"
-        elif[ "$IFACE_AP" != "uap0" ] &&[ "$CHAN_WLAN" = "$CHAN_AP" ]; then
-            warn "Mode Dual-WiFi : Canal $IFACE_WAN (${CHAN_WLAN}) = $IFACE_AP (${CHAN_AP}) — risque d interférences (séparer les canaux)"
+        elif [ "$IFACE_AP" != "uap0" ] && [ "$CHAN_WLAN" = "$CHAN_AP" ]; then
+            warn "Mode Dual-WiFi : Canal $IFACE_WAN (${CHAN_WLAN}) = $IFACE_AP (${CHAN_AP}) — risque d'interférences (séparer les canaux)"
         fi
     fi
 else

@@ -69,4 +69,12 @@ if [ "$MAC_COUNT" -gt 1 ]; then
     sleep 3
     /opt/soundspot/bt-combine-sinks.sh 2>/dev/null || true
 fi
+
+# Redémarrer snapclient pour qu'il détecte le sink Bluetooth maintenant disponible.
+# Sans ce redémarrage, snapclient reste sur le sink null démarré au boot et le son
+# n'arrive sur l'enceinte BT que si l'utilisateur se connecte manuellement en SSH.
+sleep 2
+echo "Redémarrage soundspot-client pour basculer vers le sink BT..."
+systemctl restart soundspot-client 2>/dev/null || true
+
 exit 0
