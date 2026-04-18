@@ -34,6 +34,13 @@ CONNECTED=0
 for mac in $MACS; do
     echo "Connexion BT : $mac"
 
+    # Si déjà connecté, compter et passer au suivant
+    if bluetoothctl info "$mac" 2>/dev/null | grep -q "Connected: yes"; then
+        echo "Enceinte $mac déjà connectée — skip"
+        CONNECTED=$((CONNECTED + 1))
+        continue
+    fi
+
     # Vérifier si l'appareil est connu (appairé) avant de tenter connect
     if ! bluetoothctl info "$mac" 2>&1 | grep -q "Device $mac"; then
         echo "Appareil $mac non appairé — tentative de scan (8s)..."

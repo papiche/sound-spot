@@ -8,8 +8,8 @@ Type=simple
 EnvironmentFile=${INSTALL_DIR}/soundspot.conf
 ExecStartPre=/bin/sleep 10
 ExecStart=${INSTALL_DIR}/bt-connect.sh
-Restart=on-failure
-RestartSec=30
+Restart=always
+RestartSec=60
 
 [Install]
 WantedBy=multi-user.target

@@ -144,7 +144,7 @@ fi
 
 # ipset
 if ipset list soundspot_auth &>/dev/null; then
-    COUNT=$(ipset list soundspot_auth | grep -cE "^[0-9]" 2>/dev/null || echo 0)
+    COUNT=$(ipset list soundspot_auth 2>/dev/null | awk '/^[0-9]/{c++} END{print c+0}')
     ok "ipset soundspot_auth — ${COUNT} IP(s) actuellement autorisée(s)"
     if [ "$COUNT" -gt 0 ]; then
         ipset list soundspot_auth | grep -E "^[0-9]" | \

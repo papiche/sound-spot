@@ -89,7 +89,7 @@ setup_presence
 hdr "Fichier de configuration central"
 install_template soundspot.conf.master "$INSTALL_DIR/soundspot.conf" \
     '${SPOT_NAME} ${SPOT_IP} ${WIFI_SSID} ${WIFI_CHANNEL} ${BT_MAC} ${BT_MACS} ${SNAPCAST_PORT} ${PRESENCE_COOLDOWN} ${INSTALL_DIR}'
-chmod 600 "$INSTALL_DIR/soundspot.conf"
+chmod 644 "$INSTALL_DIR/soundspot.conf"
 
 # ── Résumé final ──────────────────────────────────────────────
 hdr "Installation terminée ✓"
