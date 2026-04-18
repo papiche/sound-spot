@@ -11,6 +11,9 @@ G='\033[0;32m'; Y='\033[1;33m'; C='\033[0;36m'; W='\033[1;37m'; R='\033[0;31m'; 
 SPOT_IP="127.0.0.1"
 SNAP_API="1780"
 ICE_PORT="8111"
+[ -f /opt/soundspot/soundspot.conf ] && source /opt/soundspot/soundspot.conf
+IFACE_AP="${IFACE_AP:-uap0}"
+IFACE_WAN="${IFACE_WAN:-wlan0}"
 
 # Nettoyage au Ctrl+C
 trap "echo -e '\n${G}Fin du monitoring.${N}'; exit" SIGINT
@@ -22,14 +25,14 @@ get_bytes() {
 
 while true; do
     # 1. Prise de mesure réseau pour le débit
-    read r1 t1 < <(get_bytes uap0)
-    read r2 t2 < <(get_bytes wlan0)
+    read r1 t1 < <(get_bytes $IFACE_AP)
+    read r2 t2 < <(get_bytes $IFACE_WAN)
     
     # On attend 1 seconde pour calculer le débit par seconde
     sleep 1
     
-    read r3 t3 < <(get_bytes uap0)
-    read r4 t4 < <(get_bytes wlan0)
+    read r3 t3 < <(get_bytes $IFACE_AP)
+    read r4 t4 < <(get_bytes $IFACE_WAN)
 
     # Calcul kbps
     uap_rx=$(( (r3-r1)*8/1024 )); uap_tx=$(( (t3-t1)*8/1024 ))
@@ -81,8 +84,8 @@ EOF
 
     # Réseau
     echo -e "\n${W}Trafic Réseau :${N}"
-    printf "  uap0 (AP Visiteurs) : RX: ${C}%4d kb/s${N}  TX: ${G}%4d kb/s${N}\n" "$uap_rx" "$uap_tx"
-    printf "  wlan0 (MA / SATS)   : RX: ${C}%4d kb/s${N}  TX: ${G}%4d kb/s${N}\n" "$ma_rx" "$ma_tx"
+    printf "  $IFACE_AP (AP Visiteurs) : RX: ${C}%4d kb/s${N}  TX: ${G}%4d kb/s${N}\n" "$uap_rx" "$uap_tx"
+    printf "  $IFACE_WAN (MA / SATS)   : RX: ${C}%4d kb/s${N}  TX: ${G}%4d kb/s${N}\n" "$ma_rx" "$ma_tx"
 
     echo -e "\n${C}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${N}"
     

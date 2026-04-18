@@ -12,6 +12,8 @@ ICECAST_PORT="8111"
 PRESENCE_COOLDOWN="${PRESENCE_COOLDOWN}"
 PRESENCE_ENABLED="${PRESENCE_ENABLED}"
 INSTALL_DIR="${INSTALL_DIR}"
+IFACE_AP="${IFACE_AP}"
+IFACE_WAN="${IFACE_WAN}"
 
 # ── Clocher numérique ────────────────────────────────────────────
 # Intervalle entre annonces quand aucun DJ ne diffuse (secondes).

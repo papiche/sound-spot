@@ -1,12 +1,25 @@
 #!/bin/bash
-# install/channel_sync.sh — Synchronisation canal WiFi hostapd ↔ réseau amont
-#                            + override systemd pour l'ordre de démarrage
-# Maître uniquement.
-# Prérequis : INSTALL_DIR.
-
 setup_channel_sync() {
-    hdr "Synchronisation canal WiFi (hostapd ↔ réseau amont)"
+    hdr "Synchronisation canal WiFi"
 
+    # ── Ordre de démarrage systemd ──
+    mkdir -p /etc/systemd/system/hostapd.service.d
+    install_template after-soundspot-ap-hostapd.conf \
+        /etc/systemd/system/hostapd.service.d/after-soundspot-ap.conf
+
+    mkdir -p /etc/systemd/system/dnsmasq.service.d
+    install_template after-soundspot-ap-dnsmasq.conf \
+        /etc/systemd/system/dnsmasq.service.d/after-soundspot-ap.conf
+
+    systemctl daemon-reload
+
+    if [ "$IFACE_AP" != "uap0" ]; then
+        log "Mode Dual-WiFi : Indépendance des canaux activée."
+        log "Hostapd utilisera le canal dédié ${WIFI_CHANNEL} au lieu de suivre wlan0."
+        return 0
+    fi
+
+    log "Mode Monocarte : Synchronisation hostapd ↔ réseau amont activée."
     install_template sync_channel.sh "$INSTALL_DIR/sync_channel.sh"
     chmod +x "$INSTALL_DIR/sync_channel.sh"
 
@@ -15,17 +28,4 @@ setup_channel_sync() {
         '${INSTALL_DIR}'
     systemctl enable soundspot-channel-sync
     log "Service soundspot-channel-sync activé"
-
-    # ── Ordre de démarrage : uap0 + channel-sync avant hostapd/dnsmasq ──
-    hdr "Ordre de démarrage systemd"
-
-    mkdir -p /etc/systemd/system/hostapd.service.d
-    install_template after-uap0-hostapd.conf \
-        /etc/systemd/system/hostapd.service.d/after-uap0.conf
-
-    mkdir -p /etc/systemd/system/dnsmasq.service.d
-    install_template after-uap0-dnsmasq.conf \
-        /etc/systemd/system/dnsmasq.service.d/after-uap0.conf
-
-    systemctl daemon-reload
 }

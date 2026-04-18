@@ -111,8 +111,19 @@ else
 fi
 
 # ════════════════════════════════════════════════════════════════
-#  3. Réseau WiFi amont (qo-op)
+#  3. Réseau WiFi amont et détection Dual-WiFi
 # ════════════════════════════════════════════════════════════════
+hdr "Réseau WiFi amont et Point d'Accès"
+
+export IFACE_WAN="wlan0"
+if ip link show wlan1 >/dev/null 2>&1; then
+    export IFACE_AP="wlan1"
+    log "Dongle WiFi USB détecté ($IFACE_AP) ! Mode Dual-WiFi activé (Performances max)."
+else
+    export IFACE_AP="uap0"
+    log "Un seul module WiFi détecté. Utilisation de l'interface virtuelle $IFACE_AP."
+fi
+
 hdr "Réseau WiFi amont (connexion Internet)"
 CURRENT_SSID=$(iwgetid -r 2>/dev/null || \
     nmcli -t -f active,ssid dev wifi 2>/dev/null | awk -F: '/^yes:/{print $2}' || true)

@@ -33,6 +33,8 @@ dbg()  { [ "$DEBUG" -eq 1 ] && echo -e "${D}$*${N}"; }
 CONF=/opt/soundspot/soundspot.conf
 [ -f "$CONF" ] && source "$CONF"
 SPOT_IP="${SPOT_IP:-192.168.10.1}"
+IFACE_AP="${IFACE_AP:-uap0}"
+IFACE_WAN="${IFACE_WAN:-wlan0}"
 SPOT_NAME="${SPOT_NAME:-ZICMAMA}"
 SNAPCAST_PORT="${SNAPCAST_PORT:-1704}"
 SOUNDSPOT_USER="${SOUNDSPOT_USER:-pi}"
@@ -112,7 +114,7 @@ info "Spot : ${W}${SPOT_NAME}${N}  IP AP : ${W}${SPOT_IP}${N}  User : ${W}${SOUN
 
 # ── 1. Services systemd ─────────────────────────────────────────
 hdr "Services systemd"
-check_svc uap0                  "Interface uap0"
+check_svc soundspot-ap          "Interface AP ($IFACE_AP)"
 check_svc hostapd               "hostapd (WiFi AP)"
 check_svc dnsmasq               "dnsmasq (DHCP/DNS)"
 check_svc ipset-soundspot       "ipset-soundspot"
@@ -131,36 +133,40 @@ check_svc opennds               "opennds"    masked
 # ── 2. Réseau ───────────────────────────────────────────────────
 hdr "Réseau"
 
-# wlan0 - réseau amont
-if ip addr show wlan0 2>/dev/null | grep -q "inet "; then
-    WLAN_IP=$(ip -4 addr show wlan0 | awk '/inet/{print $2}' | head -1)
+# $IFACE_WAN - réseau amont
+if ip addr show $IFACE_WAN 2>/dev/null | grep -q "inet "; then
+    WLAN_IP=$(ip -4 addr show $IFACE_WAN | awk '/inet/{print $2}' | head -1)
     SSID=$(iwgetid -r 2>/dev/null || echo "?")
-    CHAN_WLAN=$(iw dev wlan0 info 2>/dev/null | awk '/channel/{print $2}')
-    ok "wlan0 connecté  ${D}IP:${N} $WLAN_IP  ${D}SSID:${N} $SSID  ${D}canal:${N} ${CHAN_WLAN:-?}"
+    CHAN_WLAN=$(iw dev $IFACE_WAN info 2>/dev/null | awk '/channel/{print $2}')
+    ok "$IFACE_WAN connecté  ${D}IP:${N} $WLAN_IP  ${D}SSID:${N} $SSID  ${D}canal:${N} ${CHAN_WLAN:-?}"
 else
-    fail "wlan0 sans adresse IP — pas de réseau amont"
+    fail "$IFACE_WAN sans adresse IP — pas de réseau amont"
 fi
 
-# uap0 - AP visiteurs
-if ip -4 addr show uap0 2>/dev/null | grep -q "inet ${SPOT_IP}"; then
-    AP_MAC=$(cat /sys/class/net/uap0/address 2>/dev/null || echo "?")
-    CHAN_UAP=$(iw dev uap0 info 2>/dev/null | awk '/channel/{print $2}')
+# $IFACE_AP - AP visiteurs
+if ip -4 addr show $IFACE_AP 2>/dev/null | grep -q "inet ${SPOT_IP}"; then
+    AP_MAC=$(cat /sys/class/net/$IFACE_AP/address 2>/dev/null || echo "?")
+    CHAN_AP=$(iw dev $IFACE_AP info 2>/dev/null | awk '/channel/{print $2}')
     CHAN_HOSTAPD=$(grep -E "^channel=" /etc/hostapd/hostapd.conf 2>/dev/null | cut -d= -f2)
-    ok "uap0 up  ${D}IP:${N} ${SPOT_IP}  ${D}MAC:${N} ${AP_MAC}  ${D}canal radio:${N} ${CHAN_UAP:-?}  ${D}hostapd.conf:${N} ${CHAN_HOSTAPD:-?}"
-    if [ -n "$CHAN_WLAN" ] && [ -n "$CHAN_UAP" ] && [ "$CHAN_WLAN" != "$CHAN_UAP" ]; then
-        warn "Canal wlan0 (${CHAN_WLAN}) ≠ uap0 (${CHAN_UAP}) — possible instabilité AP"
+    ok "$IFACE_AP up  ${D}IP:${N} ${SPOT_IP}  ${D}MAC:${N} ${AP_MAC}  ${D}canal radio:${N} ${CHAN_AP:-?}  ${D}hostapd.conf:${N} ${CHAN_HOSTAPD:-?}"
+    if[ -n "$CHAN_WLAN" ] && [ -n "$CHAN_AP" ]; then
+        if[ "$IFACE_AP" = "uap0" ] &&[ "$CHAN_WLAN" != "$CHAN_AP" ]; then
+            warn "Mode Monocarte : Canal $IFACE_WAN (${CHAN_WLAN}) ≠ $IFACE_AP (${CHAN_AP}) — instabilité garantie"
+        elif[ "$IFACE_AP" != "uap0" ] &&[ "$CHAN_WLAN" = "$CHAN_AP" ]; then
+            warn "Mode Dual-WiFi : Canal $IFACE_WAN (${CHAN_WLAN}) = $IFACE_AP (${CHAN_AP}) — risque d interférences (séparer les canaux)"
+        fi
     fi
 else
-    fail "uap0 absent ou IP ${SPOT_IP} non assignée"
+    fail "$IFACE_AP absent ou IP ${SPOT_IP} non assignée"
 fi
 
-# Clients WiFi associés à uap0
-STATIONS=$(iw dev uap0 station dump 2>/dev/null | grep -c "^Station")
+# Clients WiFi associés à $IFACE_AP
+STATIONS=$(iw dev $IFACE_AP station dump 2>/dev/null | grep -c "^Station")
 if [ "$STATIONS" -gt 0 ]; then
-    ok "${STATIONS} client(s) WiFi associé(s) à uap0"
-    iw dev uap0 station dump 2>/dev/null | awk '/^Station/{print "    MAC: "$2}'
+    ok "${STATIONS} client(s) WiFi associé(s) à $IFACE_AP"
+    iw dev $IFACE_AP station dump 2>/dev/null | awk '/^Station/{print "    MAC: "$2}'
 else
-    info "Aucun client WiFi connecté à uap0 actuellement"
+    info "Aucun client WiFi connecté à $IFACE_AP actuellement"
 fi
 
 # ip_forward
@@ -171,10 +177,10 @@ else
 fi
 
 # Internet amont
-if ping -c1 -W2 -I wlan0 8.8.8.8 &>/dev/null; then
-    ok "Internet amont joignable via wlan0"
+if ping -c1 -W2 -I $IFACE_WAN 8.8.8.8 &>/dev/null; then
+    ok "Internet amont joignable via $IFACE_WAN"
 else
-    fail "Pas d'Internet via wlan0 (8.8.8.8 injoignable)"
+    fail "Pas d'Internet via $IFACE_WAN (8.8.8.8 injoignable)"
 fi
 
 # ── 3. Pare-feu ─────────────────────────────────────────────────

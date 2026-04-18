@@ -4,36 +4,21 @@
 setup_networking() {
     hdr "Configuration Réseau"
 
-    # 1. Empêcher NetworkManager de gérer uap0
+    # 1. Empêcher NetworkManager de gérer l'interface AP
     mkdir -p /etc/NetworkManager/conf.d
-    cat > /etc/NetworkManager/conf.d/99-unmanaged-devices.conf <<'EOF'
+    cat > /etc/NetworkManager/conf.d/99-unmanaged-devices.conf <<EOF
 [keyfile]
-unmanaged-devices=interface-name:uap0
+unmanaged-devices=interface-name:${IFACE_AP}
 EOF
     systemctl reload NetworkManager 2>/dev/null || true
 
-    # 2. Interface AP virtuelle (uap0)
-    install_template uap0.service /etc/systemd/system/uap0.service '${SPOT_IP}'
+    # 2. Interface AP SoundSpot (Gère uap0 virtuelle ou wlan1 physique + assignation IP)
+    install_template soundspot-ap.service /etc/systemd/system/soundspot-ap.service \
+        '${IFACE_AP} ${SPOT_IP}'
     systemctl daemon-reload
-    systemctl enable uap0
-
-    # 3. IP statique pour uap0
-    cat > /etc/systemd/system/uap0-ip.service <<EOF
-[Unit]
-Description=IP statique pour uap0
-After=uap0.service
-BindsTo=uap0.service
-
-[Service]
-Type=oneshot
-ExecStart=/sbin/ip addr add ${SPOT_IP}/24 dev uap0 2>/dev/null || true
-ExecStart=/sbin/ip link set uap0 up
-RemainAfterExit=yes
-
-[Install]
-WantedBy=multi-user.target
-EOF
-    systemctl enable uap0-ip.service
+    systemctl enable soundspot-ap
+    
+    # (L'étape 3 de l'ancien script a été supprimée car intégrée au service ci-dessus)
 
     # 4. hostapd & dnsmasq
     systemctl unmask hostapd
