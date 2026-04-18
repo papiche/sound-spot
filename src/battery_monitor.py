@@ -48,6 +48,21 @@ LOW_TEXT = (
     "Je vais bientôt m'éteindre pour recharger mes batteries au soleil."
 )
 
+def export_to_prometheus(voltage, percent):
+    prom_path = "/var/lib/prometheus/node-exporter/picoport_battery.prom"
+    try:
+        # On crée le dossier si besoin (doit être fait par l'installeur)
+        with open(prom_path + ".tmp", "w") as f:
+            f.write(f"# HELP picoport_battery_voltage Voltage of the solar battery\n")
+            f.write(f"# TYPE picoport_battery_voltage gauge\n")
+            f.write(f"picoport_battery_voltage {voltage:.2f}\n")
+            f.write(f"# HELP picoport_battery_percent Percentage of the solar battery\n")
+            f.write(f"# TYPE picoport_battery_percent gauge\n")
+            f.write(f"picoport_battery_percent {percent}\n")
+        os.replace(prom_path + ".tmp", prom_path)
+    except Exception as e:
+        log.error("Failed to export metrics: %s", e)
+
 # ── Courbe de décharge LiPo 3.7 V simplifiée ──────────────────────────
 VOLTAGE_MAX = 4.20   # 100 %
 VOLTAGE_MIN = 3.20   # 0 %  (seuil de coupure)

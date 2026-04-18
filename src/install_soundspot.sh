@@ -42,6 +42,17 @@ hdr "Vérifications"
 grep -q "Raspberry Pi" /proc/cpuinfo 2>/dev/null || warn "Pas un RPi détecté — on continue quand même"
 log "RPi Zero 2W détecté — profil minimal activé"
 
+setup_picoport() {
+    hdr "Installation de Picoport (Micro-Astroport)"
+    
+    # Copie du dossier depuis les sources vers /opt/soundspot
+    cp -r "$SCRIPT_DIR/picoport" "$INSTALL_DIR/"
+    chmod +x "$INSTALL_DIR/picoport/"*.sh
+    
+    # Exécution de l'installeur
+    bash "$INSTALL_DIR/picoport/install_picoport.sh"
+}
+
 # ── Paquets ──────────────────────────────────────────────────
 hdr "Installation des paquets"
 export DEBIAN_FRONTEND=noninteractive
@@ -61,7 +72,7 @@ apt_retry install -y --no-install-recommends \
     python3-markdown \
     espeak-ng \
     curl wget ffmpeg \
-    iw wireless-tools
+    iw wireless-tools socat
 
 mkdir -p "$INSTALL_DIR"
 
@@ -87,6 +98,7 @@ setup_snapclient master
 setup_channel_sync
 setup_presence
 setup_idle
+setup_picoport
 
 # ── Fichier de configuration central ─────────────────────────
 hdr "Fichier de configuration central"
