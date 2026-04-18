@@ -82,17 +82,21 @@ EOF
     iptables -A FORWARD -i uap0 -o wlan0 -j REJECT
     
     # Rendre l'ipset persistant au boot (astuce systemd)
-    cat > /etc/systemd/system/ipset-soundspot.service <<EOF[Unit]
+cat > /etc/systemd/system/ipset-soundspot.service <<EOF
+[Unit]
 Description=Création de l'ipset SoundSpot au boot
 Before=netfilter-persistent.service
+
 [Service]
 Type=oneshot
 ExecStartPre=/sbin/modprobe ip_set_hash_mac
 ExecStart=/usr/sbin/ipset create soundspot_auth hash:mac timeout 900 -exist
 RemainAfterExit=yes
+
 [Install]
 WantedBy=multi-user.target
 EOF
+
     systemctl enable ipset-soundspot.service
     
     netfilter-persistent save
