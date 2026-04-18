@@ -33,6 +33,17 @@ if [ "$(id -u)" -ne 0 ]; then
     err "Ce script doit être lancé avec sudo : sudo bash $0"
 fi
 
+# Vérifier si linger est déjà activé
+if ! loginctl show-user "$USER" | grep -q "Linger=yes"; then
+  sudo loginctl enable-linger "$USER"
+fi
+
+# Vérifier si la config existe déjà
+if ! grep -q "^KillUserProcesses=no" /etc/systemd/logind.conf; then
+  echo "KillUserProcesses=no" | sudo tee -a /etc/systemd/logind.conf
+  sudo systemctl restart systemd-logind
+fi
+
 # ── Parse arguments ──────────────────────────────────────────────
 SOUNDSPOT_MODE=""
 for _arg in "$@"; do

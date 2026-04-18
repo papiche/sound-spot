@@ -70,9 +70,13 @@ EOF
 echo "=== 4b. Configuration de l'identité déterministe (Y-Level) ==="
 bash "$INSTALL_DIR/picoport_init_keys.sh"
 
-echo "=== 5. Mise en place de la boucle Picoport ==="
+echo "=== 5. Mise en place de la station Picoport ==="
 cp "$(dirname "$0")/picoport.sh" "$INSTALL_DIR/picoport.sh"
 chmod +x "$INSTALL_DIR/picoport.sh"
+echo "=== extended bashrc ==="
+
+bash "$INSTALL_DIR/pico_bashrc_manager.sh install"
+
 
 echo "=== 6. Service Systemd Picoport ==="
 cat > /etc/systemd/system/picoport.service <<EOF
