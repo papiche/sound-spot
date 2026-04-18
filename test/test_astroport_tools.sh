@@ -356,13 +356,16 @@ T["total_bench"]=$(( BENCH_END - BENCH_START ))
 
 # ── Calcul du crypto_score (basé sur keygen_duniter = scrypt RAM-hard) ───────
 # keygen duniter utilise scrypt → mesure fidèle de la vitesse CPU+RAM
+# Valeurs de référence mesurées (voir test/BENCH_REFERENCE.md) :
+#   ~245ms  → PC Intel i7 (score 8)
+#   ~6111ms → RPi Zero 2W (score 1)
 KEYGEN_MS="${T[keygen_duniter]:-9999}"
-if   (( KEYGEN_MS < 150  )); then CRYPTO_SCORE=10
-elif (( KEYGEN_MS < 300  )); then CRYPTO_SCORE=8
-elif (( KEYGEN_MS < 600  )); then CRYPTO_SCORE=6
-elif (( KEYGEN_MS < 1200 )); then CRYPTO_SCORE=4
-elif (( KEYGEN_MS < 2500 )); then CRYPTO_SCORE=2
-else                               CRYPTO_SCORE=1
+if   (( KEYGEN_MS < 150  )); then CRYPTO_SCORE=10   # Serveur GPU / i9+
+elif (( KEYGEN_MS < 300  )); then CRYPTO_SCORE=8    # PC bureautique moderne  [nexus: 245ms]
+elif (( KEYGEN_MS < 600  )); then CRYPTO_SCORE=6    # RPi 4 / ARM Cortex-A55
+elif (( KEYGEN_MS < 1200 )); then CRYPTO_SCORE=4    # RPi 3B
+elif (( KEYGEN_MS < 2500 )); then CRYPTO_SCORE=2    # RPi 3A+ / Orange Pi Zero
+else                               CRYPTO_SCORE=1   # RPi Zero 2W [soundspot: 6111ms]
 fi
 
 # ── Affichage tabulaire ──────────────────────────────────────────────────────
