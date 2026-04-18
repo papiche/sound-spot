@@ -159,7 +159,7 @@ hdr "Enceinte Bluetooth"
 # 1. Vérifier si des appareils sont déjà connus/connectés
 log "Vérification des appareils déjà connus..."
 KNOWN_DEVICES=$(bluetoothctl devices Paired 2>/dev/null || true)
-if[ -n "$KNOWN_DEVICES" ]; then
+if [ -n "$KNOWN_DEVICES" ]; then
     echo -e "${DIM}Appareils déjà couplés sur ce Raspberry :${N}"
     echo "$KNOWN_DEVICES" | while read -r line; do
         MAC=$(echo "$line" | awk '{print $2}')
