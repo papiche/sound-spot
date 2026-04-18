@@ -110,7 +110,7 @@ cat <<HTMLEOF
         🍎 iPhone : <a href="https://apps.apple.com/app/snapcast-client/id1552559654" style="color:var(--accent2)">Snapcast pour iOS</a><br>
         🖥 PC/Linux : <code class="val">snapclient -h ${SPOT_IP}</code></span></div>
     <div class="step"><div class="step-n n-v">03</div>
-      <span>Soutenir le collectif <a href="https://opencollective.com/monnaie-libre" style="color:var(--accent)">monnaie-libre.org</a></span></div>
+      <span>Soutenir le collectif <a href="https://opencollective.com/monnaie-libre" style="color:var(--accent)">G1FabLab</a></span></div>
   </div>
 
   <hr>
@@ -127,9 +127,9 @@ cat <<HTMLEOF
   <h2>Diffuser votre musique</h2>
 
   <div class="info-box">
-    <div class="info-row"><span>Serveur Icecast</span><span>${SPOT_IP}:${ICECAST_PORT}</span></div>
+    <div class="info-row"><span>Serveur Icecast</span><span>${SPOT_IP}:${ICECAST_PORT:-8111}</span></div>
     <div class="info-row"><span>Montage</span>       <span>/live</span></div>
-    <div class="info-row"><span>Login / Mdp</span>   <span>source / (dans soundspot.conf)</span></div>
+    <div class="info-row"><span>Login / Mdp</span>   <span>source / (contactez support@qo-op.com)</span></div>
   </div>
 
   <h2 style="color:var(--dj);margin-top:14px">Sur PC (Linux/Mac/Windows)</h2>

@@ -1,49 +1,57 @@
 #!/bin/bash
+# bt-connect.sh — Connexion Bluetooth automatique au boot
+# Supporte le Linger et attend que PipeWire soit prêt.
+
 source /opt/soundspot/soundspot.conf
-# Support multi-enceintes : BT_MACS contient une liste de MACs séparés par espaces
+
+# Support multi-enceintes
 MACS="${BT_MACS:-${BT_MAC:-}}"
 [ -z "$MACS" ] && { echo "BT_MACS non défini, skip"; exit 0; }
 
-# ── Attendre que WirePlumber soit prêt à gérer le profil A2DP ──────────────
-# WirePlumber est un service utilisateur : il démarre après les services système.
-# Sans cette attente, bluetoothd répond "Protocol not available" car son handler
-# A2DP n'est pas encore enregistré.
 SOUNDSPOT_USER="${SOUNDSPOT_USER:-pi}"
 USER_ID=$(id -u "$SOUNDSPOT_USER" 2>/dev/null || echo 1000)
-PW_SOCK="/run/user/${USER_ID}/pipewire-0"
+export XDG_RUNTIME_DIR="/run/user/${USER_ID}"
 
-echo "Attente du socket PipeWire (max 45s)..."
-WAITED=0
-while [ $WAITED -lt 45 ] && [ ! -S "$PW_SOCK" ]; do
+# 1. --- CRITIQUE : Attendre que le dossier utilisateur soit créé par Systemd (Linger) ---
+echo "Attente de l'environnement utilisateur ($XDG_RUNTIME_DIR)..."
+for i in {1..30}; do
+    if [ -d "$XDG_RUNTIME_DIR" ]; then
+        break
+    fi
     sleep 1
-    WAITED=$((WAITED + 1))
 done
 
-if [ -S "$PW_SOCK" ]; then
-    echo "PipeWire prêt après ${WAITED}s — attente enregistrement A2DP (3s)..."
-    sleep 3   # laisser le plugin bluetooth de WirePlumber s'enregistrer auprès de bluetoothd
-else
-    echo "Avertissement : socket PipeWire non trouvé après 45s — tentative quand même"
-fi
+# 2. --- Attendre que le socket PipeWire soit créé ---
+echo "Attente du socket PipeWire..."
+for i in {1..20}; do
+    if [ -S "$XDG_RUNTIME_DIR/pipewire-0" ]; then
+        break
+    fi
+    sleep 1
+done
 
-# ── Activer l'agent Bluetooth ─────────────────────────────────────────────
+# Laisser 2 secondes de plus à WirePlumber pour stabiliser le plugin Bluetooth
+sleep 2
+
+# 3. --- Préparer l'agent Bluetooth ---
 bluetoothctl agent on 2>/dev/null || true
 bluetoothctl default-agent 2>/dev/null || true
 
-CONNECTED=0
+# 4. --- Boucle de connexion robuste ---
+CONNECTED_COUNT=0
 for mac in $MACS; do
-    echo "Connexion BT : $mac"
+    echo "Vérification enceinte : $mac"
 
-    # Si déjà connecté, compter et passer au suivant
+    # Si déjà connecté, on passe à la suivante
     if bluetoothctl info "$mac" 2>/dev/null | grep -q "Connected: yes"; then
-        echo "Enceinte $mac déjà connectée — skip"
-        CONNECTED=$((CONNECTED + 1))
+        echo "Enceinte $mac déjà connectée."
+        CONNECTED_COUNT=$((CONNECTED_COUNT + 1))
         continue
     fi
 
-    # Vérifier si l'appareil est connu (appairé) avant de tenter connect
+    # Si l'appareil est totalement inconnu, on tente un scan rapide
     if ! bluetoothctl info "$mac" 2>&1 | grep -q "Device $mac"; then
-        echo "Appareil $mac non appairé — tentative de scan (8s)..."
+        echo "Appareil $mac inconnu — scan de 8s..."
         bluetoothctl scan on &
         SCAN_PID=$!
         sleep 8
@@ -51,30 +59,32 @@ for mac in $MACS; do
         wait "$SCAN_PID" 2>/dev/null || true
     fi
 
+    # Tentatives de connexion (5 essais)
     for i in $(seq 1 5); do
+        echo "Tentative de connexion $i/5 vers $mac..."
         if bluetoothctl connect "$mac" 2>&1 | grep -q "Connection successful"; then
-            echo "Enceinte BT connectée : $mac"
-            CONNECTED=$((CONNECTED + 1))
+            echo "Succès : $mac connecté."
+            CONNECTED_COUNT=$((CONNECTED_COUNT + 1))
             break
         fi
         sleep 5
     done
 done
 
-[ "$CONNECTED" -gt 0 ] || { echo "Échec connexion BT pour toutes les enceintes"; exit 1; }
+# 5. --- Finalisation ---
+if [ "$CONNECTED_COUNT" -gt 0 ]; then
+    # Si plusieurs enceintes, on les regroupe
+    if [ $(echo "$MACS" | wc -w) -gt 1 ]; then
+        sleep 2
+        /opt/soundspot/bt-combine-sinks.sh 2>/dev/null || true
+    fi
 
-# Si plusieurs enceintes, créer un sink combiné PipeWire/PulseAudio
-MAC_COUNT=$(echo "$MACS" | wc -w)
-if [ "$MAC_COUNT" -gt 1 ]; then
-    sleep 3
-    /opt/soundspot/bt-combine-sinks.sh 2>/dev/null || true
+    # TRÈS IMPORTANT : Relancer le client pour qu'il "voit" la sortie Bluetooth
+    echo "Relance de soundspot-client pour basculer sur le Bluetooth..."
+    systemctl restart soundspot-client
+else
+    echo "Échec : aucune enceinte connectée."
+    exit 1
 fi
-
-# Redémarrer snapclient pour qu'il détecte le sink Bluetooth maintenant disponible.
-# Sans ce redémarrage, snapclient reste sur le sink null démarré au boot et le son
-# n'arrive sur l'enceinte BT que si l'utilisateur se connecte manuellement en SSH.
-sleep 2
-echo "Redémarrage soundspot-client pour basculer vers le sink BT..."
-systemctl restart soundspot-client 2>/dev/null || true
 
 exit 0

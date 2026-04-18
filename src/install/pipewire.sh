@@ -17,6 +17,9 @@ setup_pipewire() {
     install_template pipewire-soundspot-null.conf \
         /etc/pipewire/pipewire.conf.d/50-soundspot-null.conf
     
+    # Active les services PipeWire au niveau "user" même sans session active
+    sudo -u "${SOUNDSPOT_USER}" dbus-run-session systemctl --user enable pipewire.service pipewire-pulse.service wireplumber.service
+
     # 4. FIX : S'assurer que PipeWire démarre AVANT que le client ne le cherche
     # On force le démarrage immédiat pour l'UID 1000
     sudo -u ${SOUNDSPOT_USER} XDG_RUNTIME_DIR=/run/user/${SOUNDSPOT_UID} systemctl --user start pipewire.socket wireplumber
