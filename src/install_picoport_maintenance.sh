@@ -120,5 +120,5 @@ fi
 echo "✅ Maintenance terminée."
 MAINEOF
 
-chmod +x "$PICOPORT_DIR/picoport_20h12.sh"
+sudo chmod +x "$PICOPORT_DIR/picoport_20h12.sh"
 echo "▶ picoport_20h12.sh créé"
