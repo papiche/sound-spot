@@ -93,20 +93,57 @@ ring_bells() {
     done
 }
 
-# ── Annonce vocale de l'heure ─────────────────────────────────────
+# ── Longitude depuis ~/.zen/GPS ; fallback méridien du fuseau ────
+get_solar_lon() {
+    local user_home gps_file lon tz_str tz_sign tz_hh tz_mm tz_min
+    user_home=$(getent passwd "${SOUNDSPOT_USER:-pi}" | cut -d: -f6 2>/dev/null || echo "/home/pi")
+    gps_file="$user_home/.zen/GPS"
+    if [ -f "$gps_file" ]; then
+        lon=$(grep -oP '(?<=LON=)[^\s]+' "$gps_file" 2>/dev/null | head -1 || true)
+        [ -n "$lon" ] && echo "$lon" && return
+    fi
+    # Fallback : méridien central du fuseau système
+    # (Europe/Paris UTC+2 → 30°E → annonce heure civile si GPS absent)
+    tz_str=$(date +%z)
+    tz_sign=1; [[ "$tz_str" == -* ]] && tz_sign=-1
+    tz_hh=$((10#${tz_str:1:2})); tz_mm=$((10#${tz_str:3:2}))
+    tz_min=$(( tz_sign * (tz_hh * 60 + tz_mm) ))
+    awk -v tm="$tz_min" 'BEGIN{printf "%.1f\n", tm/4}'
+}
+
+# ── Heure solaire vraie : heure_légale + (longitude − méridien_fuseau) × 4min ──
+# 1° = 4 min. Retourne "H M" (entiers).
+calc_solar_time() {
+    local lon="${1:-0}"
+    local local_h local_m tz_str tz_sign tz_hh tz_mm tz_min correction_min solar_min
+    local_h=$(date +%-H)
+    local_m=$(date +%-M)
+    # Décalage UTC du fuseau système (ex: +0200 → 120 min → méridien 30°E)
+    tz_str=$(date +%z)
+    tz_sign=1; [[ "$tz_str" == -* ]] && tz_sign=-1
+    tz_hh=$((10#${tz_str:1:2})); tz_mm=$((10#${tz_str:3:2}))
+    tz_min=$(( tz_sign * (tz_hh * 60 + tz_mm) ))
+    # correction = longitude×4 min − décalage_fuseau
+    correction_min=$(awk -v lon="$lon" -v tz="$tz_min" \
+        'BEGIN{v=lon*4-tz; printf "%d\n", (v>=0)?int(v+0.5):int(v-0.5)}')
+    solar_min=$(( local_h * 60 + local_m + correction_min ))
+    solar_min=$(( ((solar_min % 1440) + 1440) % 1440 ))
+    echo "$(( solar_min / 60 )) $(( solar_min % 60 ))"
+}
+
+# ── Annonce vocale de l'heure solaire ────────────────────────────
 announce_time() {
-    local h m msg
-    h=$(date +%-H)
-    m=$(date +%-M 2>/dev/null || date +%M | sed 's/^0*//')
-    : "${m:=0}"
-    case "$m" in
-        0)  msg="${h} heures" ;;
-        15) msg="${h} heures et quart" ;;
-        30) msg="${h} heures et demie" ;;
-        45) msg="${h} heures quarante-cinq" ;;
-        *)  msg="${h} heures ${m}" ;;
+    local lon sol_h sol_m m_str
+    lon=$(get_solar_lon)
+    read -r sol_h sol_m <<< "$(calc_solar_time "$lon")"
+    case "$sol_m" in
+        0)  m_str="heures" ;;
+        15) m_str="heures et quart" ;;
+        30) m_str="heures et demie" ;;
+        45) m_str="heures quarante-cinq" ;;
+        *)  m_str="heures ${sol_m}" ;;
     esac
-    say "$msg"
+    say "Il est ${sol_h} ${m_str} heure solaire"
 }
 
 # ── Boucle principale ─────────────────────────────────────────────
@@ -117,13 +154,13 @@ main() {
     while true; do
         reload_conf
 
-        local now m elapsed
+        local now sol_h sol_m lon elapsed
         now=$(date +%s)
-        m=$(date +%-M 2>/dev/null || date +%M | sed 's/^0*//')
-        : "${m:=0}"
         elapsed=$(( now - last_announce ))
+        lon=$(get_solar_lon)
+        read -r sol_h sol_m <<< "$(calc_solar_time "$lon")"
 
-        if [[ "$m" =~ ^(0|15|30|45)$ ]] && [ "$elapsed" -ge 840 ]; then
+        if [[ "$sol_m" =~ ^(0|15|30|45)$ ]] && [ "$elapsed" -ge 840 ]; then
             last_announce=$now
 
             if ! is_dj_active; then
@@ -131,16 +168,15 @@ main() {
                 play_wav "$WAV_DIR/tone_429hz.wav"
                 sleep 1
 
-                # 2. Coups de cloche à l'heure pile (configurable via CLOCK_MODE)
-                if [ "$m" = "0" ] && [ "${CLOCK_MODE:-bells}" = "bells" ]; then
-                    local bells
-                    bells=$(date +%-I 2>/dev/null || date +%I | sed 's/^0*//')
-                    : "${bells:=12}"
+                # 2. Coups de cloche à l'heure solaire pile (configurable via CLOCK_MODE)
+                if [ "$sol_m" = "0" ] && [ "${CLOCK_MODE:-bells}" = "bells" ]; then
+                    local bells=$(( sol_h % 12 ))
+                    [ "$bells" -eq 0 ] && bells=12
                     ring_bells "$bells"
                     sleep 1
                 fi
 
-                # 3. Heure en voix (non désactivable)
+                # 3. Heure solaire en voix (non désactivable)
                 announce_time
                 sleep 1
 

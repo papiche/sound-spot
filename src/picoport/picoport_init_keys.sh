@@ -6,11 +6,35 @@
 set -e
 
 MY_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# On remonte pour trouver les outils Astroport
-ASTRO_TOOLS="$HOME/.zen/Astoport.ONE/tools"
+# Outils Astroport.ONE (clonés par install_picoport_maintenance.sh)
+ASTRO_TOOLS="$HOME/.zen/Astroport.ONE/tools"
+[ -f "$ASTRO_TOOLS/my.sh" ] || { echo "Astroport.ONE introuvable — lancer install_picoport_maintenance.sh d'abord"; exit 1; }
 source "$ASTRO_TOOLS/my.sh"
 
-
+# ── Venv Python ~/.astro/ (Astroport.ONE compatible) ─────────────
+# Astroport.ONE est cloné sans install.sh — créer le venv si absent
+if [ ! -s "$HOME/.astro/bin/activate" ]; then
+    echo "🐍 Création du venv ~/.astro/ pour les tools Astroport.ONE..."
+    python3 -m venv "$HOME/.astro" \
+        || { echo "⚠ python3-venv manquant ? sudo apt-get install python3-venv"; exit 1; }
+fi
+source "$HOME/.astro/bin/activate"
+# Packages complets requis par keygen (ipfs, nostr, g1, uDRIVE, paiements ẑen)
+# Tous les imports sont top-level dans keygen → aucun ne peut manquer
+_PYPACKAGES=(
+    "base58:base58"          "cryptography:cryptography"  "duniterpy:duniterpy"
+    "python-gnupg:gnupg"     "jwcrypto:jwcrypto"          "PyNaCl:nacl"
+    "pynostr:pynostr"        "bech32:bech32"               "ecdsa:ecdsa"
+    "pynentry:pynentry"      "websocket-client:websocket"  "requests:requests"
+    "monero:monero"          "bitcoin:bitcoin"
+    "scrypt:scrypt"
+)
+for _entry in "${_PYPACKAGES[@]}"; do
+    _pip="${_entry%%:*}"; _mod="${_entry##*:}"
+    python3 -c "import $_mod" 2>/dev/null \
+        || pip install -q "$_pip" 2>/dev/null \
+        || echo "⚠  pip install $_pip échoué (connexion ?)"
+done
 
 INSTALL_DIR="/opt/soundspot/picoport"
 mkdir -p "$INSTALL_DIR/keys"

@@ -119,6 +119,16 @@ else
     [[ "${INPUT_CAMERA,,}" == "o" ]] && export PRESENCE_ENABLED="true" && \
         log "Détecteur de présence activé" || \
         log "Détecteur de présence désactivé"
+
+    echo ""
+    echo -e "  ${DIM}Picoport : nœud IPFS micro-Astroport + keygen + paiements Ğ1/ẑen.${N}"
+    echo -e "  ${DIM}Nécessite ~30 Mo supplémentaires (IPFS + env Python keygen).${N}"
+    ask "Activer Picoport (nœud UPlanet + paiements ẑen) ? [O/n] : "
+    read -r INPUT_PICOPORT
+    export PICOPORT_ENABLED="true"
+    [[ "${INPUT_PICOPORT,,}" == "n" ]] && export PICOPORT_ENABLED="false" && \
+        log "Picoport désactivé" || \
+        log "Picoport activé"
 fi
 
 # ════════════════════════════════════════════════════════════════
@@ -361,11 +371,25 @@ read -r CONFIRM
 [[ "$CONFIRM" == "oui" ]] || err "Installation annulée."
 
 # ════════════════════════════════════════════════════════════════
-#  7. Dépendances minimales
+#  7. Dépendances minimales et fuseau horaire
 # ════════════════════════════════════════════════════════════════
 log "Mise à jour et dépendances minimales..."
 apt-get update -qq
 apt-get install -y -q gettext-base iw bluetooth
+
+# ── Fuseau horaire (critique pour l'heure solaire annoncée) ────
+CURRENT_TZ=$(timedatectl show --property=Timezone --value 2>/dev/null \
+    || cat /etc/timezone 2>/dev/null || echo "UTC")
+if [ "$CURRENT_TZ" = "UTC" ] || [ -z "$CURRENT_TZ" ]; then
+    ask "Fuseau horaire [Europe/Paris] (ex: Europe/Paris, America/Montreal) : "
+    read -r INPUT_TZ
+    INPUT_TZ="${INPUT_TZ:-Europe/Paris}"
+    timedatectl set-timezone "$INPUT_TZ" 2>/dev/null \
+        && log "Fuseau → ${W}${INPUT_TZ}${N} ✓" \
+        || warn "timedatectl set-timezone échoué — fuseau UTC conservé"
+else
+    log "Fuseau horaire : ${C}${CURRENT_TZ}${N} (déjà configuré)"
+fi
 
 # ════════════════════════════════════════════════════════════════
 #  8. Copie des scripts Python vers INSTALL_DIR

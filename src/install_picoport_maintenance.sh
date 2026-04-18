@@ -1,76 +1,120 @@
 #!/bin/bash
-# install_picoport_maintenance.sh
+# install_picoport_maintenance.sh — Dépendances Astroport.ONE pour Picoport
+# À exécuter comme SOUNDSPOT_USER (pas root) — voir setup_picoport() dans install_soundspot.sh
 set -e
 
-INSTALL_DIR="/opt/soundspot/picoport"
-mkdir -p ~/.zen/workspace
+PICOPORT_DIR="/opt/soundspot/picoport"
 
-# 1. Récupération du code Astroport (pour les outils de calcul solaire et crypto)
-if [[ ! -d ~/.zen/Astroport.ONE ]]; then
-    echo "📥 Clonage de Astroport.ONE pour les outils système..."
-    git clone --depth 1 https://github.com/papiche/Astroport.ONE ~/.zen/Astroport.ONE
+# ── 1. Astroport.ONE (outils système : keygen, solar_time, my.sh) ─
+if [ ! -d "$HOME/.zen/Astroport.ONE" ]; then
+    echo "▶ Clonage de Astroport.ONE..."
+    mkdir -p "$HOME/.zen"
+    git clone --depth 1 https://github.com/papiche/Astroport.ONE "$HOME/.zen/Astroport.ONE"
+    chmod +x "$HOME/.zen/Astroport.ONE/tools/"*.sh \
+             "$HOME/.zen/Astroport.ONE/"*.sh 2>/dev/null || true
+else
+    echo "▶ Astroport.ONE déjà présent — mise à jour..."
+    cd "$HOME/.zen/Astroport.ONE" && git pull --ff-only 2>/dev/null || true
 fi
 
-# 2. Lien symbolique pour simplifier l'accès aux outils
-mkdir -p ~/.local/bin
-ln -sf ~/.zen/Astroport.ONE/tools/keygen ~/.local/bin/keygen
-ln -sf ~/.zen/Astroport.ONE/tools/solar_time.sh ~/.local/bin/solar_time
-ln -sf ~/.zen/Astroport.ONE/tools/cpcode ~/.local/bin/cpcode
-ln -sf ~/.zen/Astroport.ONE/tools/cpscript ~/.local/bin/cpscript
+# ── 2. Liens symboliques vers les outils fréquemment utilisés ────
+mkdir -p "$HOME/.local/bin"
+ln -sf "$HOME/.zen/Astroport.ONE/tools/keygen"         "$HOME/.local/bin/keygen"
+ln -sf "$HOME/.zen/Astroport.ONE/tools/solar_time.sh"  "$HOME/.local/bin/solar_time"
+ln -sf "$HOME/.zen/Astroport.ONE/tools/cpcode"         "$HOME/.local/bin/cpcode"   2>/dev/null || true
+ln -sf "$HOME/.zen/Astroport.ONE/tools/cpscript"       "$HOME/.local/bin/cpscript" 2>/dev/null || true
+echo "▶ Liens symboliques outils créés dans ~/.local/bin"
 
-# 3. Initialisation de l'identité automatique (support+hostnameGPS@qo-op.com)
-# On récupère le code pays et les coordonnées floues
-source ~/.zen/Astroport.ONE/tools/my.sh
+# ── 3. Venv Python ~/.astro/ (compatible Astroport.ONE) ───────────
+# Même chemin que l'install Astroport.ONE standard (install.sh ligne 202)
+if [ ! -s "$HOME/.astro/bin/activate" ]; then
+    echo "▶ Création du venv Python ~/.astro/..."
+    python3 -m venv "$HOME/.astro" \
+        && echo "✅ venv créé" \
+        || { echo "⚠ python3-venv absent ?"; exit 1; }
+fi
+# shellcheck disable=SC1090
+source "$HOME/.astro/bin/activate"
+echo "▶ Vérification des packages Python (keygen + Nostr + G1 + uDRIVE)..."
+pip install -q --upgrade pip 2>/dev/null || true
+# Format "paquet_pip:module_python" — vérifie l'import avant d'installer
+# Liste complète exigée par keygen (imports top-level → tous obligatoires)
+_PYPACKAGES=(
+    "base58:base58"          "cryptography:cryptography"  "duniterpy:duniterpy"
+    "python-gnupg:gnupg"     "jwcrypto:jwcrypto"          "PyNaCl:nacl"
+    "pynostr:pynostr"        "bech32:bech32"               "ecdsa:ecdsa"
+    "pynentry:pynentry"      "websocket-client:websocket"  "requests:requests"
+    "monero:monero"          "bitcoin:bitcoin"
+    "scrypt:scrypt"
+)
+for _entry in "${_PYPACKAGES[@]}"; do
+    _pip="${_entry%%:*}"; _mod="${_entry##*:}"
+    python3 -c "import $_mod" 2>/dev/null \
+        || pip install -q "$_pip" 2>/dev/null \
+        || echo "⚠  pip install $_pip échoué (connexion ?)"
+done
+echo "✅ Packages Python keygen/Picoport vérifiés"
+
+# ── 4. Identité Picoport (support+hostname_GPS@qo-op.com) ────────
+source "$HOME/.zen/Astroport.ONE/tools/my.sh" 2>/dev/null || true
 GPS_RAW=$(my_LatLon 2>/dev/null || echo "fr 0.00 0.00")
-# Formatage du suffixe GPS (ex: fr_43.60_1.44)
-GPS_SUFFIX=$(echo $GPS_RAW | awk '{print tolower($1)"_"$2"_"$3}' | sed 's/ /_/g')
-PICO_ID="support+$(hostname)_${GPS_SUFFIX}@qo-op.com" ## TODO : randomize hostname with diceware word_XX 
+GPS_SUFFIX=$(echo "$GPS_RAW" | awk '{print tolower($1)"_"$2"_"$3}' | sed 's/ /_/g')
+PICO_ID="support+$(hostname)_${GPS_SUFFIX}@qo-op.com"
+echo "▶ Identité Picoport : $PICO_ID"
+mkdir -p "$HOME/.zen/game/players/.current/"
+echo "$PICO_ID" > "$HOME/.zen/game/players/.current/.player"
 
-echo "🆔 Identité Picoport générée : $PICO_ID"
-mkdir -p ~/.zen/game/players/.current/
-echo "$PICO_ID" > ~/.zen/game/players/.current/.player
+# ── 5. Script de maintenance quotidienne (20h12 solaire) ─────────
+# Chemin du dépôt sound-spot : déterminé dynamiquement depuis le HOME utilisateur
+SOUNDSPOT_REPO="$HOME/.zen/workspace/sound-spot"
+[ -d "$SOUNDSPOT_REPO" ] || SOUNDSPOT_REPO="/opt/soundspot"
 
-# 4. Création du script de maintenance spécifique au Picoport
-cat > "$INSTALL_DIR/picoport_20h12.sh" << 'EOF'
+mkdir -p "$PICOPORT_DIR"
+cat > "$PICOPORT_DIR/picoport_20h12.sh" << MAINEOF
 #!/bin/bash
-# Maintenance quotidienne Picoport
-source ~/.zen/Astroport.ONE/tools/my.sh
-PICO_PLAYER=$(cat ~/.zen/game/players/.current/.player)
+# Maintenance quotidienne Picoport (20h12 solaire)
+source "$HOME/.astro/bin/activate" 2>/dev/null || true
+source "$HOME/.zen/Astroport.ONE/tools/my.sh" 2>/dev/null || true
+PICO_PLAYER=\$(cat "$HOME/.zen/game/players/.current/.player" 2>/dev/null || echo "unknown")
 LOG_FILE="$HOME/.zen/log/picoport_20h12.log"
-mkdir -p "$(dirname "$LOG_FILE")"
+mkdir -p "\$(dirname "\$LOG_FILE")"
+exec >> "\$LOG_FILE" 2>&1
+echo "--- PICOPORT MAINTENANCE 20H12 SOLAR [\$(date)] ---"
 
-exec >> "$LOG_FILE" 2>&1
-echo "--- PICOPORT MAINTENANCE 20H12 SOLAR [$(date)] ---"
+# 1. Mise à jour du code
+echo "▶ Mise à jour Astroport.ONE..."
+cd "$HOME/.zen/Astroport.ONE" && git pull --ff-only 2>/dev/null || true
 
-# 1. Mise à jour du code Picoport & Astroport
-echo "🔄 Mise à jour du code..."
-cd ~/.zen/Astroport.ONE && git pull
-cd ~/.zen/workspace/sound-spot && git pull || true
+echo "▶ Mise à jour sound-spot..."
+cd "$SOUNDSPOT_REPO" && git pull --ff-only 2>/dev/null || true
 
-# 2. Recalibration de l'heure solaire pour demain
-echo "☀️ Recalibration solaire..."
-~/.zen/workspace/sound-spot/src/picoport/picoport_cron_control.sh RECALIBRATE
+# 2. Recalibration heure solaire
+echo "▶ Recalibration solaire..."
+"$SOUNDSPOT_REPO/src/picoport/picoport_cron_control.sh" RECALIBRATE 2>/dev/null || true
 
-# 3. Signal de vie sur Nostr (Santé du nœud)
-# On récupère les infos batterie si disponibles
+# 3. Signal de vie Nostr (kind 1)
 BATT="N/A"
-[[ -f /tmp/battery_level ]] && BATT=$(cat /tmp/battery_level)
-UPTIME=$(uptime -p)
+[ -f /tmp/battery_level ] && BATT=\$(cat /tmp/battery_level)
+UPTIME=\$(uptime -p)
+IPFSNODEID=\$(ipfs id -f="<id>" 2>/dev/null || echo "unknown")
+MESSAGE="🎶 Picoport SoundSpot
+nœud : \$(hostname)
+player : \$PICO_PLAYER
+🔋 \$BATT // uptime: \$UPTIME
+🌐 http://127.0.0.1:8080/ipns/\$IPFSNODEID"
 
-MESSAGE="🤖 Picoport Sound Spot
-¯\_༼qO͡〰op༽_/¯ : $PICO_PLAYER
-📍 Station: $(hostname)
-🔋 Batterie: $BATT // uptime: $UPTIME
-🌐 http://127.0.0.1:8080/ipns/$IPFSNODEID"
-
-# Envoi via la clé déterministe du Picoport
-source ~/.zen/game/nostr/$PICO_PLAYER/.secret.nostr
-python3 ~/.zen/Astroport.ONE/tools/nostr_send_note.py \
-    --keyfile ~/.zen/game/nostr/$PICO_PLAYER/.secret.nostr \
-    --content "$MESSAGE" \
-    --kind 1 --relays "ws://127.0.0.1:9999,wss://relay.copylaradio.com"
-
+KEYFILE="$HOME/.zen/game/nostr/\$PICO_PLAYER/.secret.nostr"
+if [ -f "\$KEYFILE" ]; then
+    python3 "$HOME/.zen/Astroport.ONE/tools/nostr_send_note.py" \
+        --keyfile "\$KEYFILE" \
+        --content "\$MESSAGE" \
+        --kind 1 \
+        --relays "wss://relay.copylaradio.com" 2>/dev/null \
+        && echo "✅ Signal Nostr envoyé" \
+        || echo "⚠  Signal Nostr échoué"
+fi
 echo "✅ Maintenance terminée."
-EOF
+MAINEOF
 
-chmod +x "$INSTALL_DIR/picoport_20h12.sh"
+chmod +x "$PICOPORT_DIR/picoport_20h12.sh"
+echo "▶ picoport_20h12.sh créé"

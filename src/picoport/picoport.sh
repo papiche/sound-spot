@@ -28,7 +28,9 @@ fi
 
 IPFSNODEID=$(ipfs id -f="<id>")
 HOSTNAME=$(hostname)
-JSON_FILE="$TMP_DIR/12345.json"
+# Chemin Astroport.ONE : ~/.zen/tmp/$IPFSNODEID/12345.json
+mkdir -p "$TMP_DIR/$IPFSNODEID"
+JSON_FILE="$TMP_DIR/$IPFSNODEID/12345.json"
 
 # --- FONCTION : OUVRIR LES PORTES (LISTEN) ---
 # Permet au Swarm de voir mes ports locaux 8111, 1704, etc.
@@ -88,20 +90,46 @@ while true; do
     # --- ACTION 1 : EXPOSER LE STREAM ---
     expose_my_services
 
-    # --- MISE A JOUR DU STATUT ---
+    # --- MISE A JOUR DU STATUT (format Astroport.ONE compatible) ---
+    # Lecture GPS depuis ~/.zen/GPS si disponible (créé par picoport_init_keys.sh)
+    local GPS_LAT="0" GPS_LON="0"
+    if [ -f "$HOME/.zen/GPS" ]; then
+        GPS_LAT=$(grep -oP '(?<=LAT=)[^\s]+' "$HOME/.zen/GPS" 2>/dev/null | head -1 || echo "0")
+        GPS_LON=$(grep -oP '(?<=LON=)[^\s]+' "$HOME/.zen/GPS" 2>/dev/null | head -1 || echo "0")
+    fi
+    local ICECAST_UP SNAPCAST_UP
+    ICECAST_UP=$(ss -tln | grep -q ":8111 " && echo "true" || echo "false")
+    SNAPCAST_UP=$(ss -tln | grep -q ":1704 " && echo "true" || echo "false")
+    # Power-score minimal (RPi Zero 2W : 4 cœurs, 512Mo RAM, pas de GPU)
+    local CPU_CORES; CPU_CORES=$(grep -c "^processor" /proc/cpuinfo 2>/dev/null || echo 4)
+    local RAM_GB; RAM_GB=$(awk '/MemTotal/{printf "%.0f",$2/1048576}' /proc/meminfo 2>/dev/null || echo 0)
+    local POWER_SCORE=$(( CPU_CORES * 2 + RAM_GB / 2 ))
+
     cat > "$JSON_FILE" << EOF
 {
     "version": "picoport-stream-0.4",
-    "created": "$MOATS",
+    "created": $MOATS,
     "hostname": "$HOSTNAME",
     "ipfsnodeid": "$IPFSNODEID",
-    "type": "soundspot-master",
+    "type": "soundspot",
+    "capacities": {
+        "power_score": $POWER_SCORE,
+        "provider_ready": false,
+        "soundspot": true
+    },
     "streaming": {
-        "icecast": $(ss -tln | grep -q ":8111 " && echo "true" || echo "false"),
-        "snapcast": $(ss -tln | grep -q ":1704 " && echo "true" || echo "false")
+        "icecast": $ICECAST_UP,
+        "icecast_port": 8111,
+        "snapcast": $SNAPCAST_UP,
+        "snapcast_port": 1704,
+        "snapweb_port": 1780
     },
     "services": {
         "ipfs": {"active": true, "peers": $PEERS_COUNT}
+    },
+    "gps": {
+        "lat": "$GPS_LAT",
+        "lon": "$GPS_LON"
     }
 }
 EOF
