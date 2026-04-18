@@ -45,7 +45,7 @@ echo "--- PICOPORT MAINTENANCE 20H12 SOLAR [$(date)] ---"
 # 1. Mise à jour du code Picoport & Astroport
 echo "🔄 Mise à jour du code..."
 cd ~/.zen/Astroport.ONE && git pull
-cd /opt/soundspot && git pull || true
+cd ~/.zen/workspace/sound-spot && git pull || true
 
 # 2. Recalibration de l'heure solaire pour demain
 echo "☀️ Recalibration solaire..."
