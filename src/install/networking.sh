@@ -13,7 +13,7 @@ EOF
     systemctl reload NetworkManager 2>/dev/null || true
 
     # 2. Interface AP virtuelle (uap0)
-    install_template uap0.service /etc/systemd/system/uap0.service
+    install_template uap0.service /etc/systemd/system/uap0.service '${SPOT_IP}'
     systemctl daemon-reload
     systemctl enable uap0
 
