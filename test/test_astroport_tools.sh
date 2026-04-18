@@ -106,7 +106,7 @@ done
 
 if [[ -z "$ASTRO_TOOLS" ]]; then
     echo -e "${R}FATAL${N} Astroport.ONE/tools introuvable."
-    echo   "       Lancer install_picoport_maintenance.sh d'abord."
+    echo   "       Lancer install_astroport_light.sh d'abord."
     exit 1
 fi
 

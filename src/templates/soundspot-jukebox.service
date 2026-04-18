@@ -1,0 +1,15 @@
+[Unit]
+Description=SoundSpot — Jukebox Player (Nostr -> PipeWire)
+After=soundspot-client.service
+
+[Service]
+Type=simple
+User=${SOUNDSPOT_USER}
+EnvironmentFile=${INSTALL_DIR}/soundspot.conf
+ExecStart=${INSTALL_DIR}/jukebox_player.sh
+Restart=always
+RestartSec=10
+StandardOutput=journal
+
+[Install]
+WantedBy=multi-user.target

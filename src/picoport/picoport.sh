@@ -2,9 +2,10 @@
 # =======================================================================
 # Picoport.sh — Version STREAM & DRAGON
 # Partage le flux DJ (Icecast/Snapcast) et consomme l'IA du Swarm.
+# Prérequis : ipfs.service doit être actif (géré séparément, CPUQuota=40%).
 # =======================================================================
 
-export IPFS_PATH="$HOME/.ipfs"
+export IPFS_PATH="${IPFS_PATH:-$HOME/.ipfs}"
 TMP_DIR="$HOME/.zen/tmp"
 INSTALL_DIR="/opt/soundspot/picoport"
 BOOTSTRAP_FILE="$INSTALL_DIR/A_boostrap_nodes.txt"
@@ -20,11 +21,16 @@ AI_SERVICES_TO_CONSUME="ollama:11434 open-webui:8000 strfry:9999"
 
 mkdir -p "$TMP_DIR"
 
-# Initialisation IPFS si besoin
-if ! ipfs id >/dev/null 2>&1; then
-    ipfs daemon --init --migrate &
-    sleep 15
-fi
+# Attente du daemon IPFS (géré par ipfs.service — CPUQuota=40%)
+_ipfs_wait=0
+until ipfs id >/dev/null 2>&1; do
+    _ipfs_wait=$(( _ipfs_wait + 1 ))
+    if [ "$_ipfs_wait" -ge 30 ]; then
+        echo "⚠ IPFS daemon non disponible après 30s — Picoport continue sans IPFS" >&2
+        break
+    fi
+    sleep 1
+done
 
 IPFSNODEID=$(ipfs id -f="<id>")
 HOSTNAME=$(hostname)
@@ -92,18 +98,18 @@ while true; do
 
     # --- MISE A JOUR DU STATUT (format Astroport.ONE compatible) ---
     # Lecture GPS depuis ~/.zen/GPS si disponible (créé par picoport_init_keys.sh)
-    local GPS_LAT="0" GPS_LON="0"
+    GPS_LAT="0"
+    GPS_LON="0"
     if [ -f "$HOME/.zen/GPS" ]; then
         GPS_LAT=$(grep -oP '(?<=LAT=)[^\s]+' "$HOME/.zen/GPS" 2>/dev/null | head -1 || echo "0")
         GPS_LON=$(grep -oP '(?<=LON=)[^\s]+' "$HOME/.zen/GPS" 2>/dev/null | head -1 || echo "0")
     fi
-    local ICECAST_UP SNAPCAST_UP
     ICECAST_UP=$(ss -tln | grep -q ":8111 " && echo "true" || echo "false")
     SNAPCAST_UP=$(ss -tln | grep -q ":1704 " && echo "true" || echo "false")
     # Power-score minimal (RPi Zero 2W : 4 cœurs, 512Mo RAM, pas de GPU)
-    local CPU_CORES; CPU_CORES=$(grep -c "^processor" /proc/cpuinfo 2>/dev/null || echo 4)
-    local RAM_GB; RAM_GB=$(awk '/MemTotal/{printf "%.0f",$2/1048576}' /proc/meminfo 2>/dev/null || echo 0)
-    local POWER_SCORE=$(( CPU_CORES * 2 + RAM_GB / 2 ))
+    CPU_CORES=$(grep -c "^processor" /proc/cpuinfo 2>/dev/null || echo 4)
+    RAM_GB=$(awk '/MemTotal/{printf "%.0f",$2/1048576}' /proc/meminfo 2>/dev/null || echo 0)
+    POWER_SCORE=$(( CPU_CORES * 2 + RAM_GB / 2 ))
 
     cat > "$JSON_FILE" << EOF
 {

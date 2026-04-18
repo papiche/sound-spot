@@ -1,5 +1,5 @@
 #!/bin/bash
-# install_picoport_maintenance.sh — Dépendances Astroport.ONE pour Picoport
+# install_astroport_light.sh — Dépendances Astroport.ONE pour Picoport
 # À exécuter comme SOUNDSPOT_USER (pas root) — voir setup_picoport() dans install_soundspot.sh
 set -e
 
@@ -38,6 +38,8 @@ if [ ! -s "$HOME/.astro/bin/activate" ]; then
         || { echo "⚠ python3-venv absent ?"; exit 1; }
 fi
 # shellcheck disable=SC1090
+sudo apt-get install -y python3-dev libffi-dev
+
 source "$HOME/.astro/bin/activate"
 echo "▶ Vérification des packages Python (keygen + Nostr + G1 + uDRIVE)..."
 pip install --upgrade pip 2>/dev/null || true
@@ -54,7 +56,7 @@ _PYPACKAGES=(
 for _entry in "${_PYPACKAGES[@]}"; do
     _pip="${_entry%%:*}"; _mod="${_entry##*:}"
     python3 -c "import $_mod" 2>/dev/null \
-        || pip install -q "$_pip" 2>/dev/null \
+        || pip install --prefer-binary -q "$_pip" 2>/dev/null \
         || echo "⚠  pip install $_pip échoué (connexion ?)"
 done
 echo "✅ Packages Python keygen/Picoport vérifiés"
@@ -67,6 +69,11 @@ PICO_ID="support+$(hostname)_${GPS_SUFFIX}@qo-op.com"
 echo "▶ Identité Picoport : $PICO_ID"
 mkdir -p "$HOME/.zen/game/players/.current/"
 echo "$PICO_ID" > "$HOME/.zen/game/players/.current/.player"
+
+# --- Bonus 
+echo "installation yt-dlp"
+bash $HOME/.zen/Astroport.ONE/install/youtube-dl.sh 
+
 
 # ── 5. Script de maintenance quotidienne (20h12 solaire) ─────────
 # Chemin du dépôt sound-spot : déterminé dynamiquement depuis le HOME utilisateur
@@ -122,3 +129,4 @@ MAINEOF
 
 sudo chmod +x "$PICOPORT_DIR/picoport_20h12.sh"
 echo "▶ picoport_20h12.sh créé"
+

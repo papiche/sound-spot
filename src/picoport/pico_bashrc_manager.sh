@@ -98,8 +98,19 @@ remove_block() {
 }
 
 install_block() {
-    remove_block # On nettoie d'abord pour éviter les doublons
+    remove_block
     echo -e "\n$PICO_BLOCK" >> "$BASHRC"
+    
+    # AJOUT : Aussi injecter dans .bash_aliases qui est souvent sourcé par défaut
+    local ALIAS_FILE="$HOME/.bash_aliases"
+    [ -f "$ALIAS_FILE" ] || touch "$ALIAS_FILE"
+    if ! grep -q "check" "$ALIAS_FILE"; then
+        echo "alias ll='ls -al'" >> "$ALIAS_FILE"
+        echo "alias check='sudo bash /opt/soundspot/check.sh'" >> "$ALIAS_FILE"
+    fi
+    
+    # Forcer la prise en compte immédiate pour l'utilisateur courant
+    export PATH="$HOME/.local/bin:$PATH"
 }
 
 # Menu de commande

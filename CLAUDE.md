@@ -18,7 +18,7 @@ sound-spot/
     ├── install_soundspot.sh
     ├── install_satellite.sh
     ├── install_battery_monitor.sh
-    ├── install_picoport_maintenance.sh   ← Astroport.ONE clone + venv ~/.astro/ + symlinks
+    ├── install_astroport_light.sh   ← Astroport.ONE clone + venv ~/.astro/ + symlinks
     ├── idle_announcer.sh    ← Clocher numérique (bip + cloche + heure solaire + messages)
     ├── bt_update.sh
     ├── presence_detector.py
@@ -89,7 +89,7 @@ There is no build step — this project is pure Bash + Python. ShellCheck can be
 | `check.sh` | Diagnostic complet — services systemd, réseau, pare-feu, pipeline audio, BT, portail captif |
 | `install_soundspot.sh` | Master install: networking (hostapd/dnsmasq/firewall), icecast2, Snapcast, PipeWire, Bluetooth, idle, Picoport (optionnel), services systemd |
 | `install_satellite.sh` | Satellite install: PipeWire + Snapclient only (no AP, no Icecast) |
-| `install_picoport_maintenance.sh` | Clone Astroport.ONE, venv `~/.astro/`, pip keygen+Nostr+G1, symlinks `~/.local/bin/` (keygen, solar_time, astrosystemctl) |
+| `install_astroport_light.sh` | Clone Astroport.ONE, venv `~/.astro/`, pip keygen+Nostr+G1, symlinks `~/.local/bin/` (keygen, solar_time, astrosystemctl) |
 | `idle_announcer.sh` | Clocher numérique — boucle toutes les 15 min : bip 429.62 Hz + coups de cloche + **heure solaire** (correction longitude/fuseau) + messages. Hot-reload de CLOCK_MODE sans redémarrage |
 | `picoport/install_picoport.sh` | IPFS Kubo arm64 + g1cli (Duniter v2s, paiements ẑen) + identité Y-Level + service picoport.service |
 | `picoport/picoport_init_keys.sh` | Identité déterministe : SSH → sha512 → IPFS PeerID + NOSTR MULTIPASS (make_NOSTRCARD.sh) |
@@ -196,8 +196,8 @@ Each `install/*.sh` file exports a single `setup_*` function, sourced by `instal
 
 `setup_picoport()` dans `install_soundspot.sh` :
 1. `cp -r src/picoport/ /opt/soundspot/picoport/`
-2. `chown -R SOUNDSPOT_USER` (nécessaire — `install_picoport_maintenance.sh` tourne en non-root)
-3. `sudo -u SOUNDSPOT_USER bash install_picoport_maintenance.sh` — clone Astroport.ONE, venv `~/.astro/`, pip, symlinks
+2. `chown -R SOUNDSPOT_USER` (nécessaire — `install_astroport_light.sh` tourne en non-root)
+3. `sudo -u SOUNDSPOT_USER bash install_astroport_light.sh` — clone Astroport.ONE, venv `~/.astro/`, pip, symlinks
 4. `bash install_picoport.sh` — IPFS, g1cli arm64, clés Y-Level, `picoport.service`
 
 **Chaîne de clés Y-Level** (`picoport_init_keys.sh`) :

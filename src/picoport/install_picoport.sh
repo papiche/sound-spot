@@ -12,7 +12,7 @@ USER_HOME=$(getent passwd "$SOUNDSPOT_USER" | cut -d: -f6)
 
 echo "=== 1. Installation des dépendances (socat, jq) ==="
 _MISSING_PKGS=""
-for _pkg in socat jq curl wget bc gnupg pinentry-curses python3-dev; do
+for _pkg in socat jq curl wget bc gnupg pinentry-curses python3-dev libffi-dev libssl-dev; do
     dpkg-query -W -f='${Status}' "$_pkg" 2>/dev/null | grep -q "ok installed" || _MISSING_PKGS="$_MISSING_PKGS $_pkg"
 done
 if [ -n "$_MISSING_PKGS" ]; then
@@ -114,6 +114,7 @@ sudo -u "$SOUNDSPOT_USER" bash -c "
         ipfs config Swarm.ConnMgr.LowWater --json 20
         ipfs config Datastore.StorageMax '2GB'
         ipfs config Routing.Type 'dhtclient'
+        ipfs config AutoConf.Enabled false --bool
     fi
     
     # 4. Swarm Key UPlanet ORIGIN
@@ -137,11 +138,39 @@ echo "=== 5b. Mise à jour du .bashrc ==="
 # On lance l'installateur d'alias en tant qu'utilisateur pi pour modifier son .bashrc
 sudo -u "$SOUNDSPOT_USER" bash "$INSTALL_DIR/pico_bashrc_manager.sh" install
 
-echo "=== 6. Service Systemd Picoport ==="
+echo "=== 6. Services Systemd : ipfs.service + picoport.service ==="
+
+# --- 6a. ipfs.service (daemon IPFS avec CPUQuota=40%) ---
+# Daemon IPFS isolé dans son propre service pour limiter la charge CPU
+# sur RPi Zero 2W. CPUQuota=40% = 40% d'un cœur (quota systemd single-core).
+# Nice=10 réduit la priorité I/O sans bloquer les autres services audio.
+cat > /etc/systemd/system/ipfs.service <<EOF
+[Unit]
+Description=IPFS Daemon — Picoport UPlanet (CPUQuota 40%%)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=notify
+User=$SOUNDSPOT_USER
+Environment="IPFS_PATH=$USER_HOME/.ipfs"
+ExecStart=/usr/local/bin/ipfs daemon --migrate --enable-gc
+Restart=on-failure
+RestartSec=15
+TimeoutStartSec=120
+CPUQuota=40%
+Nice=10
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# --- 6b. picoport.service (logique Picoport — dépend d'ipfs.service) ---
 cat > /etc/systemd/system/picoport.service <<EOF
 [Unit]
 Description=Picoport (Micro-Astroport Node)
-After=network-online.target
+After=network-online.target ipfs.service
+Requires=ipfs.service
 
 [Service]
 Type=simple
@@ -156,5 +185,6 @@ WantedBy=multi-user.target
 EOF
 
 systemctl daemon-reload
+systemctl enable --now ipfs
 systemctl enable --now picoport
-echo "✅ Picoport installé et démarré !"
+echo "✅ Picoport installé et démarré (ipfs.service CPUQuota=40% + picoport.service) !"

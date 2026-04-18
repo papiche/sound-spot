@@ -67,6 +67,32 @@ bash dj_mixxx_setup.sh
 
 Crée `~/zicmama_play.sh` — le lanceur DJ en un clic.
 
+### 3b — Streamer depuis un mobile (Android/iOS)
+
+Se connecter au WiFi `ZICMAMA` puis configurer une des applis suivantes :
+
+| Réglage | Valeur |
+|---|---|
+| Serveur / Host | `192.168.10.1` |
+| Port | `8111` |
+| Mount point | `/live` |
+| Format | Ogg Vorbis (ou MP3) |
+| Utilisateur | `source` |
+| Mot de passe | `0penS0urce!` |
+
+**Applications recommandées :**
+
+| App | Plateforme | Notes |
+|---|---|---|
+| **Cool Mic** | Android (libre) | Ogg Vorbis natif, interface simple. Recommandé. |
+| **iziCast** | iOS | Stable, supporte Icecast nativement. |
+| **BroadcastMySelf** | Android | MP3 uniquement, fonctionne mais qualité moindre. |
+| **CheeseCast** | Android | Fork Cool Mic, maintenu. |
+| **MediaCast** | Android | Léger, interface minimaliste. |
+
+> **Cool Mic** (Android, open-source) est le choix privilégié : Ogg Vorbis natif,
+> faible latence, aucune limitation de débit.
+
 ### 4 — Jouer
 
 ```bash

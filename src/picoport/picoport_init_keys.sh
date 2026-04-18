@@ -6,9 +6,9 @@
 set -e
 
 MY_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# Outils Astroport.ONE (clonés par install_picoport_maintenance.sh)
+# Outils Astroport.ONE (clonés par install_astroport_light.sh)
 ASTRO_TOOLS="$HOME/.zen/Astroport.ONE/tools"
-[ -f "$ASTRO_TOOLS/my.sh" ] || { echo "Astroport.ONE introuvable — lancer install_picoport_maintenance.sh d'abord"; exit 1; }
+[ -f "$ASTRO_TOOLS/my.sh" ] || { echo "Astroport.ONE introuvable — lancer install_astroport_light.sh d'abord"; exit 1; }
 source "$ASTRO_TOOLS/my.sh"
 
 # ── Venv Python ~/.astro/ (Astroport.ONE compatible) ─────────────
@@ -73,7 +73,7 @@ if [[ -f ~/.ipfs/config ]]; then
     echo "✅ IPFS PeerID synchronisé avec SSH : $PEER_ID"
 fi
 
-# 4. Génération du MULTIPASS NOSTR du Picoport
+# 4. Génération du MULTIPASS NOSTinstall_soundspotR du Picoport
 # (Permet de publier son état Kind 0, Kind 30311 et recevoir des likes Ẑen)
 PICO_EMAIL="picoport+$(hostname | tr '-' '_')@$(hostname -d 2>/dev/null || echo 'local')"
 echo "🎫 Création du MULTIPASS Picoport : $PICO_EMAIL"

@@ -20,6 +20,7 @@ source "$SCRIPT_DIR/install/snapclient.sh"
 source "$SCRIPT_DIR/install/channel_sync.sh"
 source "$SCRIPT_DIR/install/presence.sh"
 source "$SCRIPT_DIR/install/idle.sh"
+source "$SCRIPT_DIR/install/jukebox.sh"
 
 # ── Variables configurables ─────────────────────────────────
 export SPOT_NAME="${SPOT_NAME:-SoundSpot_Pont}"      # SSID WiFi visible (réseau ouvert)
@@ -57,9 +58,9 @@ setup_picoport() {
     # $HOME en sudo pointe vers /root ; on corrige via getent
     local USER_HOME; USER_HOME=$(getent passwd "$SOUNDSPOT_USER" | cut -d: -f6)
     sudo -u "$SOUNDSPOT_USER" HOME="$USER_HOME" \
-        bash "$SCRIPT_DIR/install_picoport_maintenance.sh" \
+        bash "$SCRIPT_DIR/install_astroport_light.sh" \
         && log "Maintenance Picoport terminée" \
-        || warn "install_picoport_maintenance.sh a échoué (IPFS/Astroport optionnel)"
+        || warn "install_astroport_light.sh a échoué (IPFS/Astroport optionnel)"
 
     # Installeur IPFS + clés + service systemd
     bash "$INSTALL_DIR/picoport/install_picoport.sh" \
@@ -74,7 +75,7 @@ echo "icecast2 icecast2/icecast-setup boolean false" | debconf-set-selections
 
 apt_retry update -qq
 apt_retry install -y --no-install-recommends \
-    hostapd dnsmasq lighttpd ipset \
+    hostapd dnsmasq lighttpd ipset mpg123 \
     icecast2 rpicam-apps \
     bluez bluez-alsa-utils libspa-0.2-bluetooth \
     pipewire pipewire-alsa pipewire-pulse wireplumber \
@@ -112,6 +113,8 @@ setup_snapclient master
 setup_channel_sync
 setup_presence
 setup_idle
+setup_jukebox
+
 if [ "${PICOPORT_ENABLED:-true}" = "true" ]; then
     setup_picoport
 else
