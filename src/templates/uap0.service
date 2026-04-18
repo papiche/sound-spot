@@ -11,8 +11,8 @@ ExecStartPre=-/sbin/iw dev uap0 del
 # 1. Créer l'interface
 ExecStartPre=/sbin/iw dev wlan0 interface add uap0 type __ap
 # 2. Dériver la MAC de uap0 depuis wlan0 (bit locally-administered) — unique par RPi.
-#    set -- décompose la MAC en $1..$6 (pas de $IDENT = pas de substitution systemd).
-ExecStartPre=/bin/bash -c 'set -- $(tr : " " < /sys/class/net/wlan0/address); ip link set dev uap0 address $(printf "%02x" $(( (16#$1 | 2) & 254 ))):$2:$3:$4:$5:$6'
+#    Python format() évite tout '%' qui serait interprété comme spécificateur systemd.
+ExecStartPre=/usr/bin/python3 -c 'import subprocess; p=open("/sys/class/net/wlan0/address").read().strip().split(":"); p[0]=format((int(p[0],16)|2)&254,"02x"); subprocess.run(["ip","link","set","dev","uap0","address",":".join(p)])'
 # 3. Monter l'interface
 ExecStart=/sbin/ip link set dev uap0 up
 ExecStop=-/sbin/iw dev uap0 del
