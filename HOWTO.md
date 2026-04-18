@@ -101,11 +101,18 @@ reçoit le stream Snapcast et le joue sur son enceinte Bluetooth.
 
 ## Portail captif (page d'accueil des visiteurs)
 
-Quand un visiteur se connecte au WiFi `ZICMAMA`, il voit une page avec **trois sections** :
+Quand un visiteur se connecte au WiFi `ZICMAMA` :
 
-- **Visiteur** — comment installer Snapclient et écouter
-- **DJ** — paramètres Icecast/Mixxx pour émettre
-- **Satellite** — comment ajouter une enceinte RPi supplémentaire
+1. **Internet s'ouvre immédiatement** — le DHCP ajoute l'IP dans la liste autorisée.
+   Les apps (Signal, WhatsApp…) fonctionnent sans délai ; le téléphone affiche « Connecté ».
+2. **Le portail surgit automatiquement** — la première requête HTTP (test de connectivité du
+   téléphone) est interceptée et redirige vers la page SoundSpot.
+3. **L'utilisateur clique « J'ai lu »** — confirme avoir vu les infos du lieu.
+   Le compteur de **15 minutes** repart à zéro.
+4. **Après 15 minutes** — l'accès Internet s'arrête automatiquement.
+   Le téléphone affiche « Se connecter au réseau ». Un clic rouvre le portail pour revalider.
+
+> Le flux audio Snapcast (port 1704) reste accessible à tout moment, indépendamment du quota.
 
 ---
 
@@ -187,3 +194,6 @@ Satellites et visiteurs peuvent tous deux joindre le Snapserver, via qo-op ou vi
 | Mixxx joue, pas de son | Live Broadcasting non activé dans Mixxx → icône Antenne |
 | Satellite ne reçoit rien | Vérifier `ping soundspot.local` depuis le satellite (doit répondre) |
 | Caméra non détectée | Vérifier nappe CSI : `vcgencmd get_camera` |
+| Portail n'apparaît pas | Vérifier lighttpd : `systemctl status lighttpd`. Tester manuellement : `curl http://192.168.10.1/` depuis le téléphone |
+| Internet bloqué après 15 min | Normal — se déconnecter/reconnecter au WiFi, ou rouvrir `http://192.168.10.1` |
+| IP non ajoutée à ipset | Vérifier : `ipset list soundspot_auth` ; tester le script : `sudo /opt/soundspot/dhcp_trigger.sh add 00:00:00:00:00:00 192.168.10.99` |

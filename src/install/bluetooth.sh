@@ -7,6 +7,16 @@ setup_bluetooth() {
     hdr "Bluetooth"
     sed -i 's/^#*AutoEnable=.*/AutoEnable=true/' /etc/bluetooth/main.conf
 
+    # BlueALSA et PipeWire ne coexistent pas : BlueALSA vole le profil A2DP
+    # avant que WirePlumber puisse le réclamer → pas de son.
+    # On masque BlueALSA définitivement ; PipeWire/WirePlumber gère seul le BT.
+    for svc in bluealsa bluealsa-aplay; do
+        systemctl stop    "$svc" 2>/dev/null || true
+        systemctl disable "$svc" 2>/dev/null || true
+        systemctl mask    "$svc" 2>/dev/null || true
+    done
+    log "BlueALSA masqué — PipeWire/WirePlumber gère le Bluetooth"
+
     mkdir -p "$INSTALL_DIR"
 
     install_template bt-autoconnect.service \

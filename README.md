@@ -24,7 +24,7 @@ Projet [G1FabLab](https://g1sms.fr) / [UPlanet ẐEN](https://qo-op.com) — Lic
   └─ Bluetooth           (enceinte W-KING ou équivalent)
 ```
 
-Un visiteur se connecte au WiFi du SoundSpot → page d'accueil (portail captif) → installe Snapclient → reçoit le stream synchronisé sur ses propres enceintes ou casque.
+Un visiteur se connecte au WiFi du SoundSpot → internet s'ouvre immédiatement (DHCP) → la page d'accueil (portail captif) surgit automatiquement sur son téléphone → il clique « J'ai lu » → 15 minutes d'accès internet complet → peut installer Snapclient et écouter le stream synchronisé.
 
 Le DJ ouvre Mixxx sur son PC, active le **Live Broadcasting** vers le RPi (Icecast), et sa session est diffusée en temps réel sur toutes les enceintes connectées (Bluetooth + Snapclients visiteurs).
 
@@ -141,13 +141,17 @@ Cliquer sur l'icône **Antenne** dans Mixxx pour démarrer l'émission.
 ### Côté visiteur
 
 1. Se connecter au WiFi `SPOT_NAME` — **réseau ouvert, aucun mot de passe**
-2. La page d'accueil s'affiche automatiquement (portail captif)
-3. Installer et lancer Snapclient :
+2. Le portail SoundSpot surgit automatiquement (test de connectivité HTTP intercepté)
+3. Cliquer **« J'ai lu »** — ouvre **15 minutes** d'accès Internet complet
+4. Installer et lancer Snapclient pour écouter le stream audio :
    ```
    Android : Snapdroid (Play Store)
    Linux   : snapclient -h 192.168.10.1
    Windows : snapclient GUI sur snapcast.de
    ```
+
+> Après 15 min, le téléphone affiche « Se connecter au réseau » → rouvrir le portail pour revalider.
+> Le stream Snapcast (port 1704) reste accessible à tout moment, sans quota.
 
 ---
 
@@ -201,10 +205,12 @@ espeak-ng -v fr+f3 -s 120 -p 45 \
 | Service | Rôle |
 |---|---|
 | `soundspot-channel-sync` | Lit le canal réel de wlan0 au boot, corrige hostapd.conf |
-| `uap0` | Interface WiFi AP virtuelle |
+| `uap0` | Interface WiFi AP virtuelle (MAC dérivée de wlan0) |
 | `hostapd` | Point d'accès WiFi (SSID) |
-| `dnsmasq` | DHCP + DNS captif |
-| `opennds` | Portail captif (splash page) |
+| `dnsmasq` | DHCP + DNS — appelle `dhcp_trigger.sh` à chaque bail |
+| `ipset-soundspot` | Liste blanche `soundspot_auth` — timeout 15 min par entrée |
+| `lighttpd` | Portail captif HTTP (intercepte port 80 via iptables REDIRECT) |
+| ~~`opennds`~~ | ~~Portail captif~~ — **désactivé/masqué** (conflit iptables avec lighttpd) |
 | `icecast2` | Relais audio Ogg (reçoit Mixxx Live Broadcasting) |
 | `soundspot-decoder` | `ffmpeg` en boucle : Icecast → PCM → `/tmp/snapfifo` |
 | `snapserver` | Serveur Snapcast (lit le pipe PCM, synchronise les clients) |
