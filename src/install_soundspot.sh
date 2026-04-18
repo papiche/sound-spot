@@ -36,6 +36,7 @@ export PRESENCE_COOLDOWN="${PRESENCE_COOLDOWN:-30}" # Secondes entre deux messag
 export INSTALL_DIR="/opt/soundspot"
 export SOUNDSPOT_USER="${SOUNDSPOT_USER:-${SUDO_USER:-pi}}"  # Utilisateur qui exécute les services audio
 export SOUNDSPOT_UID=$(id -u "${SOUNDSPOT_USER}" 2>/dev/null || echo "1000")
+export PRESENCE_ENABLED="${PRESENCE_ENABLED:-false}"
 # ── Vérifications préliminaires ──────────────────────────────
 hdr "Vérifications"
 [ "$(id -u)" -eq 0 ] || err "Lance ce script en root : sudo bash install_soundspot.sh"
