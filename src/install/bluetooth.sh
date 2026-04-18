@@ -17,6 +17,12 @@ setup_bluetooth() {
     done
     log "BlueALSA masqué — PipeWire/WirePlumber gère le Bluetooth"
 
+    # Plugin Bluetooth pour PipeWire/WirePlumber — indispensable pour A2DP.
+    # Sans ce paquet : "Protocol not available" au moment du connect.
+    apt-get install -y libspa-0.2-bluetooth 2>/dev/null \
+        && log "libspa-0.2-bluetooth installé" \
+        || log "libspa-0.2-bluetooth déjà présent"
+
     mkdir -p "$INSTALL_DIR"
 
     install_template bt-autoconnect.service \
@@ -28,6 +34,13 @@ setup_bluetooth() {
 
     install_template bt-combine-sinks.sh "$INSTALL_DIR/bt-combine-sinks.sh"
     chmod +x "$INSTALL_DIR/bt-combine-sinks.sh"
+
+    # Script de gestion quotidienne BT + volume
+    cp "$(dirname "${BASH_SOURCE[0]}")/../bt_manage.sh" "$INSTALL_DIR/bt_manage.sh" 2>/dev/null \
+        || cp "$(dirname "${BASH_SOURCE[0]}")/../../bt_manage.sh" "$INSTALL_DIR/bt_manage.sh" 2>/dev/null \
+        || true
+    [ -f "$INSTALL_DIR/bt_manage.sh" ] && chmod +x "$INSTALL_DIR/bt_manage.sh" \
+        && log "bt_manage.sh installé (connexion, volume)"
 
     [ -n "$BT_MACS" ] && systemctl enable bt-autoconnect
     log "Service bt-autoconnect configuré"

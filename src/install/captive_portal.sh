@@ -24,8 +24,10 @@ server.groupname            = "www-data"
 server.port                 = 80
 cgi.assign                  = ( ".sh" => "/bin/bash" )
 
-# Rediriger toutes les requêtes ne visant pas le RPi vers la page d'accueil
-\$HTTP["host"] !~ "^${SPOT_IP}$" {
+# Servir directement si l'hôte est une adresse IP ou le nom local du RPi.
+# Sinon (domaine externe capturé par PREROUTING), rediriger vers le portail.
+# Cela permet de tester le portail depuis qo-op (http://soundspot.local/ ou http://<IP wlan0>/)
+\$HTTP["host"] !~ "^([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+|soundspot(\.local)?|raspberrypi(\.local)?)$" {
     url.redirect = ( ".*" => "http://${SPOT_IP}/index.sh" )
 }
 
