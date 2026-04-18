@@ -1,8 +1,8 @@
 #!/bin/bash
-# install/networking.sh — Mode : Validation par clic (Portail → 15 min d'accès)
+# install/networking.sh — Portail captif : Internet immédiat (DHCP) + portail au 1er HTTP
 
 setup_networking() {
-    hdr "Configuration Réseau (Validation par clic)"
+    hdr "Configuration Réseau (Portail captif avec accès immédiat)"
 
     # 1. Empêcher NetworkManager de gérer uap0
     mkdir -p /etc/NetworkManager/conf.d
@@ -40,8 +40,8 @@ EOF
     install_template dnsmasq.conf /etc/dnsmasq.conf '${DHCP_START} ${DHCP_END} ${SPOT_IP}'
     systemctl enable dnsmasq
 
-    # 5. Pare-feu — logique de validation par clic
-    hdr "Pare-feu : Validation par clic requise"
+    # 5. Pare-feu — internet immédiat via DHCP + portail au premier HTTP
+    hdr "Pare-feu : accès immédiat DHCP + portail HTTP"
     echo "net.ipv4.ip_forward=1" > /etc/sysctl.d/90-soundspot.conf
     sysctl -p /etc/sysctl.d/90-soundspot.conf
 
@@ -49,38 +49,43 @@ EOF
 
     modprobe ip_set_hash_ip 2>/dev/null || true
 
-    # Liste BLANCHE des IPs ayant validé le portail — timeout 900s (15 min)
-    # Géré nativement par le noyau : aucun daemon Python nécessaire.
+    # Liste blanche des IPs connectées — timeout 900s (15 min)
+    # Alimentée automatiquement par dhcp_trigger.sh à chaque attribution DHCP.
     ipset create soundspot_auth hash:ip timeout 900 -exist
 
     # NAT classique
     iptables -t nat -A POSTROUTING -o wlan0 -j MASQUERADE
 
-    # --- INTERCEPTION HTTP (port 80) ---
-    # Si l'IP n'est PAS dans soundspot_auth, on redirige vers le portail local
-    iptables -t nat -A PREROUTING -i uap0 -p tcp --dport 80 \
-        -m set ! --match-set soundspot_auth src -j REDIRECT --to-port 80
+    # --- INTERCEPTION HTTP (port 80) — inconditionnelle ---
+    # TOUT le port 80 est redirigé vers le portail local.
+    # Le smartphone fait un test HTTP (generate_204, hotspot-detect…) juste après
+    # le DHCP → il tombe sur notre portail → fenêtre surgissante automatique.
+    # Les apps (WhatsApp, Instagram) fonctionnent déjà car elles utilisent HTTPS.
+    iptables -t nat -A PREROUTING -i uap0 -p tcp --dport 80 -j REDIRECT --to-port 80
 
-    # --- RÈGLES DE FORWARD (INTERNET) ---
-    # 1. DNS pour tout le monde (sinon le portail ne peut pas s'afficher)
+    # --- RÈGLES DE FORWARD ---
+    # 1. DNS pour tout le monde
     iptables -A FORWARD -i uap0 -p udp --dport 53 -j ACCEPT
     iptables -A FORWARD -i uap0 -p tcp --dport 53 -j ACCEPT
 
-    # 2. HTTPS pour tout le monde — le téléphone affiche "Connecté" et évite
-    #    le faux message "Pas d'internet" qui ferait peur à l'utilisateur.
-    iptables -A FORWARD -i uap0 -p tcp --dport 443 -j ACCEPT
+    # 2. HTTPS en priorité pour les IPs autorisées (accès instantané après DHCP)
+    iptables -A FORWARD -i uap0 -p tcp --dport 443 \
+        -m set --match-set soundspot_auth src -j ACCEPT
 
-    # 3. Accès complet pour les IPs qui ont validé le portail
+    # 3. Tout le reste pour les IPs autorisées (Snapcast, etc.)
     iptables -A FORWARD -i uap0 -m set --match-set soundspot_auth src -j ACCEPT
 
-    # 4. Bloquer tout le reste (non-DNS, non-HTTPS, non-validé)
+    # 4. Bloquer tout ce qui reste
     iptables -A FORWARD -i uap0 -j REJECT
 
     iptables -A FORWARD -i wlan0 -o uap0 -m state --state RELATED,ESTABLISHED -j ACCEPT
 
-    # Persistance ipset — les validations survivent au redémarrage
-    # (ipset restore recharge l'ancienne liste ; si elle est vide c'est normal
-    #  car les timeouts de 15 min auront expiré entre-temps)
+    # Script DHCP — ajoute l'IP à soundspot_auth dès l'attribution de bail
+    install_template dhcp_trigger.sh "${INSTALL_DIR}/dhcp_trigger.sh"
+    chmod +x "${INSTALL_DIR}/dhcp_trigger.sh"
+    log "dhcp_trigger.sh installé"
+
+    # Persistance ipset — restaure la liste au démarrage, sauvegarde à l'arrêt
     cat > /etc/systemd/system/ipset-soundspot.service <<EOF
 [Unit]
 Description=Ipset SoundSpot (Auth list)
@@ -97,6 +102,6 @@ EOF
     systemctl enable ipset-soundspot.service
 
     netfilter-persistent save
-    log "Réseau configuré (Portail captif — validation par clic → 15 min)"
+    log "Réseau configuré (internet immédiat DHCP + portail au 1er HTTP)"
 
 }
