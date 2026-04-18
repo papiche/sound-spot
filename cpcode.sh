@@ -1,2 +1,2 @@
 #!/bin/bash
-cpcode py sh md conf service ./
+cpcode py sh md conf service html ./

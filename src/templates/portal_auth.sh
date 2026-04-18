@@ -2,12 +2,9 @@
 # src/templates/portal_auth.sh
 
 CLIENT_IP="$REMOTE_ADDR"
-# Extraire l'adresse MAC du client via la table ARP
-CLIENT_MAC=$(/usr/sbin/arp -n "$CLIENT_IP" | grep -oE "([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}" | head -1)
-
-if [ -n "$CLIENT_MAC" ]; then
-    # L'ajouter à l'ipset (sudo autorisé via visudo dans le setup)
-    sudo /usr/sbin/ipset add soundspot_auth "$CLIENT_MAC" 2>/dev/null
+if [ -n "$CLIENT_IP" ]; then
+    # On ajoute l'IP directement
+    sudo /usr/sbin/ipset add soundspot_auth "$CLIENT_IP" 2>/dev/null
 fi
 
 echo "Content-type: text/html; charset=utf-8"
