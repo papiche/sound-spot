@@ -7,6 +7,8 @@ set -e
 
 INSTALL_DIR="/opt/soundspot/picoport"
 SOUNDSPOT_USER="${SOUNDSPOT_USER:-pi}"
+# Récupération propre du HOME de l'utilisateur (évite les erreurs sudo -E)
+USER_HOME=$(getent passwd "$SOUNDSPOT_USER" | cut -d: -f6)
 
 echo "=== 1. Installation des dépendances (socat, jq) ==="
 apt-get update -qq
@@ -37,46 +39,49 @@ cat > "$INSTALL_DIR/A_boostrap_nodes.txt" << 'EOF'
 EOF
 
 echo "=== 4. Initialisation IPFS (Isolation UPlanet) pour $SOUNDSPOT_USER ==="
-# On passe INSTALL_DIR en variable d'environnement pour le sudo
-sudo -E -u "$SOUNDSPOT_USER" bash -c '
-    export IPFS_PATH="$HOME/.ipfs"
-    if [ ! -d "$IPFS_PATH" ]; then
+# On définit IPFS_PATH explicitement pour pointer vers le home de l'utilisateur
+export IPFS_PATH="$USER_HOME/.ipfs"
+
+sudo -u "$SOUNDSPOT_USER" bash -c "
+    export IPFS_PATH='$IPFS_PATH'
+    if [ ! -d \"\$IPFS_PATH\" ]; then
         ipfs init --profile=lowpower
         
         # 1. Purge des nœuds publics
         ipfs bootstrap rm --all
         
         # 2. Ajout exclusif de la constellation UPlanet
-        grep -v "^#" "'$INSTALL_DIR'/A_boostrap_nodes.txt" | grep -v "^$" | while read -r node; do
-            ipfs bootstrap add "$node"
+        grep -v '^#' '$INSTALL_DIR/A_boostrap_nodes.txt' | grep -v '^[[:space:]]*$' | while read -r node; do
+            ipfs bootstrap add \"\$node\"
         done
         
         # 3. Optimisation extrême pour RPi Zero (Low RAM)
         ipfs config Swarm.ConnMgr.HighWater --json 50
         ipfs config Swarm.ConnMgr.LowWater --json 20
-        ipfs config Datastore.StorageMax "2GB"
-        ipfs config Routing.Type "dhtclient"
+        ipfs config Datastore.StorageMax '2GB'
+        ipfs config Routing.Type 'dhtclient'
     fi
     
-    # 4. Swarm Key UPlanet ORIGIN (0000...)
-    cat > "$IPFS_PATH/swarm.key" <<EOF
+    # 4. Swarm Key UPlanet ORIGIN
+    cat > \"\$IPFS_PATH/swarm.key\" <<EOF
 /key/swarm/psk/1.0.0/
 /base16/
 0000000000000000000000000000000000000000000000000000000000000000
 EOF
-    chmod 600 "$IPFS_PATH/swarm.key"
-'
+    chmod 600 \"\$IPFS_PATH/swarm.key\"
+"
 
 echo "=== 4b. Configuration de l'identité déterministe (Y-Level) ==="
-bash "$INSTALL_DIR/picoport_init_keys.sh"
+# On s'assure que le script de clé s'exécute aussi avec le bon IPFS_PATH
+sudo -u "$SOUNDSPOT_USER" IPFS_PATH="$IPFS_PATH" bash "$INSTALL_DIR/picoport_init_keys.sh"
 
 echo "=== 5. Mise en place de la station Picoport ==="
 cp "$(dirname "$0")/picoport.sh" "$INSTALL_DIR/picoport.sh"
 chmod +x "$INSTALL_DIR/picoport.sh"
-echo "=== extended bashrc ==="
 
-bash "$INSTALL_DIR/pico_bashrc_manager.sh install"
-
+echo "=== 5b. Mise à jour du .bashrc ==="
+# On lance l'installateur d'alias en tant qu'utilisateur pi pour modifier son .bashrc
+sudo -u "$SOUNDSPOT_USER" bash "$INSTALL_DIR/pico_bashrc_manager.sh" install
 
 echo "=== 6. Service Systemd Picoport ==="
 cat > /etc/systemd/system/picoport.service <<EOF
@@ -87,7 +92,7 @@ After=network-online.target
 [Service]
 Type=simple
 User=$SOUNDSPOT_USER
-Environment="IPFS_PATH=/home/$SOUNDSPOT_USER/.ipfs"
+Environment="IPFS_PATH=$USER_HOME/.ipfs"
 ExecStart=$INSTALL_DIR/picoport.sh
 Restart=always
 RestartSec=10
