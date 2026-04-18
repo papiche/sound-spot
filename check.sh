@@ -72,6 +72,7 @@ check_svc snapserver            "snapserver"
 check_svc soundspot-decoder     "soundspot-decoder (ffmpeg)"
 check_svc soundspot-client      "soundspot-client (snapclient)"
 check_svc soundspot-presence    "soundspot-presence (caméra)"
+check_svc soundspot-channel-sync "soundspot-channel-sync (canal WiFi)"
 check_svc bt-autoconnect        "bt-autoconnect"
 check_svc bluealsa              "bluealsa"   masked
 check_svc bluealsa-aplay        "bluealsa-aplay" masked
@@ -84,7 +85,8 @@ hdr "Réseau"
 if ip addr show wlan0 2>/dev/null | grep -q "inet "; then
     WLAN_IP=$(ip -4 addr show wlan0 | awk '/inet/{print $2}' | head -1)
     SSID=$(iwgetid -r 2>/dev/null || echo "?")
-    ok "wlan0 connecté  ${D}IP:${N} $WLAN_IP  ${D}SSID:${N} $SSID"
+    CHAN_WLAN=$(iw dev wlan0 info 2>/dev/null | awk '/channel/{print $2}')
+    ok "wlan0 connecté  ${D}IP:${N} $WLAN_IP  ${D}SSID:${N} $SSID  ${D}canal:${N} ${CHAN_WLAN:-?}"
 else
     fail "wlan0 sans adresse IP — pas de réseau amont"
 fi
@@ -92,9 +94,23 @@ fi
 # uap0 - AP visiteurs
 if ip -4 addr show uap0 2>/dev/null | grep -q "inet ${SPOT_IP}"; then
     AP_MAC=$(cat /sys/class/net/uap0/address 2>/dev/null || echo "?")
-    ok "uap0 up  ${D}IP:${N} ${SPOT_IP}  ${D}MAC:${N} ${AP_MAC}"
+    CHAN_UAP=$(iw dev uap0 info 2>/dev/null | awk '/channel/{print $2}')
+    CHAN_HOSTAPD=$(grep -E "^channel=" /etc/hostapd/hostapd.conf 2>/dev/null | cut -d= -f2)
+    ok "uap0 up  ${D}IP:${N} ${SPOT_IP}  ${D}MAC:${N} ${AP_MAC}  ${D}canal radio:${N} ${CHAN_UAP:-?}  ${D}hostapd.conf:${N} ${CHAN_HOSTAPD:-?}"
+    if [ -n "$CHAN_WLAN" ] && [ -n "$CHAN_UAP" ] && [ "$CHAN_WLAN" != "$CHAN_UAP" ]; then
+        warn "Canal wlan0 (${CHAN_WLAN}) ≠ uap0 (${CHAN_UAP}) — possible instabilité AP"
+    fi
 else
     fail "uap0 absent ou IP ${SPOT_IP} non assignée"
+fi
+
+# Clients WiFi associés à uap0
+STATIONS=$(iw dev uap0 station dump 2>/dev/null | grep -c "^Station")
+if [ "$STATIONS" -gt 0 ]; then
+    ok "${STATIONS} client(s) WiFi associé(s) à uap0"
+    iw dev uap0 station dump 2>/dev/null | awk '/^Station/{print "    MAC: "$2}'
+else
+    info "Aucun client WiFi connecté à uap0 actuellement"
 fi
 
 # ip_forward
@@ -172,7 +188,14 @@ else
 fi
 
 # Ports
-port_open 8111             && ok "icecast2 port 8111 ouvert"    || fail "icecast2 port 8111 fermé"
+ICECAST_PORT_REAL=$(grep -oP '(?<=<port>)\d+(?=</port>)' /etc/icecast2/icecast.xml 2>/dev/null | head -1)
+if port_open 8111; then
+    ok "icecast2 port 8111 ouvert"
+elif [ -n "$ICECAST_PORT_REAL" ] && [ "$ICECAST_PORT_REAL" != "8111" ]; then
+    fail "icecast2 écoute sur port ${ICECAST_PORT_REAL} (pas 8111) — corriger : sudo sed -i 's|<port>${ICECAST_PORT_REAL}</port>|<port>8111</port>|' /etc/icecast2/icecast.xml && sudo systemctl restart icecast2"
+else
+    fail "icecast2 port 8111 fermé"
+fi
 port_open "$SNAPCAST_PORT" && ok "snapserver port $SNAPCAST_PORT ouvert" || fail "snapserver port $SNAPCAST_PORT fermé"
 port_open 1780             && ok "snapserver WebUI port 1780 ouvert" || warn "WebUI port 1780 fermé"
 
@@ -192,7 +215,7 @@ fi
 
 # Flux Icecast
 HTTP_ICECAST=$(curl -s -o /dev/null -w "%{http_code}" \
-    --max-time 3 "http://127.0.0.1:8111/live" 2>/dev/null || echo "000")
+    --max-time 3 "http://127.0.0.1:8111/live" 2>/dev/null; true)
 case "$HTTP_ICECAST" in
     200) ok "Flux Icecast /live actif (DJ connecté)" ;;
     404) warn "Flux Icecast /live absent ${D}(DJ non connecté — normal)${N}" ;;
