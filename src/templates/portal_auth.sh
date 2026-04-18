@@ -1,10 +1,12 @@
 #!/bin/bash
-# src/templates/portal_auth.sh
+# src/templates/portal_auth.sh — Validation du portail captif
+# Appelé quand l'utilisateur clique "J'ai lu" sur le portail.
+# Ajoute l'IP cliente dans soundspot_auth (timeout 900s = 15 min, géré par ipset).
 
 CLIENT_IP="$REMOTE_ADDR"
+
 if [ -n "$CLIENT_IP" ]; then
-    # On ajoute l'IP directement
-    sudo /usr/sbin/ipset add soundspot_auth "$CLIENT_IP" 2>/dev/null
+    sudo /usr/sbin/ipset add soundspot_auth "$CLIENT_IP" -exist
 fi
 
 echo "Content-type: text/html; charset=utf-8"
@@ -15,19 +17,22 @@ cat <<HTMLEOF
 <html lang="fr">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Accès Débloqué</title>
+<title>Accès Activé — SoundSpot</title>
 <style>
-  body { background: #0a0a0f; color: #e8e8f0; font-family: 'Syne', sans-serif; padding: 20px; display:flex; justify-content:center; }
-  .card { background: #1a1a24; border-top: 3px solid #7fff6e; padding: 30px; max-width: 500px; text-align:center; }
-  h1 { color: #fff; margin-bottom:20px;}
+  body { background: #0a0a0f; color: #e8e8f0; font-family: system-ui, sans-serif; padding: 20px; display:flex; justify-content:center; align-items:center; min-height:100vh; margin:0; }
+  .card { background: #1a1a24; border-top: 3px solid #7fff6e; padding: 30px; max-width: 400px; width:100%; text-align:center; border-radius:4px; }
+  h1 { color: #fff; margin-bottom: 10px; }
+  p { color: #b0b0c8; line-height: 1.6; }
+  .btn { display:inline-block; margin-top:20px; padding:12px 24px; background:#7fff6e; color:#0a0a0f; text-decoration:none; font-weight:bold; border-radius:2px; font-size:15px; }
+  .note { margin-top:15px; color:#7a7a99; font-size:0.8em; }
 </style>
 </head>
 <body>
 <div class="card">
-  <h1>✅ Accès Internet Débloqué</h1>
-  <p>Votre accès est activé pour les <strong>15 prochaines minutes</strong>.</p>
-  <p style="margin-top:20px; color:#7a7a99; font-size:0.9em;">(L'accès se coupera automatiquement pour laisser de la bande passante aux flux audio locaux).</p>
-  <a href="https://g1sms.fr" style="display:inline-block; margin-top:30px; color:#7fff6e; text-decoration:none;">Naviguer vers l'écosystème ẐEN →</a>
+  <h1>✅ C'est noté !</h1>
+  <p>Votre accès internet est ouvert pour <strong>15 minutes</strong>.</p>
+  <p class="note">Après ce délai, naviguez à nouveau sur le portail pour revalider.<br>Privilégiez l'écoute de la musique locale pour économiser l'énergie du nœud.</p>
+  <a href="http://g1sms.fr" class="btn">Continuer →</a>
 </div>
 </body>
 </html>

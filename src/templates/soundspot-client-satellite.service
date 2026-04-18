@@ -6,9 +6,9 @@ Wants=bluetooth.service network-online.target
 [Service]
 Type=simple
 EnvironmentFile=${INSTALL_DIR}/soundspot.conf
-Environment="XDG_RUNTIME_DIR=/run/user/1000"
+Environment="XDG_RUNTIME_DIR=/run/user/%U"
 ExecStartPre=/bin/sleep 15
-ExecStart=/usr/bin/snapclient -h ${MASTER_HOST} -p ${SNAPCAST_PORT} --player pulse:buffer_time=50
+ExecStart=/usr/bin/snapclient -h ${MASTER_HOST} -p ${SNAPCAST_PORT} --player pulse:buffer_time=200
 Restart=always
 RestartSec=10
 User=${SOUNDSPOT_USER}

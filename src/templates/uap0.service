@@ -10,8 +10,8 @@ Type=oneshot
 ExecStartPre=-/sbin/iw dev uap0 del
 # 1. Créer l'interface
 ExecStartPre=/sbin/iw dev wlan0 interface add uap0 type __ap
-# 2. Changer l'adresse MAC (incrémente le premier octet) pour éviter les conflits
-ExecStartPre=/sbin/ip link set dev uap0 address 02:00:00:00:00:01
+# 2. Dériver la MAC de uap0 depuis wlan0 (bit locally-administered) — unique par RPi
+ExecStartPre=/bin/bash -c 'mac=$(cat /sys/class/net/wlan0/address); b1=$(printf "%02x" $(( (0x${mac:0:2} | 2) & 0xfe ))); ip link set dev uap0 address "${b1}:${mac:3}"'
 # 3. Monter l'interface
 ExecStart=/sbin/ip link set dev uap0 up
 ExecStop=-/sbin/iw dev uap0 del

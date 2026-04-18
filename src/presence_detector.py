@@ -31,7 +31,7 @@ import sys
 
 # ── Configuration (surchargeable par variables d'environnement) ────
 COOLDOWN_S      = int(os.getenv("PRESENCE_COOLDOWN",        "30"))
-BLIND_INTERVAL  = int(os.getenv("PRESENCE_BLIND_INTERVAL", "900"))  # 15 min
+BLIND_INTERVAL  = max(1, int(os.getenv("PRESENCE_BLIND_INTERVAL", "900")))  # 15 min, min 1s
 DETECT_INTERVAL = int(os.getenv("PRESENCE_INTERVAL",        "20"))
 FRAME_W         = int(os.getenv("PRESENCE_WIDTH",           "320"))
 FRAME_H         = int(os.getenv("PRESENCE_HEIGHT",          "240"))

@@ -1,8 +1,8 @@
 #!/bin/bash
-# install/networking.sh — Mode : Ouvert par défaut / Bloqué après 15 min
+# install/networking.sh — Mode : Validation par clic (Portail → 15 min d'accès)
 
 setup_networking() {
-    hdr "Configuration Réseau (Mode Ouvert + Limiteur)"
+    hdr "Configuration Réseau (Validation par clic)"
 
     # 1. Empêcher NetworkManager de gérer uap0
     mkdir -p /etc/NetworkManager/conf.d
@@ -40,73 +40,63 @@ EOF
     install_template dnsmasq.conf /etc/dnsmasq.conf '${DHCP_START} ${DHCP_END} ${SPOT_IP}'
     systemctl enable dnsmasq
 
-    # 5. Pare-feu (Inversion de logique)
-    hdr "Pare-feu : Autorisation par défaut"
+    # 5. Pare-feu — logique de validation par clic
+    hdr "Pare-feu : Validation par clic requise"
     echo "net.ipv4.ip_forward=1" > /etc/sysctl.d/90-soundspot.conf
     sysctl -p /etc/sysctl.d/90-soundspot.conf
-    
+
     apt-get install -y ipset iptables-persistent
 
     modprobe ip_set_hash_ip 2>/dev/null || true
 
-    # Création de la liste NOIRE (Blocked) - Timeout 3600s (1 heure)
-    ipset create soundspot_blocked hash:ip timeout 3600 -exist
-    
+    # Liste BLANCHE des IPs ayant validé le portail — timeout 900s (15 min)
+    # Géré nativement par le noyau : aucun daemon Python nécessaire.
+    ipset create soundspot_auth hash:ip timeout 900 -exist
+
     # NAT classique
     iptables -t nat -A POSTROUTING -o wlan0 -j MASQUERADE
-    
-    # --- REDIRECTION DES BLOQUÉS ---
-    # Si l'IP est bloquée, on redirige son trafic HTTP (port 80) vers le portail
-    iptables -t nat -A PREROUTING -i uap0 -p tcp --dport 80 -m set --match-set soundspot_blocked src -j REDIRECT --to-port 80
+
+    # --- INTERCEPTION HTTP (port 80) ---
+    # Si l'IP n'est PAS dans soundspot_auth, on redirige vers le portail local
+    iptables -t nat -A PREROUTING -i uap0 -p tcp --dport 80 \
+        -m set ! --match-set soundspot_auth src -j REDIRECT --to-port 80
 
     # --- RÈGLES DE FORWARD (INTERNET) ---
-    # 1. Autoriser DNS pour tout le monde (sinon même le portail ne s'affiche pas)
+    # 1. DNS pour tout le monde (sinon le portail ne peut pas s'afficher)
     iptables -A FORWARD -i uap0 -p udp --dport 53 -j ACCEPT
     iptables -A FORWARD -i uap0 -p tcp --dport 53 -j ACCEPT
 
-    # 2. Bloquer le trafic de ceux qui sont dans la liste noire
-    iptables -A FORWARD -i uap0 -m set --match-set soundspot_blocked src -j REJECT
+    # 2. HTTPS pour tout le monde — le téléphone affiche "Connecté" et évite
+    #    le faux message "Pas d'internet" qui ferait peur à l'utilisateur.
+    iptables -A FORWARD -i uap0 -p tcp --dport 443 -j ACCEPT
 
-    # 3. Autoriser tout le reste par défaut (Open Internet)
-    iptables -A FORWARD -i uap0 -o wlan0 -j ACCEPT
+    # 3. Accès complet pour les IPs qui ont validé le portail
+    iptables -A FORWARD -i uap0 -m set --match-set soundspot_auth src -j ACCEPT
+
+    # 4. Bloquer tout le reste (non-DNS, non-HTTPS, non-validé)
+    iptables -A FORWARD -i uap0 -j REJECT
+
     iptables -A FORWARD -i wlan0 -o uap0 -m state --state RELATED,ESTABLISHED -j ACCEPT
 
-    # Persistance ipset
+    # Persistance ipset — les validations survivent au redémarrage
+    # (ipset restore recharge l'ancienne liste ; si elle est vide c'est normal
+    #  car les timeouts de 15 min auront expiré entre-temps)
     cat > /etc/systemd/system/ipset-soundspot.service <<EOF
 [Unit]
-Description=Ipset SoundSpot (Blocked list)
+Description=Ipset SoundSpot (Auth list)
 Before=netfilter-persistent.service
 [Service]
 Type=oneshot
 ExecStartPre=/sbin/modprobe ip_set_hash_ip
-ExecStart=/usr/sbin/ipset create soundspot_blocked hash:ip timeout 3600 -exist
+ExecStart=/bin/bash -c '/usr/sbin/ipset restore -! < /etc/soundspot_ipset.save 2>/dev/null || /usr/sbin/ipset create soundspot_auth hash:ip timeout 900 -exist'
+ExecStop=/bin/bash -c '/usr/sbin/ipset save soundspot_auth > /etc/soundspot_ipset.save 2>/dev/null || true'
 RemainAfterExit=yes
 [Install]
 WantedBy=multi-user.target
 EOF
     systemctl enable ipset-soundspot.service
-    
+
     netfilter-persistent save
-    log "Réseau configuré (Accès libre 15min / Bloqué 1h)"
-
-# Installation du service limiteur
-    cp ${SCRIPT_DIR}/limiter.py ${INSTALL_DIR}/limiter.py
-    chmod +x ${INSTALL_DIR}/limiter.py
-
-    cat > /etc/systemd/system/soundspot-limiter.service <<EOF
-[Unit]
-Description=SoundSpot — Limiteur de temps Internet
-After=dnsmasq.service
-
-[Service]
-Type=simple
-ExecStart=/usr/bin/python3 ${INSTALL_DIR}/limiter.py
-Restart=always
-RestartSec=10
-
-[Install]
-WantedBy=multi-user.target
-EOF
-    systemctl enable --now soundspot-limiter.service
+    log "Réseau configuré (Portail captif — validation par clic → 15 min)"
 
 }

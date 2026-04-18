@@ -119,9 +119,11 @@ cat <<HTMLEOF
   <h2>🌐 Internet & Soutien</h2>
   <p>L'accès Internet est <span class="highlight">libre pendant 15 minutes</span>, puis suspendu 1h pour préserver la musique locale.</p>
 
-  <a href="https://opencollective.com/monnaie-libre" class="btn">
-    Soutenir sur OpenCollective ❤️
-  </a>
+  <form action="auth.sh" method="POST" style="margin-top:0;">
+    <button type="submit" class="btn" style="width:100%;">
+      J'ai lu — Ouvrir l'accès Internet (15 min) →
+    </button>
+  </form>
 
   <hr style="border:0; border-top:1px solid #2e2e42; margin: 30px 0;">
 
@@ -129,6 +131,10 @@ cat <<HTMLEOF
     <a href="docs.sh?readme" class="btn btn-outline" style="flex:1; margin-top:0;">Le Projet</a>
     <a href="docs.sh?howto" class="btn btn-outline" style="flex:1; margin-top:0;">Guide DJ</a>
   </div>
+
+  <p style="margin-top:20px; color:#7a7a99; font-size:0.85em;">
+    <a href="https://opencollective.com/monnaie-libre" style="color:#7a7a99;">Soutenir sur OpenCollective ❤️</a>
+  </p>
 </div>
 
 <p style="color:var(--muted); font-size:11px; font-family:var(--font-mono); text-transform:uppercase; letter-spacing:1px;">

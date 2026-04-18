@@ -7,8 +7,8 @@ Wants=snapserver.service bluetooth.service
 Type=simple
 User=${SOUNDSPOT_USER}
 Group=${SOUNDSPOT_USER}
-Environment="XDG_RUNTIME_DIR=/run/user/1000"
-Environment="PULSE_SERVER=unix:/run/user/1000/pulse/native"
+Environment="XDG_RUNTIME_DIR=/run/user/%U"
+Environment="PULSE_SERVER=unix:/run/user/%U/pulse/native"
 ExecStartPre=/bin/sleep 15
 ExecStart=/usr/bin/snapclient -h 127.0.0.1 -p ${SNAPCAST_PORT} --player pulse
 ExecStartPost=/bin/sleep 5
