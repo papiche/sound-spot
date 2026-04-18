@@ -128,12 +128,20 @@ else
     fail "g1pub_to_ss58 → attendu $EXPECTED_SS58, obtenu: $SS58"
 fi
 
-# Test inverse SS58→v1
-G1PUB_BACK=$(python3 "$ASTRO_TOOLS/g1pub_to_ss58.py" "$EXPECTED_SS58" 2>/dev/null || echo "")
+# Test inverse SS58→v1 (nécessite --reverse)
+G1PUB_BACK=$(python3 "$ASTRO_TOOLS/g1pub_to_ss58.py" --reverse "$EXPECTED_SS58" 2>/dev/null || echo "")
 if [[ "$G1PUB_BACK" == "$EXPECTED_G1PUB" ]]; then
-    ok "g1pub_to_ss58 SS58→v1 → $G1PUB_BACK"
+    ok "g1pub_to_ss58 SS58→v1 (--reverse) → $G1PUB_BACK"
 else
-    warn "g1pub_to_ss58 SS58→v1 → $G1PUB_BACK (conversion inverse non supportée ?)"
+    fail "g1pub_to_ss58 --reverse → attendu $EXPECTED_G1PUB, obtenu: $G1PUB_BACK"
+fi
+
+# Sans --reverse : passthrough (ensure_ss58 — comportement normal)
+G1PUB_PASSTHROUGH=$(python3 "$ASTRO_TOOLS/g1pub_to_ss58.py" "$EXPECTED_SS58" 2>/dev/null || echo "")
+if [[ "$G1PUB_PASSTHROUGH" == "$EXPECTED_SS58" ]]; then
+    ok "g1pub_to_ss58 passthrough SS58 → $G1PUB_PASSTHROUGH"
+else
+    fail "g1pub_to_ss58 passthrough → attendu $EXPECTED_SS58, obtenu: $G1PUB_PASSTHROUGH"
 fi
 
 # Adresse INTRUSION (uplanet.INTRUSION pour UPLANETNAME=coucou)
