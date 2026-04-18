@@ -42,7 +42,7 @@ MIN_FACE_PX     = int(os.getenv("PRESENCE_MIN_FACE",        "20"))  # px sur ima
 WELCOME_CMD     = os.getenv(
     "PRESENCE_WELCOME_CMD", "/opt/soundspot/play_welcome.sh"
 )
-HAAR_XML = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+HAAR_XML = "/usr/share/opencv4/haarcascades/haarcascade_frontalface_default.xml"
 
 logging.basicConfig(
     level=logging.INFO,

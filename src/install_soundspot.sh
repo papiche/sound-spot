@@ -33,8 +33,7 @@ BT_MACS="${BT_MACS:-${BT_MAC:-}}"           # Liste MACs séparés par espaces (
 SNAPCAST_PORT="${SNAPCAST_PORT:-1704}"
 PRESENCE_COOLDOWN="${PRESENCE_COOLDOWN:-30}" # Secondes entre deux messages d'accueil
 INSTALL_DIR="/opt/soundspot"
-SOUNDSPOT_USER="${SUDO_USER:-pi}"          # Utilisateur qui exécute les services audio (snapclient, presence)
-
+export SOUNDSPOT_USER="${SUDO_USER:-pi}"          # Utilisateur qui exécute les services audio (snapclient, presence)
 # ── Vérifications préliminaires ──────────────────────────────
 hdr "Vérifications"
 [ "$(id -u)" -eq 0 ] || err "Lance ce script en root : sudo bash install_soundspot.sh"
@@ -53,6 +52,7 @@ apt install -y --no-install-recommends \
     bluez bluez-alsa-utils \
     pipewire pipewire-alsa pipewire-pulse wireplumber \
     snapserver snapclient \
+    pulseaudio-utils \
     avahi-daemon \
     iptables-persistent netfilter-persistent \
     python3 python3-opencv python3-picamera2 \
