@@ -1,7 +1,18 @@
 #!/bin/bash
 # check.sh — Diagnostic SoundSpot (maître)
-# Usage : sudo bash check.sh
-# Vérifie services, réseau, pare-feu, audio, BT, portail, caméra.
+# Usage :
+#   sudo bash check.sh            # diagnostic rapide
+#   sudo bash check.sh --debug    # diagnostic + logs détaillés + restart
+#   sudo bash check.sh --restart  # restart propre puis diagnostic
+
+# ── Args ────────────────────────────────────────────────────────
+DEBUG=0; DO_RESTART=0
+for _arg in "$@"; do
+    case "$_arg" in
+        --debug|-d)   DEBUG=1 ;;
+        --restart|-r) DO_RESTART=1 ;;
+    esac
+done
 
 # ── Couleurs ────────────────────────────────────────────────────
 R='\033[0;31m'; G='\033[0;32m'; Y='\033[1;33m'
@@ -14,6 +25,7 @@ fail() { echo -e "  ${R}✗${N}  $*"; ERRORS=$((ERRORS+1)); }
 warn() { echo -e "  ${Y}⚠${N}  $*"; WARNINGS=$((WARNINGS+1)); }
 info() { echo -e "  ${D}·${N}  $*"; }
 hdr()  { echo -e "\n${C}━━━  $*  ━━━${N}"; }
+dbg()  { [ "$DEBUG" -eq 1 ] && echo -e "${D}$*${N}"; }
 
 # ── Config ──────────────────────────────────────────────────────
 CONF=/opt/soundspot/soundspot.conf
@@ -25,6 +37,42 @@ SOUNDSPOT_USER="${SOUNDSPOT_USER:-pi}"
 BT_MACS="${BT_MACS:-${BT_MAC:-}}"
 USER_ID=$(id -u "$SOUNDSPOT_USER" 2>/dev/null || echo 1000)
 ASUSER="sudo -u $SOUNDSPOT_USER XDG_RUNTIME_DIR=/run/user/${USER_ID}"
+
+# ── Restart ordonné ─────────────────────────────────────────────
+restart_soundspot() {
+    echo -e "\n${W}╔══════════════════════════════════════════════════╗${N}"
+    echo -e "${W}║  Redémarrage SoundSpot dans l'ordre...           ║${N}"
+    echo -e "${W}╚══════════════════════════════════════════════════╝${N}"
+
+    # 1. PipeWire / WirePlumber (services utilisateur)
+    hdr "Redémarrage PipeWire / WirePlumber"
+    $ASUSER systemctl --user stop wireplumber pipewire-pulse pipewire 2>/dev/null || true
+    sleep 2
+    $ASUSER systemctl --user start pipewire 2>/dev/null && info "pipewire démarré"
+    sleep 3
+    $ASUSER systemctl --user start wireplumber 2>/dev/null && info "wireplumber démarré"
+    info "Attente enregistrement A2DP (10s)..."
+    sleep 10
+    $ASUSER systemctl --user start pipewire-pulse 2>/dev/null && info "pipewire-pulse démarré"
+    sleep 2
+
+    # 2. Connexion Bluetooth
+    hdr "Reconnexion Bluetooth"
+    systemctl restart bt-autoconnect 2>/dev/null \
+        && info "bt-autoconnect relancé" || info "bt-autoconnect inactif"
+    info "Attente connexion BT (10s)..."
+    sleep 10
+
+    # 3. Snapclient
+    hdr "Redémarrage soundspot-client"
+    systemctl restart soundspot-client 2>/dev/null \
+        && info "soundspot-client relancé" || info "soundspot-client inactif"
+    sleep 5
+
+    echo -e "${G}▶${N} Redémarrage terminé — lancement des vérifications\n"
+}
+
+[ "$DO_RESTART" -eq 1 ] || [ "$DEBUG" -eq 1 ] && restart_soundspot
 
 # ── Helpers ─────────────────────────────────────────────────────
 svc_active()  { systemctl is-active  --quiet "$1" 2>/dev/null; }
@@ -277,23 +325,23 @@ port_open 80 && ok "lighttpd écoute sur port 80" || fail "lighttpd ne répond p
 
 # Réponse HTML
 HTTP_PORTAL=$(curl -s -o /dev/null -w "%{http_code}" \
-    --max-time 3 "http://${SPOT_IP}/" 2>/dev/null || echo "000")
-[ "$HTTP_PORTAL" != "000" ] \
+    --max-time 3 "http://${SPOT_IP}/" 2>/dev/null; true)
+[ "${HTTP_PORTAL:-000}" != "000" ] \
     && ok "Portail répond : HTTP ${HTTP_PORTAL} sur http://${SPOT_IP}/" \
     || fail "Portail injoignable sur http://${SPOT_IP}/"
 
 # auth.sh
 AUTH_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
-    --max-time 3 -X POST "http://${SPOT_IP}/auth.sh" 2>/dev/null || echo "000")
-[ "$AUTH_CODE" != "000" ] \
+    --max-time 3 -X POST "http://${SPOT_IP}/auth.sh" 2>/dev/null; true)
+[ "${AUTH_CODE:-000}" != "000" ] \
     && ok "auth.sh répond : HTTP ${AUTH_CODE}" \
     || fail "auth.sh injoignable"
 
 # Probes Android/Apple
 for probe in generate_204 hotspot-detect.html ncsi.txt; do
     CODE=$(curl -s -o /dev/null -w "%{http_code}" \
-        --max-time 3 "http://${SPOT_IP}/${probe}" 2>/dev/null || echo "000")
-    [ "$CODE" != "000" ] \
+        --max-time 3 "http://${SPOT_IP}/${probe}" 2>/dev/null; true)
+    [ "${CODE:-000}" != "000" ] \
         && ok "Probe /${probe} → HTTP ${CODE}" \
         || warn "Probe /${probe} ne répond pas"
 done
@@ -381,4 +429,64 @@ fi
 echo -e "${W}╚══════════════════════════════════════════════════╝${N}"
 
 # Code de sortie utile pour les scripts appelants
-[ "$ERRORS" -eq 0 ]
+EXIT_CODE=0; [ "$ERRORS" -eq 0 ] || EXIT_CODE=1
+
+# ── Mode debug : logs détaillés ──────────────────────────────────
+if [ "$DEBUG" -eq 1 ]; then
+    echo -e "\n${W}╔══════════════════════════════════════════════════╗${N}"
+    echo -e "${W}║  LOGS DÉTAILLÉS (--debug)                        ║${N}"
+    echo -e "${W}╚══════════════════════════════════════════════════╝${N}"
+
+    hdr "WirePlumber — wpctl status"
+    $ASUSER wpctl status 2>/dev/null || echo "(erreur wpctl — WirePlumber non joignable)"
+
+    hdr "WirePlumber — journal (50 lignes)"
+    $ASUSER journalctl --user -u wireplumber -n 50 --no-pager 2>/dev/null \
+        || journalctl -u wireplumber -n 50 --no-pager 2>/dev/null \
+        || echo "(journal WirePlumber inaccessible)"
+
+    hdr "PipeWire — sinks"
+    $ASUSER pactl list sinks 2>/dev/null \
+        | grep -E "^(Sink #|	Name:|	State:|	Volume:|	Description:)" \
+        || echo "(pactl inaccessible ou aucun sink)"
+
+    hdr "Bluetooth — adaptateur"
+    bluetoothctl show 2>/dev/null || echo "(bluetoothctl indisponible)"
+
+    if [ -n "$BT_MACS" ]; then
+        for _mac in $BT_MACS; do
+            hdr "Bluetooth — info $_mac"
+            bluetoothctl info "$_mac" 2>/dev/null || echo "(appareil inconnu)"
+        done
+    fi
+
+    hdr "bt-autoconnect — journal (40 lignes)"
+    journalctl -u bt-autoconnect -n 40 --no-pager 2>/dev/null || true
+
+    hdr "soundspot-client — journal (40 lignes)"
+    journalctl -u soundspot-client -n 40 --no-pager 2>/dev/null || true
+
+    hdr "soundspot-decoder — journal (20 lignes)"
+    journalctl -u soundspot-decoder -n 20 --no-pager 2>/dev/null || true
+
+    hdr "dnsmasq — journal (20 lignes)"
+    journalctl -u dnsmasq -n 20 --no-pager 2>/dev/null || true
+
+    hdr "hostapd — journal (20 lignes)"
+    journalctl -u hostapd -n 20 --no-pager 2>/dev/null || true
+
+    hdr "Paquets PipeWire/WirePlumber/Bluetooth"
+    dpkg -l 2>/dev/null | grep -E "pipewire|wireplumber|libspa|bluez|pulseaudio" \
+        | awk '{printf "  %-30s %s\n", $2, $3}' || true
+
+    hdr "Fichiers conf PipeWire"
+    ls -la /etc/pipewire/ /etc/pipewire/pipewire.conf.d/ 2>/dev/null || true
+
+    hdr "Fichiers conf WirePlumber"
+    ls -la /etc/wireplumber/ /etc/wireplumber/wireplumber.conf.d/ 2>/dev/null \
+        || echo "(pas de conf WirePlumber utilisateur)"
+
+    echo -e "\n${C}━━━  Fin des logs --debug  ━━━${N}\n"
+fi
+
+exit "$EXIT_CODE"
