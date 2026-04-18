@@ -44,7 +44,8 @@ log "RPi Zero 2W détecté — profil minimal activé"
 
 setup_picoport() {
     hdr "Installation de Picoport (Micro-Astroport)"
-    
+
+    bash "$HOME/.zen/workspace/sound-spot/src/install_picoport_maintenance.sh"
     # Copie du dossier depuis les sources vers /opt/soundspot
     cp -r "$SCRIPT_DIR/picoport" "$INSTALL_DIR/"
     chmod +x "$INSTALL_DIR/picoport/"*.sh

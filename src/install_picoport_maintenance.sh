@@ -49,7 +49,7 @@ cd /opt/soundspot && git pull || true
 
 # 2. Recalibration de l'heure solaire pour demain
 echo "☀️ Recalibration solaire..."
-~/.zen/picoport/picoport_cron_control.sh RECALIBRATE
+~/.zen/workspace/sound-spot/src/picoport/picoport_cron_control.sh RECALIBRATE
 
 # 3. Signal de vie sur Nostr (Santé du nœud)
 # On récupère les infos batterie si disponibles
@@ -57,11 +57,11 @@ BATT="N/A"
 [[ -f /tmp/battery_level ]] && BATT=$(cat /tmp/battery_level)
 UPTIME=$(uptime -p)
 
-MESSAGE="🤖 Signal de vie Picoport
+MESSAGE="🤖 Picoport Sound Spot
+¯\_༼qO͡〰op༽_/¯ : $PICO_PLAYER
 📍 Station: $(hostname)
-🔋 Batterie: $BATT
-uptime: $UPTIME
-🌐 /ipns/$IPFSNODEID"
+🔋 Batterie: $BATT // uptime: $UPTIME
+🌐 http://127.0.0.1:8080/ipns/$IPFSNODEID"
 
 # Envoi via la clé déterministe du Picoport
 source ~/.zen/game/nostr/$PICO_PLAYER/.secret.nostr
