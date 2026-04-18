@@ -4,7 +4,7 @@
 
 SoundSpot transforme un Raspberry Pi Zero 2W en point d'accès WiFi permettant à n'importe qui de diffuser sa musique sur les enceintes du lieu depuis son ordinateur, sans installation ni compte. La caméra intégrée détecte les visiteurs et joue automatiquement un message d'accueil vocal.
 
-Projet [G1FabLab](https://g1sms.fr) / [UPlanet ẐEN](https://qo-op.com) — Licence AGPL-3.0
+Projet [G1FabLab](https://opencollective.com/monnaie-libre) / [UPlanet ẐEN](https://qo-op.com) — Licence AGPL-3.0
 
 ---
 
@@ -228,4 +228,4 @@ http://192.168.10.1:1780    # interface web Snapcast
 
 ## Licence
 
-AGPL-3.0 — [G1FabLab](https://g1sms.fr) / [UPlanet ẐEN](https://qo-op.com) / [zicmama.com](https://zicmama.com)
+AGPL-3.0 — [G1FabLab](https://opencollective.com/monnaie-libre) / [UPlanet ẐEN](https://qo-op.com) / [zicmama.com](https://zicmama.com)

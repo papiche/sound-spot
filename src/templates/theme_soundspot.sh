@@ -235,7 +235,7 @@ cat <<HTMLEOF
 </div>
 
 <div class="footer">
-  <p><a href="https://g1sms.fr">G1FabLab</a> · <a href="https://qo-op.com">UPlanet ẐEN</a></p>
+  <p><a href="https://opencollective.com/monnaie-libre">G1FabLab</a> · <a href="https://qo-op.com">UPlanet ẐEN</a></p>
   <p style="margin-top:4px; opacity:0.5; font-size:8px;">PRIVATE NODE // NO GOOGLE FONTS // NO TRACKING</p>
 </div>
 

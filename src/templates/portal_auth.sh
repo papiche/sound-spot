@@ -32,7 +32,7 @@ cat <<HTMLEOF
   <h1>✅ C'est noté !</h1>
   <p>Votre accès internet est ouvert pour <strong>15 minutes</strong>.</p>
   <p class="note">Après ce délai, naviguez à nouveau sur le portail pour revalider.<br>Privilégiez l'écoute de la musique locale pour économiser l'énergie du nœud.</p>
-  <a href="http://g1sms.fr" class="btn">Continuer →</a>
+  <a href="https://opencollective.com/monnaie-libre" class="btn">Continuer →</a>
 </div>
 </body>
 </html>
