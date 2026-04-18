@@ -4,6 +4,8 @@
 
 SoundSpot transforme un Raspberry Pi Zero 2W en point d'accès WiFi permettant à n'importe qui de diffuser sa musique sur les enceintes du lieu depuis son ordinateur, sans installation ni compte. La caméra intégrée détecte les visiteurs et joue automatiquement un message d'accueil vocal.
 
+En option, **Picoport** transforme le même RPi en micro-nœud UPlanet : identité IPFS + Nostr + Ğ1 déterministe, capabilité de paiement ẑen (gcli Duniter v2s), et connexion au swarm de calcul IA décentralisé via `astrosystemctl`.
+
 Projet [G1FabLab](https://opencollective.com/monnaie-libre) / [UPlanet ẐEN](https://qo-op.com) — Licence AGPL-3.0
 
 ---
@@ -223,6 +225,34 @@ espeak-ng -v fr+f3 -s 120 -p 45 \
 sudo systemctl status soundspot-*
 http://192.168.10.1:1780    # interface web Snapcast
 ```
+
+Ou utiliser le diagnostic complet (en SSH sur le RPi) :
+
+```bash
+check         # alias installé par Picoport dans ~/.bashrc
+# ou directement :
+sudo bash ~/sound-spot/check.sh
+```
+
+---
+
+## Picoport — nœud UPlanet intégré
+
+Activé par défaut lors de l'installation (`deploy_on_pi.sh` pose la question).
+Transforme le SoundSpot en micro-nœud coopératif : identité IPFS/Nostr/Ğ1, paiements ẑen, accès au swarm de calcul IA.
+
+Commandes disponibles après installation (dans le shell `pi`) :
+
+```bash
+pico-status          # état IPFS, BT, snapcast, batterie
+pico-power           # Power-Score (🌿 Light sur Zero 2W → délègue au swarm)
+asys-swarm           # Brain-Nodes GPU disponibles dans la constellation
+ai ollama            # tunnel P2P vers le meilleur nœud Ollama du swarm
+clock-bells          # clocher — coups à l'heure
+clock-silent         # clocher — heure vocale seule
+```
+
+Les paiements Ğ1 (Duniter v2s) sont disponibles via `gcli` (`g1cli` installé dans `/usr/local/bin`).
 
 ---
 

@@ -39,7 +39,7 @@ cd sound-spot
 sudo bash deploy_on_pi.sh
 ```
 
-L'assistant pose 5 questions :
+L'assistant pose quelques questions :
 
 ```
 [1] Mode : Maître  →  répondre 1
@@ -48,6 +48,8 @@ L'assistant pose 5 questions :
 [4] Mot de passe WiFi : 0penS0urce!  (Entrée)
 [5] Canal WiFi : détecté automatiquement
 [6] MAC enceinte BT : XX:XX:XX:XX:XX:XX  (ou Entrée pour plus tard)
+[7] Fuseau horaire : Europe/Paris  (Entrée — pour l'heure solaire du clocher)
+[8] Activer Picoport (nœud UPlanet + paiements ẑen) ? [O/n] : O
 
 ? Lancer l'installation ? [oui/Non] :  oui
 ```
@@ -153,10 +155,12 @@ espeak-ng -v fr+f3 -s 120 -p 45 \
 
 ```bash
 ssh pi@soundspot.local
+check                               # diagnostic complet (alias bashrc)
 sudo systemctl status soundspot-*
-journalctl -fu soundspot-presence    # caméra
-journalctl -fu icecast2              # source DJ
-journalctl -fu snapserver            # stream
+journalctl -fu soundspot-presence   # caméra
+journalctl -fu icecast2             # source DJ
+journalctl -fu snapserver           # stream
+bt-log                              # reconnexion BT en direct
 ```
 
 ### Clients Snapcast connectés
@@ -190,10 +194,14 @@ Satellites et visiteurs peuvent tous deux joindre le Snapserver, via qo-op ou vi
 | Symptôme | Solution |
 |---|---|
 | WiFi `ZICMAMA` invisible | Canal différent : `sudo nano /etc/hostapd/hostapd.conf` → `channel=X`, `sudo systemctl restart hostapd` |
-| Pas de son sur l'enceinte BT | Vérifier `BT_MAC` dans `soundspot.conf`, relancer `bt-autoconnect` |
+| hostapd/dnsmasq plantent avec `${IFACE_AP}` | Template non substitué — corriger : `sudo sed -i 's|\${IFACE_AP}|wlan1|g' /etc/hostapd/hostapd.conf /etc/dnsmasq.conf && sudo systemctl restart hostapd dnsmasq` |
+| Pas de son sur l'enceinte BT au démarrage | Normal si `bt-autoconnect` n'a pas encore reconnecté — la fix est en place : snapclient redémarre automatiquement après connexion BT |
+| Son absent même après connexion BT | Relancer manuellement : `bt-fix` (alias bashrc) |
 | Mixxx joue, pas de son | Live Broadcasting non activé dans Mixxx → icône Antenne |
 | Satellite ne reçoit rien | Vérifier `ping soundspot.local` depuis le satellite (doit répondre) |
 | Caméra non détectée | Vérifier nappe CSI : `vcgencmd get_camera` |
 | Portail n'apparaît pas | Vérifier lighttpd : `systemctl status lighttpd`. Tester manuellement : `curl http://192.168.10.1/` depuis le téléphone |
 | Internet bloqué après 15 min | Normal — se déconnecter/reconnecter au WiFi, ou rouvrir `http://192.168.10.1` |
 | IP non ajoutée à ipset | Vérifier : `ipset list soundspot_auth` ; tester le script : `sudo /opt/soundspot/dhcp_trigger.sh add 00:00:00:00:00:00 192.168.10.99` |
+| Heure solaire = heure de Londres | Fuseau horaire non configuré (UTC par défaut). Fix : `sudo timedatectl set-timezone Europe/Paris` puis redémarrer `soundspot-idle` |
+| Picoport — `picoport_20h12.sh` Permission denied | Permissions `/opt/soundspot/picoport/` : `sudo chown -R pi:pi /opt/soundspot/picoport` |

@@ -9,6 +9,7 @@ SoundSpot is a decentralized audio streaming infrastructure for the UPlanet coop
 ```
 sound-spot/
 ├── deploy_on_pi.sh      ← RPi: master + satellite install (main entry point)
+├── check.sh             ← Diagnostic complet (services, réseau, audio, BT, pare-feu)
 ├── dj_mixxx_setup.sh    ← PC DJ: Snapclient + Mixxx + ~/zicmama_play.sh
 ├── HOWTO.md             ← single-page guide (start here)
 ├── README.md
@@ -17,10 +18,16 @@ sound-spot/
     ├── install_soundspot.sh
     ├── install_satellite.sh
     ├── install_battery_monitor.sh
-    ├── idle_announcer.sh    ← Clocher numérique (bip + cloche + heure + messages G1FabLab)
+    ├── install_picoport_maintenance.sh   ← Astroport.ONE clone + venv ~/.astro/ + symlinks
+    ├── idle_announcer.sh    ← Clocher numérique (bip + cloche + heure solaire + messages)
     ├── bt_update.sh
     ├── presence_detector.py
     ├── battery_monitor.py
+    ├── picoport/         ← Micro-Astroport UPlanet (IPFS + Nostr + G1 + IA swarm)
+    │   ├── install_picoport.sh         ← IPFS Kubo + g1cli + clés Y-Level + service systemd
+    │   ├── picoport_init_keys.sh       ← Identité déterministe SSH→IPFS→Nostr
+    │   ├── picoport.sh                 ← Daemon principal Picoport
+    │   └── pico_bashrc_manager.sh      ← Alias shell (check, ai, asys, bt-fix…)
     ├── install/          (setup_* modules sourced by install scripts)
     └── templates/        (systemd services, hostapd.conf, soundspot.conf, captive portal)
 ```
@@ -78,10 +85,15 @@ There is no build step — this project is pure Bash + Python. ShellCheck can be
 
 | File | Responsibility |
 |------|---------------|
-| `deploy_on_pi.sh` | **Main entry point** — interactive wizard on the RPi: mode selection (master/satellite), WiFi config, BT scan, copies Python scripts, calls correct installer, reboots |
-| `install_soundspot.sh` | Master install: networking (hostapd/dnsmasq/firewall), icecast2, Snapcast, PipeWire, Bluetooth, idle, all systemd services |
+| `deploy_on_pi.sh` | **Main entry point** — interactive wizard: mode, WiFi, BT, timezone, Picoport opt-in, reboot |
+| `check.sh` | Diagnostic complet — services systemd, réseau, pare-feu, pipeline audio, BT, portail captif |
+| `install_soundspot.sh` | Master install: networking (hostapd/dnsmasq/firewall), icecast2, Snapcast, PipeWire, Bluetooth, idle, Picoport (optionnel), services systemd |
 | `install_satellite.sh` | Satellite install: PipeWire + Snapclient only (no AP, no Icecast) |
-| `idle_announcer.sh` | Clocher numérique — boucle toutes les 15 min : bip 429.62 Hz + coups de cloche + heure vocale + messages G1FabLab (si aucun DJ actif). Hot-reload de CLOCK_MODE sans redémarrage |
+| `install_picoport_maintenance.sh` | Clone Astroport.ONE, venv `~/.astro/`, pip keygen+Nostr+G1, symlinks `~/.local/bin/` (keygen, solar_time, astrosystemctl) |
+| `idle_announcer.sh` | Clocher numérique — boucle toutes les 15 min : bip 429.62 Hz + coups de cloche + **heure solaire** (correction longitude/fuseau) + messages. Hot-reload de CLOCK_MODE sans redémarrage |
+| `picoport/install_picoport.sh` | IPFS Kubo arm64 + g1cli (Duniter v2s, paiements ẑen) + identité Y-Level + service picoport.service |
+| `picoport/picoport_init_keys.sh` | Identité déterministe : SSH → sha512 → IPFS PeerID + NOSTR MULTIPASS (make_NOSTRCARD.sh) |
+| `picoport/pico_bashrc_manager.sh` | Installe les alias shell : `check`, `ai`, `asys*`, `bt-fix`, `clock-bells/silent`, `pico-status`, `pico-power`, `swarm-nodes` |
 | `presence_detector.py` | Face detection daemon (OpenCV Haar, 80×60 px); triggers welcome audio via `threading.Thread` |
 | `battery_monitor.py` | INA219 solar battery monitor; replaces welcome.wav with low-battery alert |
 | `bt_update.sh` | Interactive BT speaker management (scan, pair, update soundspot.conf) |
@@ -106,9 +118,12 @@ INSTALL_DIR              /opt/soundspot
 SOUNDSPOT_USER           Utilisateur système qui exécute PipeWire/Snapclient (défaut: pi)
 IDLE_ANNOUNCE_INTERVAL   Secondes entre annonces clocher (défaut: 900 = 15 min)
 CLOCK_MODE               "bells" (coups de cloche à l'heure) ou "silent" (heure vocale seule)
+PICOPORT_ENABLED         true/false — active le nœud Picoport UPlanet (défaut: true)
 ```
 
 **Note `CLOCK_MODE`** : modifiable à chaud depuis le portail captif via `set_clock_mode.sh` — `idle_announcer.sh` relit `soundspot.conf` à chaque itération, sans redémarrage du service.
+
+**Note `PICOPORT_ENABLED`** : posé comme question par `deploy_on_pi.sh` (défaut : oui). Si `false`, `setup_picoport()` est ignoré — aucun IPFS, aucun clone Astroport.ONE, aucun venv Python keygen.
 
 ### Clocher numérique et messages personnalisables
 
@@ -166,9 +181,9 @@ Each `install/*.sh` file exports a single `setup_*` function, sourced by `instal
 
 | Module | Function |
 |---|---|
-| `colors.sh` | `log/warn/err/hdr` + `install_template` (envsubst) |
-| `networking.sh` | `setup_networking` — uap0, hostapd, dnsmasq, NAT iptables |
-| `captive_portal.sh` | `setup_captive_portal` — opennds + HTML theme |
+| `colors.sh` | `log/warn/err/hdr` + `install_template` (envsubst avec liste explicite de variables) |
+| `networking.sh` | `setup_networking` — uap0, hostapd, dnsmasq, NAT iptables. **`${IFACE_AP}` doit figurer dans la liste envsubst de chaque `install_template` qui l'utilise.** |
+| `captive_portal.sh` | `setup_captive_portal` — lighttpd + HTML theme |
 | `icecast.sh` | `setup_icecast` — enable + password |
 | `bluetooth.sh` | `setup_bluetooth` — bt-autoconnect service |
 | `pipewire.sh` | `setup_pipewire` — loginctl enable-linger |
@@ -176,6 +191,28 @@ Each `install/*.sh` file exports a single `setup_*` function, sourced by `instal
 | `snapclient.sh` | `setup_snapclient [master|satellite]` |
 | `channel_sync.sh` | `setup_channel_sync` — sync_channel.sh + systemd overrides |
 | `presence.sh` | `setup_presence` — welcome.wav + presence + battery services + venv |
+
+### Picoport (Micro-Astroport sur RPi Zero 2W)
+
+`setup_picoport()` dans `install_soundspot.sh` :
+1. `cp -r src/picoport/ /opt/soundspot/picoport/`
+2. `chown -R SOUNDSPOT_USER` (nécessaire — `install_picoport_maintenance.sh` tourne en non-root)
+3. `sudo -u SOUNDSPOT_USER bash install_picoport_maintenance.sh` — clone Astroport.ONE, venv `~/.astro/`, pip, symlinks
+4. `bash install_picoport.sh` — IPFS, g1cli arm64, clés Y-Level, `picoport.service`
+
+**Chaîne de clés Y-Level** (`picoport_init_keys.sh`) :
+```
+id_ed25519 (SSH) → sha512sum → SECRET1 + SECRET2
+  → keygen -t ipfs   → IPFS PeerID + PrivKey  (injecté dans ~/.ipfs/config)
+  → keygen -t nostr  → MULTIPASS Nostr (make_NOSTRCARD.sh)
+  → keygen -t g1     → Portefeuille Ğ1 (paiements ẑen via g1cli)
+```
+
+**g1cli** : binaire arm64 téléchargé depuis `git.duniter.org/api/v4/projects/clients%2Frust%2Fg1cli/releases/`.
+Symlink `gcli → g1cli` créé pour compatibilité `PAYforSURE.sh` et `my.sh`.
+
+**`astrosystemctl`** (`~/.local/bin/astrosystemctl` → `~/.zen/Astroport.ONE/tools/astrosystemctl.sh`) :
+Gestion cloud P2P — compare le Power-Score local (toujours 🌿 Light sur Zero 2W) avec les Brain-Nodes du swarm. Permet de consommer des services IA distants via tunnels IPFS P2P (`connect ollama`, `enable comfyui`…).
 
 ## Conventions
 
@@ -185,4 +222,7 @@ Each `install/*.sh` file exports a single `setup_*` function, sourced by `instal
 - Satellites connect to the master via qo-op network (mDNS `soundspot.local`) — NOT via the AP network
 - `SOUNDSPOT_USER` defaults to `${SUDO_USER:-pi}` — the user running audio services (PipeWire, snapclient)
 - Python scripts (`presence_detector.py`, `battery_monitor.py`) are copied to `$INSTALL_DIR` by `deploy_on_pi.sh` before calling the installers
+- `install_template SRC DEST 'VARS'` — `envsubst` substitue **uniquement** les variables listées en argument. Toute variable manquante dans la liste reste littérale dans le fichier installé (`${IFACE_AP}` non substitué → hostapd/dnsmasq plantent)
+- `bt-connect.sh` redémarre `soundspot-client` après connexion BT réussie — sans ça, snapclient reste sur le sink null démarré au boot
+- L'heure solaire dans `idle_announcer.sh` utilise la correction `lon × 4 - tz_offset_min` appliquée à l'heure locale (pas UTC). Fallback : méridien du fuseau horaire si `~/.zen/GPS` absent
 - The project is part of the UPlanet ecosystem; see `../CLAUDE.md` for cross-project context
