@@ -156,76 +156,100 @@ fi
 # ════════════════════════════════════════════════════════════════
 hdr "Enceinte Bluetooth"
 
-log "Préparation du contrôleur (Power ON + Pairable)..."
-rfkill unblock bluetooth 2>/dev/null || true
-# On force les réglages qui favorisent la détection
-{
-  echo "power on"
-  echo "pairable on"
-  echo "discoverable on"
-  echo "agent on"
-  echo "default-agent"
-  echo "quit"
-} | bluetoothctl >/dev/null 2>&1
-sleep 1
+# 1. Vérifier si des appareils sont déjà connus/connectés
+log "Vérification des appareils déjà connus..."
+KNOWN_DEVICES=$(bluetoothctl devices Paired 2>/dev/null || true)
+if[ -n "$KNOWN_DEVICES" ]; then
+    echo -e "${DIM}Appareils déjà couplés sur ce Raspberry :${N}"
+    echo "$KNOWN_DEVICES" | while read -r line; do
+        MAC=$(echo "$line" | awk '{print $2}')
+        NAME=$(echo "$line" | cut -d' ' -f3-)
+        if bluetoothctl info "$MAC" 2>/dev/null | grep -q "Connected: yes"; then
+            echo -e "  - ${C}$MAC${N} ${W}$NAME${N} ${G}[Connecté]${N}"
+        else
+            echo -e "  - ${C}$MAC${N} ${W}$NAME${N} ${Y}[Couplé]${N}"
+        fi
+    done
+    echo ""
+fi
 
-echo -e "${Y}Veuillez mettre votre enceinte en MODE APPAIRAGE maintenant.${N}"
-echo -e "${DIM}(Appui long sur le bouton Bluetooth jusqu'au clignotement)${N}"
-echo ""
-ask "Prêt pour le scan ? [Appuyez sur Entrée]"
-read -r _READY
-
-log "Scan en cours (15 s)..."
-# --- MÉTHODE COPROC : On ouvre bluetoothctl et on le garde ouvert ---
-coproc BT { bluetoothctl; }
-# On envoie la commande de scan au processus ouvert
-echo "scan on" >&${BT[1]}
-
-# Barre de progression
-for i in $(seq 1 15); do
-    echo -ne "\r  Recherche active... $i/15s "
+# 2. Option de scanner ou de sauter directement à la sélection
+ask "Faire un scan Bluetooth (15s) pour chercher une enceinte ?[O/n] : "
+read -r DO_SCAN
+if [[ "${DO_SCAN,,}" != "n" ]]; then
+    log "Préparation du contrôleur (Power ON + Pairable)..."
+    rfkill unblock bluetooth 2>/dev/null || true
+    {
+      echo "power on"
+      echo "pairable on"
+      echo "discoverable on"
+      echo "agent on"
+      echo "default-agent"
+      echo "quit"
+    } | bluetoothctl >/dev/null 2>&1
     sleep 1
-done
-echo -e "\n"
 
-# On demande la liste des périphériques vus et on ferme
-echo "devices" >&${BT[1]}
-echo "quit" >&${BT[1]}
+    echo -e "${Y}Veuillez mettre votre enceinte en MODE APPAIRAGE maintenant.${N}"
+    echo -e "${DIM}(Appui long sur le bouton Bluetooth jusqu'au clignotement)${N}"
+    echo ""
+    ask "Prêt pour le scan ?[Appuyez sur Entrée]"
+    read -r _READY
 
-# On récupère toute la sortie de la session
-BT_OUT=$(cat <&${BT[0]})
+    log "Scan en cours (15 s)..."
+    coproc BT { bluetoothctl; }
+    echo "scan on" >&${BT[1]}
+
+    for i in $(seq 1 15); do
+        echo -ne "\r  Recherche active... $i/15s "
+        sleep 1
+    done
+    echo -e "\n"
+
+    echo "devices" >&${BT[1]}
+    echo "quit" >&${BT[1]}
+    BT_OUT=$(cat <&${BT[0]})
+else
+    BT_OUT=""
+fi
 
 log "Analyse des résultats..."
-# On combine les sources : la sortie de la session et la base de données système
 DEVICES=$(echo "$BT_OUT" | grep "Device " | sed 's/.*Device //' | sort -u || true)
-if [ -z "$DEVICES" ]; then
+if[ -z "$DEVICES" ]; then
     DEVICES=$(bluetoothctl devices | grep -v "Scanning" || true)
 fi
 
 if [ -z "$DEVICES" ]; then
-    warn "ÉCHEC DE DÉTECTION AUTOMATIQUE"
-    log "Vérification des erreurs possibles..."
+    warn "Aucun appareil détecté ou mémorisé."
     if ! bluetoothctl show | grep -q "Powered: yes"; then
         err "Le contrôleur Bluetooth est éteint. Problème matériel ?"
     fi
-    echo -e "${DIM}Note : L'antenne est partagée entre WiFi et BT.${N}"
-    echo ""
     ask "Saisir la MAC manuellement (ex: F4:4E:FC:E9:C6:15) ou Entrée : "
     read -r BT_INPUT
 else
-    hdr "Appareils détectés"
+    hdr "Appareils disponibles"
     echo -e "Sélectionnez votre enceinte :\n"
     
     IFS=$'\n'
     DEV_ARRAY=($DEVICES)
     
     for i in "${!DEV_ARRAY[@]}"; do
-        # On met en gras si on voit "W-KING" ou "Audio"
         DISPLAY_NAME="${DEV_ARRAY[$i]}"
+        MAC=$(echo "$DISPLAY_NAME" | grep -oE "([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}" || true)
+        
+        # Ajouter le statut visuel
+        STATUS=""
+        if [ -n "$MAC" ]; then
+            if bluetoothctl info "$MAC" 2>/dev/null | grep -q "Connected: yes"; then
+                STATUS=" ${G}[Connecté]${N}"
+            elif bluetoothctl info "$MAC" 2>/dev/null | grep -q "Paired: yes"; then
+                STATUS=" ${Y}[Couplé]${N}"
+            fi
+        fi
+
         if echo "$DISPLAY_NAME" | grep -qiE "audio|speaker|w-king|jbl|sound"; then
-            echo -e "  ${C}[$((i+1))]${N} ${W}${DISPLAY_NAME}${N} ${G}← recommandé${N}"
+            echo -e "  ${C}[$((i+1))]${N} ${W}${DISPLAY_NAME}${N}${STATUS} ${G}← recommandé${N}"
         else
-            echo -e "  ${C}[$((i+1))]${N} ${DISPLAY_NAME}"
+            echo -e "  ${C}[$((i+1))]${N} ${DISPLAY_NAME}${STATUS}"
         fi
     done
     echo -e "  ${C}[0]${N} Saisie manuelle / Ignorer"
@@ -233,7 +257,7 @@ else
     ask "Votre choix : "
     read -r CHOICE
     
-    if [[ "$CHOICE" =~ ^[0-9]+$ ]] && [ "$CHOICE" -gt 0 ] && [ "$CHOICE" -le "${#DEV_ARRAY[@]}" ]; then
+    if [[ "$CHOICE" =~ ^[0-9]+$ ]] &&[ "$CHOICE" -gt 0 ] && [ "$CHOICE" -le "${#DEV_ARRAY[@]}" ]; then
         SELECTED="${DEV_ARRAY[$((CHOICE-1))]}"
         BT_INPUT=$(echo "$SELECTED" | grep -oE "([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}")
         log "Sélectionné : ${W}$BT_INPUT${N}"
@@ -249,32 +273,30 @@ export BT_MACS=""
 if [[ "${BT_INPUT:-}" =~ ^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$ ]]; then
     export BT_MAC="$BT_INPUT"
     export BT_MACS="$BT_INPUT"
-    log "Tentative d'appairage de ${BT_MAC}..."
-    # On simule l'interaction utilisateur
-    {
-      echo "pair $BT_MAC"
-      sleep 5
-      echo "trust $BT_MAC"
-      sleep 2
-      echo "quit"
-    } | bluetoothctl > /tmp/bt_pair_result.log 2>&1
     
-    if bluetoothctl info "$BT_MAC" | grep -q "Paired: yes"; then
-        log "Succès : ${G}Enceinte appairée et mémorisée !${N}"
-        
-        # --- TEST SONORE ---
-        log "Test de connexion audio..."
+    # On vérifie si elle est déjà couplée
+    if bluetoothctl info "$BT_MAC" 2>/dev/null | grep -q "Paired: yes"; then
+        log "L'enceinte ${W}${BT_MAC}${N} est déjà couplée. Tentative de reconnexion..."
         bluetoothctl connect "$BT_MAC" >/dev/null 2>&1 || true
-        sleep 3 # On laisse le temps au sink audio de se créer
-        
-        if command -v speaker-test >/dev/null; then
-            log "Envoi d'un signal sonore (429.62 Hz) vers l'enceinte... (cf. Marc Henry)"
-            # Utilisation de 429.62 Hz
-            (timeout 2s speaker-test -t sine -f 429.62 -c 2 >/dev/null 2>&1) &
-        fi
     else
-        warn "Appairage automatique incomplet (souvent normal, il se fera au premier son)."
+        log "Tentative d'appairage de ${BT_MAC}..."
+        {
+          echo "pair $BT_MAC"
+          sleep 5
+          echo "trust $BT_MAC"
+          sleep 2
+          echo "connect $BT_MAC"
+          sleep 3
+          echo "quit"
+        } | bluetoothctl > /tmp/bt_pair_result.log 2>&1
+        
+        if bluetoothctl info "$BT_MAC" | grep -q "Paired: yes"; then
+            log "Succès : ${G}Enceinte appairée et mémorisée !${N}"
+        else
+            warn "Appairage automatique incomplet (se finalisera souvent au premier son)."
+        fi
     fi
+    log "${DIM}Note : L'audio (PipeWire) n'étant pas encore installé, le vrai test sonore aura lieu après le redémarrage automatique.${N}"
 fi
 
 # ════════════════════════════════════════════════════════════════
