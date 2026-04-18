@@ -1,6 +1,6 @@
 #!/bin/bash
-# install/networking.sh — Version compatible Bookworm & Trixie
-# Note : Basculé en mode hash:ip pour compatibilité noyaux récents (6.12+)
+# install/networking.sh — Version compatible Bookworm & Trixie (Kernel 6.12+)
+# Correction : Spécification explicite des protocoles pour iptables-nft
 
 setup_networking() {
     hdr "Configuration Réseau (NetworkManager Mode)"
@@ -19,8 +19,7 @@ EOF
     systemctl daemon-reload
     systemctl enable --now uap0
     
-    # 3. Assigner l'IP fixe à uap0 manuellement (NM ne le fait plus)
-    # On utilise une petite astuce systemd pour remettre l'IP au boot
+    # 3. Assigner l'IP fixe à uap0 manuellement
     cat > /etc/systemd/system/uap0-ip.service <<EOF
 [Unit]
 Description=IP statique pour uap0
@@ -39,7 +38,6 @@ EOF
     systemctl unmask hostapd
     install_template hostapd.conf /etc/hostapd/hostapd.conf \
         '${SPOT_NAME} ${WIFI_CHANNEL}'
-    # Forcer hostapd à utiliser uap0
     sed -i 's|^#DAEMON_CONF=.*|DAEMON_CONF="/etc/hostapd/hostapd.conf"|' /etc/default/hostapd
     systemctl enable hostapd
 
@@ -56,12 +54,11 @@ EOF
     
     apt-get install -y ipset iptables-persistent
 
-    # Chargement des modules noyau (ip_set_hash_ip est requis sur Trixie)
+    # Chargement des modules noyau
     modprobe ip_set 2>/dev/null || true
     modprobe ip_set_hash_ip 2>/dev/null || true
 
-    # Création du set basé sur l'IP (plus compatible que hash:mac sur les nouveaux kernels)
-    # Timeout de 900s (15 min)
+    # Création du set basé sur l'IP (plus compatible sur kernels récents)
     ipset create soundspot_auth hash:ip timeout 900 -exist
     
     # Règles de base NAT
@@ -70,12 +67,16 @@ EOF
     # Redirection du portail captif (Port 80)
     iptables -t nat -N CAPTIVE_PORTAL 2>/dev/null || true
     iptables -t nat -F CAPTIVE_PORTAL 2>/dev/null || true
+    
+    # On saute dans CAPTIVE_PORTAL pour tout le trafic HTTP TCP/80
     iptables -t nat -A PREROUTING -i uap0 -p tcp --dport 80 -j CAPTIVE_PORTAL
     
-    # Si l'IP du visiteur est dans l'ipset, on laisse passer (RETURN)
+    # Dans CAPTIVE_PORTAL :
+    # 1. Si IP dans l'ipset -> on laisse passer (RETURN)
     iptables -t nat -A CAPTIVE_PORTAL -m set --match-set soundspot_auth src -j RETURN
-    # Sinon, on redirige vers le portail local
-    iptables -t nat -A CAPTIVE_PORTAL -j REDIRECT --to-port 80
+    # 2. Sinon -> REDIRECT vers le port 80 local
+    # NOTE : -p tcp est OBLIGATOIRE ici pour iptables-nft
+    iptables -t nat -A CAPTIVE_PORTAL -p tcp -j REDIRECT --to-port 80
 
     # Règles de Forwarding (Accès Internet)
     iptables -A FORWARD -i uap0 -p udp --dport 53 -j ACCEPT
@@ -83,7 +84,7 @@ EOF
     iptables -A FORWARD -i wlan0 -o uap0 -m state --state RELATED,ESTABLISHED -j ACCEPT
     iptables -A FORWARD -i uap0 -o wlan0 -j REJECT
     
-    # Rendre l'ipset persistant au boot via un service dédié
+    # Persistance de l'ipset
     cat > /etc/systemd/system/ipset-soundspot.service <<EOF
 [Unit]
 Description=Création de l'ipset SoundSpot au boot
@@ -101,7 +102,7 @@ EOF
 
     systemctl enable ipset-soundspot.service
     
-    # Sauvegarde des règles iptables
+    # Sauvegarde
     netfilter-persistent save
-    log "Réseau et Portail Captif configurés (Mode IP-Auth)"
+    log "Réseau et Portail Captif configurés"
 }
