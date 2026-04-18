@@ -29,7 +29,7 @@ ASUSER="sudo -u $SOUNDSPOT_USER XDG_RUNTIME_DIR=/run/user/${USER_ID}"
 # ── Helpers ─────────────────────────────────────────────────────
 svc_active()  { systemctl is-active  --quiet "$1" 2>/dev/null; }
 svc_masked()  { systemctl is-enabled         "$1" 2>/dev/null | grep -q masked; }
-port_open()   { ss -tlnp 2>/dev/null | grep -q ":$1 "; }
+port_open()   { ss -tlnp 2>/dev/null | awk '{print $4}' | grep -qE ":${1}$"; }
 
 check_svc() {
     # check_svc NAME LABEL [masked]
@@ -226,12 +226,25 @@ else
     warn "BT_MACS non défini dans soundspot.conf"
 fi
 
+# Sockets PipeWire (indispensables pour le handler A2DP et snapclient)
+if [ -S "/run/user/${USER_ID}/pipewire-0" ]; then
+    ok "Socket PipeWire présent"
+else
+    fail "Socket PipeWire absent — WirePlumber non démarré (handler A2DP non enregistré → Protocol not available)"
+fi
+if [ -S "/run/user/${USER_ID}/pulse/native" ]; then
+    ok "Socket PipeWire-Pulse présent"
+else
+    warn "Socket PipeWire-Pulse absent — snapclient --player pulse ne peut pas démarrer"
+fi
+
 # Sink PipeWire BT
 if $ASUSER wpctl status 2>/dev/null | grep -qi "blue"; then
     BT_SINK=$($ASUSER wpctl status 2>/dev/null | grep -i blue | head -1 | sed 's/^[[:space:]]*//')
     ok "Sink Bluetooth dans PipeWire : ${D}${BT_SINK}${N}"
 else
-    warn "Sink Bluetooth non visible dans PipeWire ${D}(enceinte hors ligne ?)${N}"
+    warn "Sink Bluetooth non visible ${D}(enceinte hors ligne ou handler A2DP non encore enregistré)${N}"
+    info "Diagnostic → sudo journalctl -u bt-autoconnect -n 30 --no-pager"
 fi
 
 # ── 6. Portail captif ───────────────────────────────────────────

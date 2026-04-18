@@ -4,7 +4,29 @@ source /opt/soundspot/soundspot.conf
 MACS="${BT_MACS:-${BT_MAC:-}}"
 [ -z "$MACS" ] && { echo "BT_MACS non défini, skip"; exit 0; }
 
-# S'assurer que l'agent Bluetooth est actif avant toute tentative de connexion
+# ── Attendre que WirePlumber soit prêt à gérer le profil A2DP ──────────────
+# WirePlumber est un service utilisateur : il démarre après les services système.
+# Sans cette attente, bluetoothd répond "Protocol not available" car son handler
+# A2DP n'est pas encore enregistré.
+SOUNDSPOT_USER="${SOUNDSPOT_USER:-pi}"
+USER_ID=$(id -u "$SOUNDSPOT_USER" 2>/dev/null || echo 1000)
+PW_SOCK="/run/user/${USER_ID}/pipewire-0"
+
+echo "Attente du socket PipeWire (max 45s)..."
+WAITED=0
+while [ $WAITED -lt 45 ] && [ ! -S "$PW_SOCK" ]; do
+    sleep 1
+    WAITED=$((WAITED + 1))
+done
+
+if [ -S "$PW_SOCK" ]; then
+    echo "PipeWire prêt après ${WAITED}s — attente enregistrement A2DP (3s)..."
+    sleep 3   # laisser le plugin bluetooth de WirePlumber s'enregistrer auprès de bluetoothd
+else
+    echo "Avertissement : socket PipeWire non trouvé après 45s — tentative quand même"
+fi
+
+# ── Activer l'agent Bluetooth ─────────────────────────────────────────────
 bluetoothctl agent on 2>/dev/null || true
 bluetoothctl default-agent 2>/dev/null || true
 
