@@ -89,13 +89,19 @@ EOF
     cat > /etc/systemd/system/ipset-soundspot.service <<EOF
 [Unit]
 Description=Ipset SoundSpot (Auth list)
-Before=netfilter-persistent.service
+DefaultDependencies=no
+After=systemd-modules-load.service
+Before=network-pre.target
+Wants=network-pre.target
+
 [Service]
 Type=oneshot
 ExecStartPre=/sbin/modprobe ip_set_hash_ip
-ExecStart=/bin/bash -c '/usr/sbin/ipset restore -! < /etc/soundspot_ipset.save 2>/dev/null || /usr/sbin/ipset create soundspot_auth hash:ip timeout 900 -exist'
+# On crée l'ipset impérativement s'il n'existe pas, avant que iptables ne charge
+ExecStart=/bin/bash -c '/usr/sbin/ipset create soundspot_auth hash:ip timeout 900 -exist; /usr/sbin/ipset restore -! < /etc/soundspot_ipset.save 2>/dev/null || true'
 ExecStop=/bin/bash -c '/usr/sbin/ipset save soundspot_auth > /etc/soundspot_ipset.save 2>/dev/null || true'
 RemainAfterExit=yes
+
 [Install]
 WantedBy=multi-user.target
 EOF

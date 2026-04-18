@@ -1,6 +1,6 @@
 [Unit]
 Description=SoundSpot — Snapclient local (BT speaker)
-After=snapserver.service bluetooth.service
+After=snapserver.service bluetooth.service time-sync.target user@%U.service
 Wants=snapserver.service bluetooth.service
 
 [Service]
@@ -9,7 +9,8 @@ User=${SOUNDSPOT_USER}
 Group=${SOUNDSPOT_USER}
 Environment="XDG_RUNTIME_DIR=/run/user/%U"
 Environment="PULSE_SERVER=unix:/run/user/%U/pulse/native"
-ExecStartPre=/bin/bash -c 'i=0; while [ $i -lt 60 ] && [ ! -S "/run/user/%U/pulse/native" ]; do sleep 1; i=$((i+1)); done; [ -S "/run/user/%U/pulse/native" ] || { echo "PipeWire-Pulse socket absent après 60s"; exit 1; }'
+ExecStartPre=${INSTALL_DIR}/wait-pw-socket.sh
+ExecStartPre=${INSTALL_DIR}/wait-bt-sink.sh
 ExecStart=/usr/bin/snapclient -h 127.0.0.1 -p ${SNAPCAST_PORT} --player pulse:server=unix:/run/user/%U/pulse/native
 ExecStartPost=/bin/sleep 5
 ExecStartPost=${INSTALL_DIR}/play_welcome.sh

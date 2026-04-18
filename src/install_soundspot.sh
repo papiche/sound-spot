@@ -8,6 +8,18 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# ── Retry apt-get (réseau instable — festivals, hotspots) ────────
+apt_retry() {
+    local n=1
+    until apt-get "$@"; do
+        n=$((n + 1))
+        [ "$n" -gt 3 ] && { warn "apt-get échoué après 3 tentatives"; return 1; }
+        warn "apt-get échoué — tentative $n/3 dans 5s..."
+        sleep 5
+        apt-get update -qq
+    done
+}
+
 # ── Modules d'installation ───────────────────────────────────
 source "$SCRIPT_DIR/install/colors.sh"
 source "$SCRIPT_DIR/install/networking.sh"
@@ -45,8 +57,8 @@ hdr "Installation des paquets"
 export DEBIAN_FRONTEND=noninteractive
 echo "icecast2 icecast2/icecast-setup boolean false" | debconf-set-selections
 
-apt update -y
-apt install -y --no-install-recommends \
+apt_retry update -qq
+apt_retry install -y --no-install-recommends \
     hostapd dnsmasq lighttpd ipset \
     icecast2 rpicam-apps \
     bluez bluez-alsa-utils libspa-0.2-bluetooth \

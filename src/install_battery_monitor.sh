@@ -12,7 +12,7 @@ After=soundspot-presence.service
 
 [Service]
 Type=simple
-Environment="XDG_RUNTIME_DIR=/run/user/%U"
+Environment="XDG_RUNTIME_DIR=/run/user/1000"
 # Utilisation du Python de l'environnement virtuel
 ExecStart=${INSTALL_DIR}/venv/bin/python ${INSTALL_DIR}/battery_monitor.py
 Restart=always

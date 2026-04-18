@@ -3,9 +3,15 @@
 # Partagé entre maître et satellite.
 
 setup_pipewire() {
-    hdr "PipeWire session persistante (user pi)"
-    loginctl enable-linger pi
+    hdr "PipeWire session persistante (user ${SOUNDSPOT_USER})"
+    loginctl enable-linger "${SOUNDSPOT_USER}"
     log "Linger activé — PipeWire disponible sans session active"
+
+    # Active PipeWire + WirePlumber pour tous les utilisateurs au niveau système.
+    # Sans ça, les services user (pipewire-pulse.socket) ne démarrent pas au boot
+    # même avec linger activé (RPi OS Bookworm ne les active pas par défaut).
+    systemctl --global enable pipewire.socket pipewire-pulse.socket wireplumber 2>/dev/null || true
+    log "pipewire.socket + pipewire-pulse.socket + wireplumber activés globalement"
 
     # Sink virtuel de secours : snapclient démarre même sans enceinte BT.
     # WirePlumber bascule automatiquement vers le sink BT dès connexion.
