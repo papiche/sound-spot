@@ -23,13 +23,13 @@ EOF
     # 4. hostapd & dnsmasq
     systemctl unmask hostapd
     install_template hostapd.conf /etc/hostapd/hostapd.conf \
-        '${SPOT_NAME} ${WIFI_CHANNEL}'
+        '${IFACE_AP} ${SPOT_NAME} ${WIFI_CHANNEL}'
     sed -i 's|^#DAEMON_CONF=.*|DAEMON_CONF="/etc/hostapd/hostapd.conf"|' \
         /etc/default/hostapd
     systemctl enable hostapd
 
     install_template dnsmasq.conf /etc/dnsmasq.conf \
-        '${DHCP_START} ${DHCP_END} ${SPOT_IP}'
+        '${IFACE_AP} ${DHCP_START} ${DHCP_END} ${SPOT_IP}'
     systemctl enable dnsmasq
 
     # 5. ip_forward (persistant)
