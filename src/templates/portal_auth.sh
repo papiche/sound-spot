@@ -6,7 +6,8 @@
 CLIENT_IP="$REMOTE_ADDR"
 
 if [ -n "$CLIENT_IP" ]; then
-    sudo /usr/sbin/ipset add soundspot_auth "$CLIENT_IP" -exist
+    # timeout 900 remet le compteur à zéro depuis le clic (pas depuis le DHCP)
+    sudo /usr/sbin/ipset add soundspot_auth "$CLIENT_IP" timeout 900 -exist
 fi
 
 echo "Content-type: text/html; charset=utf-8"

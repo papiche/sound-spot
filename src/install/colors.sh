@@ -10,6 +10,18 @@ warn() { echo -e "${Y}⚠${N}  $*"; }
 err()  { echo -e "${R}✗${N}  $*"; exit 1; }
 hdr()  { echo -e "\n${C}━━━  $*  ━━━${N}"; }
 
+# apt_retry — apt-get avec 3 tentatives (réseau instable : festivals, hotspots)
+apt_retry() {
+    local n=1
+    until apt-get "$@"; do
+        n=$((n + 1))
+        [ "$n" -gt 3 ] && { warn "apt-get échoué après 3 tentatives"; return 1; }
+        warn "apt-get échoué — tentative $n/3 dans 5s..."
+        sleep 5
+        apt-get update -qq
+    done
+}
+
 # install_template SRC DEST [VARS]
 # Copie templates/SRC vers DEST.
 # Si VARS est fourni (ex: '${INSTALL_DIR} ${SNAPCAST_PORT}'), envsubst substitue

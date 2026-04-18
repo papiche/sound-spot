@@ -1,0 +1,15 @@
+[Unit]
+Description=SoundSpot — Pare-feu (iptables + portail captif)
+After=ipset-soundspot.service uap0.service uap0-ip.service
+Requires=ipset-soundspot.service
+Before=hostapd.service dnsmasq.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/opt/soundspot/soundspot-firewall.sh
+ExecStop=/sbin/iptables -F FORWARD
+StandardOutput=journal
+
+[Install]
+WantedBy=multi-user.target

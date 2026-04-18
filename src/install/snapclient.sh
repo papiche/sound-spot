@@ -21,12 +21,12 @@ setup_snapclient() {
     if [ "$mode" = "satellite" ]; then
         install_template soundspot-client-satellite.service \
             /etc/systemd/system/soundspot-client.service \
-            '${INSTALL_DIR} ${SNAPCAST_PORT} ${MASTER_HOST} ${SOUNDSPOT_USER}'
+            '${INSTALL_DIR} ${SNAPCAST_PORT} ${MASTER_HOST} ${SOUNDSPOT_USER} ${SOUNDSPOT_UID}'
         log "Snapclient activé → ${MASTER_HOST}:${SNAPCAST_PORT}"
     else
         install_template soundspot-client-master.service \
             /etc/systemd/system/soundspot-client.service \
-            '${INSTALL_DIR} ${SNAPCAST_PORT} ${SOUNDSPOT_USER}'
+            '${INSTALL_DIR} ${SNAPCAST_PORT} ${SOUNDSPOT_USER} ${SOUNDSPOT_UID}'
         log "Snapclient local activé (synchronisé avec les satellites)"
     fi
 

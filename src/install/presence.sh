@@ -5,7 +5,7 @@
 # Prérequis : INSTALL_DIR, PRESENCE_COOLDOWN.
 
 setup_presence() {
-    hdr "Détecteur de présence (Pi Camera Module 3)"
+    hdr "Message d'accueil vocal"
 
     loginctl enable-linger "${SOUNDSPOT_USER}" 2>/dev/null || true
 
@@ -20,15 +20,23 @@ setup_presence() {
         && log "Message d'accueil généré : ${INSTALL_DIR}/welcome.wav" \
         || warn "espeak-ng a échoué — créer manuellement ${INSTALL_DIR}/welcome.wav"
 
-    if [ -f "$INSTALL_DIR/presence_detector.py" ]; then
-        install_template soundspot-presence.service \
-            /etc/systemd/system/soundspot-presence.service \
-            '${INSTALL_DIR} ${SOUNDSPOT_USER}'
-        systemctl enable soundspot-presence
-        log "Service soundspot-presence activé"
+    # ── Détecteur de présence caméra (optionnel — Pi Camera Module 3 requis) ──
+    # Désactivé par défaut : charge CPU significative sur Pi Zero 2W.
+    # Nécessite Pi 4 minimum pour une utilisation confortable.
+    if [ "${PRESENCE_ENABLED:-false}" = "true" ]; then
+        if [ -f "$INSTALL_DIR/presence_detector.py" ]; then
+            install_template soundspot-presence.service \
+                /etc/systemd/system/soundspot-presence.service \
+                '${INSTALL_DIR} ${SOUNDSPOT_USER}'
+            systemctl enable soundspot-presence
+            log "Service soundspot-presence activé (Pi Camera Module 3 requis)"
+        else
+            warn "presence_detector.py absent de ${INSTALL_DIR} — module ignoré"
+        fi
     else
-        warn "presence_detector.py absent de ${INSTALL_DIR} — module ignoré"
-        warn "(Copier presence_detector.py puis : systemctl enable soundspot-presence)"
+        warn "Détecteur de présence désactivé (PRESENCE_ENABLED=false)"
+        log "→ Pour l'activer : PRESENCE_ENABLED=true dans soundspot.conf + systemctl enable soundspot-presence"
+        log "→ Recommandé : Pi 4 minimum (charge CPU OpenCV sur Pi Zero 2W)"
     fi
 
     # ── Monitoring batterie solaire (INA219 — optionnel) ──────

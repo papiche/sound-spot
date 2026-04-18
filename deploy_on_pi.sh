@@ -98,6 +98,16 @@ else
     SPOT_NAME="${INPUT_SPOT:-ZICMAMA}"
     export SPOT_NAME
     log "SSID visiteurs : ${W}${SPOT_NAME}${N}  (réseau ouvert — portail captif)"
+
+    echo ""
+    echo -e "  ${DIM}Détecteur de présence caméra : utilise OpenCV (charge CPU élevée).${N}"
+    echo -e "  ${DIM}Recommandé : Pi Camera Module 3 + Raspberry Pi 4 minimum.${N}"
+    ask "Pi Camera Module 3 connectée ? [o/N] : "
+    read -r INPUT_CAMERA
+    export PRESENCE_ENABLED="false"
+    [[ "${INPUT_CAMERA,,}" == "o" ]] && export PRESENCE_ENABLED="true" && \
+        log "Détecteur de présence activé" || \
+        log "Détecteur de présence désactivé"
 fi
 
 # ════════════════════════════════════════════════════════════════
@@ -342,7 +352,11 @@ export INSTALL_DIR="/opt/soundspot"
 export SPOT_IP="192.168.10.1"
 export SNAPCAST_PORT="1704"
 export PRESENCE_COOLDOWN="${PRESENCE_COOLDOWN:-30}"
+export PRESENCE_ENABLED="${PRESENCE_ENABLED:-false}"
 export SOUNDSPOT_MODE
+export SOUNDSPOT_USER="${SUDO_USER:-pi}"
+export SOUNDSPOT_UID=$(id -u "${SOUNDSPOT_USER}" 2>/dev/null || echo "1000")
+log "Utilisateur audio : ${W}${SOUNDSPOT_USER}${N} (UID ${SOUNDSPOT_UID})"
 
 mkdir -p "$INSTALL_DIR"
 

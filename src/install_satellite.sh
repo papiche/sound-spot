@@ -25,6 +25,8 @@ SNAPCAST_PORT="${SNAPCAST_PORT:-1704}"
 BT_MAC="${BT_MAC:-}"
 BT_MACS="${BT_MACS:-${BT_MAC:-}}"           # Liste MACs séparés par espaces (multi-enceintes)
 INSTALL_DIR="/opt/soundspot"
+export SOUNDSPOT_USER="${SOUNDSPOT_USER:-${SUDO_USER:-pi}}"
+export SOUNDSPOT_UID=$(id -u "${SOUNDSPOT_USER}" 2>/dev/null || echo "1000")
 
 # ── Vérifications ────────────────────────────────────────────
 hdr "Vérifications"
@@ -35,8 +37,8 @@ log "Mode satellite → snapserver ${MASTER_HOST}:${SNAPCAST_PORT}"
 # ── Paquets ──────────────────────────────────────────────────
 # Internet disponible via le NAT du maître (uap0 → wlan0 → qo-op)
 hdr "Installation des paquets"
-apt update -y
-apt install -y --no-install-recommends \
+apt_retry update -qq
+apt_retry install -y --no-install-recommends \
     bluez bluez-alsa-utils libspa-0.2-bluetooth \
     pipewire pipewire-alsa pipewire-pulse wireplumber \
     snapclient \

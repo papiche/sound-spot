@@ -17,6 +17,7 @@ sound-spot/
     ├── install_soundspot.sh
     ├── install_satellite.sh
     ├── install_battery_monitor.sh
+    ├── idle_announcer.sh    ← Clocher numérique (bip + cloche + heure + messages G1FabLab)
     ├── bt_update.sh
     ├── presence_detector.py
     ├── battery_monitor.py
@@ -78,8 +79,9 @@ There is no build step — this project is pure Bash + Python. ShellCheck can be
 | File | Responsibility |
 |------|---------------|
 | `deploy_on_pi.sh` | **Main entry point** — interactive wizard on the RPi: mode selection (master/satellite), WiFi config, BT scan, copies Python scripts, calls correct installer, reboots |
-| `install_soundspot.sh` | Master install: networking (hostapd/dnsmasq/opennds), icecast2, Snapcast, PipeWire, Bluetooth, all systemd services |
+| `install_soundspot.sh` | Master install: networking (hostapd/dnsmasq/firewall), icecast2, Snapcast, PipeWire, Bluetooth, idle, all systemd services |
 | `install_satellite.sh` | Satellite install: PipeWire + Snapclient only (no AP, no Icecast) |
+| `idle_announcer.sh` | Clocher numérique — boucle toutes les 15 min : bip 429.62 Hz + coups de cloche + heure vocale + messages G1FabLab (si aucun DJ actif). Hot-reload de CLOCK_MODE sans redémarrage |
 | `presence_detector.py` | Face detection daemon (OpenCV Haar, 80×60 px); triggers welcome audio via `threading.Thread` |
 | `battery_monitor.py` | INA219 solar battery monitor; replaces welcome.wav with low-battery alert |
 | `bt_update.sh` | Interactive BT speaker management (scan, pair, update soundspot.conf) |
@@ -90,20 +92,61 @@ There is no build step — this project is pure Bash + Python. ShellCheck can be
 `/opt/soundspot/soundspot.conf` is generated during install and holds all tunables:
 
 ```
-SPOT_NAME          SSID WiFi visiteurs (AP ouverte)
-SPOT_IP            IP fixe du RPi côté AP (192.168.10.1)
-WIFI_SSID          Réseau amont (qo-op)
-WIFI_CHANNEL       Canal WiFi (ajusté au boot par soundspot-channel-sync)
-BT_MAC             MAC enceinte principale (rétrocompat)
-BT_MACS            MACs espace-séparés (multi-enceintes)
-SNAPCAST_PORT      1704
-PRESENCE_COOLDOWN  Secondes entre deux messages d'accueil
-INSTALL_DIR        /opt/soundspot
+SPOT_NAME                SSID WiFi visiteurs (AP ouverte)
+SPOT_IP                  IP fixe du RPi côté AP (192.168.10.1)
+WIFI_SSID                Réseau amont (qo-op)
+WIFI_CHANNEL             Canal WiFi (ajusté au boot par soundspot-channel-sync)
+BT_MAC                   MAC enceinte principale (rétrocompat)
+BT_MACS                  MACs espace-séparés (multi-enceintes)
+SNAPCAST_PORT            1704
+ICECAST_PORT             8111
+PRESENCE_COOLDOWN        Secondes entre deux messages d'accueil
+PRESENCE_ENABLED         true/false — détecteur de présence (Pi 4 + Module 3 requis)
+INSTALL_DIR              /opt/soundspot
+SOUNDSPOT_USER           Utilisateur système qui exécute PipeWire/Snapclient (défaut: pi)
+IDLE_ANNOUNCE_INTERVAL   Secondes entre annonces clocher (défaut: 900 = 15 min)
+CLOCK_MODE               "bells" (coups de cloche à l'heure) ou "silent" (heure vocale seule)
 ```
+
+**Note `CLOCK_MODE`** : modifiable à chaud depuis le portail captif via `set_clock_mode.sh` — `idle_announcer.sh` relit `soundspot.conf` à chaque itération, sans redémarrage du service.
+
+### Clocher numérique et messages personnalisables
+
+Les textes sources et fichiers audio sont dans `/opt/soundspot/wav/` :
+
+```
+wav/
+├── tone_429hz.wav     ← bip 429.62 Hz 4s (signal de vie du nœud)
+├── bell_429hz.wav     ← coup de cloche 2.5s (fondu progressif)
+├── message_01.txt     ← texte source (modifiable librement)
+├── message_01.wav     ← audio généré par espeak-ng (ou remplacé manuellement)
+├── message_02.txt
+├── message_02.wav
+└── …                  (jusqu'à message_08)
+```
+
+Pour personnaliser un message : remplacer le `.wav` correspondant par votre enregistrement. Le `.txt` est conservé comme référence. Si le `.wav` est absent ou le `.txt` plus récent, `idle_announcer.sh` régénère automatiquement.
 
 ### Systemd services on the RPi master
 
-Boot order: `wpa_supplicant@wlan0` → `soundspot-channel-sync` → `uap0` → `hostapd` → `dnsmasq` → `opennds` → `icecast2` → `snapserver` + `soundspot-decoder` → `soundspot-client` → `bt-autoconnect` → `soundspot-presence` → `soundspot-battery`
+Boot order:
+```
+wpa_supplicant@wlan0
+  → soundspot-channel-sync
+  → uap0 → uap0-ip
+  → ipset-soundspot                        (ipset hash:ip timeout 900)
+  → soundspot-firewall                     (iptables NAT + portail captif)
+  → hostapd → dnsmasq
+  → icecast2
+  → snapserver + soundspot-decoder
+  → soundspot-client (wait-pw-socket + wait-bt-sink)
+  → bt-autoconnect
+  → soundspot-idle                         (clocher numérique idle_announcer.sh)
+  → soundspot-presence (si PRESENCE_ENABLED=true)
+  → soundspot-battery
+```
+
+**Pare-feu** : `soundspot-firewall.service` remplace `netfilter-persistent` pour éviter la race condition avec `ipset`. `netfilter-persistent` est désactivé. Les règles iptables sont ré-appliquées depuis `soundspot-firewall.sh` à chaque boot (idempotent : flush + re-apply).
 
 ### Presence detector (`presence_detector.py`)
 

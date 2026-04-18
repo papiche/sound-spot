@@ -8,5 +8,15 @@ WIFI_CHANNEL="${WIFI_CHANNEL}"
 BT_MAC="${BT_MAC}"
 BT_MACS="${BT_MACS}"
 SNAPCAST_PORT="${SNAPCAST_PORT}"
+ICECAST_PORT="8111"
 PRESENCE_COOLDOWN="${PRESENCE_COOLDOWN}"
+PRESENCE_ENABLED="${PRESENCE_ENABLED}"
 INSTALL_DIR="${INSTALL_DIR}"
+
+# ── Clocher numérique ────────────────────────────────────────────
+# Intervalle entre annonces quand aucun DJ ne diffuse (secondes).
+# Les annonces et le bip 429.62 Hz ne peuvent pas être désactivés.
+# Seul le mode horloge (coups de cloche) est configurable via le portail.
+IDLE_ANNOUNCE_INTERVAL="900"
+# CLOCK_MODE : "bells" (coups de cloche à l'heure) ou "silent" (heure vocale seule)
+CLOCK_MODE="bells"

@@ -1,0 +1,16 @@
+[Unit]
+Description=SoundSpot — Clocher numérique (annonces en l'absence de DJ)
+After=soundspot-client.service time-sync.target
+
+[Service]
+Type=simple
+User=${SOUNDSPOT_USER}
+EnvironmentFile=${INSTALL_DIR}/soundspot.conf
+Environment="XDG_RUNTIME_DIR=/run/user/${SOUNDSPOT_UID}"
+ExecStart=${INSTALL_DIR}/idle_announcer.sh
+Restart=always
+RestartSec=30
+StandardOutput=journal
+
+[Install]
+WantedBy=multi-user.target

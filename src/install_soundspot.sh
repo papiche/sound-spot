@@ -8,18 +8,6 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# ── Retry apt-get (réseau instable — festivals, hotspots) ────────
-apt_retry() {
-    local n=1
-    until apt-get "$@"; do
-        n=$((n + 1))
-        [ "$n" -gt 3 ] && { warn "apt-get échoué après 3 tentatives"; return 1; }
-        warn "apt-get échoué — tentative $n/3 dans 5s..."
-        sleep 5
-        apt-get update -qq
-    done
-}
-
 # ── Modules d'installation ───────────────────────────────────
 source "$SCRIPT_DIR/install/colors.sh"
 source "$SCRIPT_DIR/install/networking.sh"
@@ -31,6 +19,7 @@ source "$SCRIPT_DIR/install/snapserver.sh"
 source "$SCRIPT_DIR/install/snapclient.sh"
 source "$SCRIPT_DIR/install/channel_sync.sh"
 source "$SCRIPT_DIR/install/presence.sh"
+source "$SCRIPT_DIR/install/idle.sh"
 
 # ── Variables configurables ─────────────────────────────────
 export SPOT_NAME="${SPOT_NAME:-SoundSpot_Pont}"      # SSID WiFi visible (réseau ouvert)
@@ -45,7 +34,8 @@ export BT_MACS="${BT_MACS:-${BT_MAC:-}}"           # Liste MACs séparés par es
 export SNAPCAST_PORT="${SNAPCAST_PORT:-1704}"
 export PRESENCE_COOLDOWN="${PRESENCE_COOLDOWN:-30}" # Secondes entre deux messages d'accueil
 export INSTALL_DIR="/opt/soundspot"
-export SOUNDSPOT_USER="${SUDO_USER:-pi}"          # Utilisateur qui exécute les services audio (snapclient, presence)
+export SOUNDSPOT_USER="${SOUNDSPOT_USER:-${SUDO_USER:-pi}}"  # Utilisateur qui exécute les services audio
+export SOUNDSPOT_UID=$(id -u "${SOUNDSPOT_USER}" 2>/dev/null || echo "1000")
 # ── Vérifications préliminaires ──────────────────────────────
 hdr "Vérifications"
 [ "$(id -u)" -eq 0 ] || err "Lance ce script en root : sudo bash install_soundspot.sh"
@@ -96,6 +86,7 @@ setup_snapserver
 setup_snapclient master
 setup_channel_sync
 setup_presence
+setup_idle
 
 # ── Fichier de configuration central ─────────────────────────
 hdr "Fichier de configuration central"

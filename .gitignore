@@ -1,4 +1,35 @@
-# Byte-compiled / optimized / DLL files
+# ── SoundSpot — fichiers locaux / personnalisations ──────────────
+
+# Fichiers audio générés ou personnalisés (binaires, spécifiques au déploiement)
+# Les textes sources (.txt) et les sons par défaut sont dans src/install/idle.sh
+*.wav
+*.mp3
+*.ogg
+*.flac
+
+# Répertoire wav/ local (créé sur le RPi à l'installation, pas dans le dépôt)
+src/wav/
+wav/
+
+# Configurations de déploiement locales (contiennent mots de passe, MACs BT)
+soundspot.conf
+*.conf.local
+*.local
+
+# Logs de déploiement
+deploy_*.log
+install_*.log
+
+# Lanceur DJ généré par dj_mixxx_setup.sh (personnalisé par l'utilisateur)
+~/zicmama_play.sh
+zicmama_play.sh
+
+# Fichiers temporaires système
+*.tmp
+*.bak
+/tmp/
+
+# ── Byte-compiled / optimized / DLL files ────────────────────────
 __pycache__/
 *.py[codz]
 *$py.class

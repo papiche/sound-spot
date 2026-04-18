@@ -2,8 +2,11 @@
 setup_captive_portal() {
     hdr "Portail captif (Lighttpd)"
 
-    # Autoriser www-data à utiliser ipset sans mot de passe
-    echo "www-data ALL=(ALL) NOPASSWD: /usr/sbin/ipset" > /etc/sudoers.d/soundspot-www
+    # Autoriser www-data : ipset (portail captif) + set_clock_mode (toggle horloge)
+    cat > /etc/sudoers.d/soundspot-www <<'SUDOEOF'
+www-data ALL=(ALL) NOPASSWD: /usr/sbin/ipset
+www-data ALL=(ALL) NOPASSWD: /opt/soundspot/set_clock_mode.sh
+SUDOEOF
     chmod 0440 /etc/sudoers.d/soundspot-www
 
     # Configuration lighttpd
@@ -45,10 +48,17 @@ EOF
         '${SPOT_NAME} ${SPOT_IP} ${SNAPCAST_PORT} ${ICECAST_PORT} ${ICECAST_PASS}'
     install_template portal_auth.sh /var/www/html/auth.sh
     install_template portal_docs.sh /var/www/html/docs.sh
+    install_template portal_set_clock.sh /var/www/html/set_clock.sh
 
     chmod +x /var/www/html/index.sh
     chmod +x /var/www/html/auth.sh
     chmod +x /var/www/html/docs.sh
+    chmod +x /var/www/html/set_clock.sh
+
+    # Script root pour modification de soundspot.conf depuis le portail
+    install_template set_clock_mode.sh "$INSTALL_DIR/set_clock_mode.sh"
+    chmod +x "$INSTALL_DIR/set_clock_mode.sh"
+    log "set_clock_mode.sh déployé"
     
     systemctl restart lighttpd
     systemctl enable lighttpd
