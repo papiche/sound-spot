@@ -37,7 +37,7 @@ log "Mode satellite → snapserver ${MASTER_HOST}:${SNAPCAST_PORT}"
 hdr "Installation des paquets"
 apt update -y
 apt install -y --no-install-recommends \
-    bluez bluez-alsa-utils \
+    bluez bluez-alsa-utils libspa-0.2-bluetooth \
     pipewire pipewire-alsa pipewire-pulse wireplumber \
     snapclient \
     iw wireless-tools

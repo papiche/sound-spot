@@ -48,19 +48,52 @@ EOF
         '${DHCP_START} ${DHCP_END} ${SPOT_IP}'
     systemctl enable dnsmasq
 
-    # 6. NAT (Partage de connexion)
-    hdr "Partage de connexion (NAT)"
+# 6. Pare-feu et Portail Captif (Ipset + Iptables)
+    hdr "Partage de connexion et Portail Captif"
     echo "net.ipv4.ip_forward=1" > /etc/sysctl.d/90-soundspot.conf
     sysctl -p /etc/sysctl.d/90-soundspot.conf
     
-    # Configuration IPTABLES persistante
+    apt-get install -y ipset iptables-persistent
+
+    # Création du set avec un timeout de 900 secondes (15 minutes)
+    ipset create soundspot_auth hash:mac timeout 900 2>/dev/null || true
+    
+    # Règles de base NAT
     iptables -t nat -A POSTROUTING -o wlan0 -j MASQUERADE
-    iptables -A FORWARD -i uap0 -o wlan0 -j ACCEPT
+    
+    # Redirection du portail captif (Port 80)
+    iptables -t nat -N CAPTIVE_PORTAL
+    iptables -t nat -A PREROUTING -i uap0 -p tcp --dport 80 -j CAPTIVE_PORTAL
+    # Si le visiteur est authentifié, on ne redirige pas
+    iptables -t nat -A CAPTIVE_PORTAL -m set --match-set soundspot_auth src -j RETURN
+    # Sinon, on le redirige vers le portail (Lighttpd port 80 local)
+    iptables -t nat -A CAPTIVE_PORTAL -j REDIRECT --to-port 80
+
+    # Règles de Forwarding (Accès Internet)
+    # Les services internes (Snapcast, Icecast) passent par INPUT, donc ils marchent toujours.
+    # On autorise le trafic DNS pour que les smartphones fassent leurs requêtes
+    iptables -A FORWARD -i uap0 -p udp --dport 53 -j ACCEPT
+    # On autorise l'accès internet seulement à ceux validés pour 15 min
+    iptables -A FORWARD -i uap0 -o wlan0 -m set --match-set soundspot_auth src -j ACCEPT
     iptables -A FORWARD -i wlan0 -o uap0 -m state --state RELATED,ESTABLISHED -j ACCEPT
+    # On bloque tout le reste vers Internet
+    iptables -A FORWARD -i uap0 -o wlan0 -j REJECT
     
-    # Sauvegarde
-    apt-get install -y iptables-persistent
+    # Rendre l'ipset persistant au boot (astuce systemd)
+    cat > /etc/systemd/system/ipset-soundspot.service <<EOF
+[Unit]
+Description=Création de l'ipset SoundSpot au boot
+Before=netfilter-persistent.service
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/ipset create soundspot_auth hash:mac timeout 900 -exist
+RemainAfterExit=yes
+[Install]
+WantedBy=multi-user.target
+EOF
+    systemctl enable ipset-soundspot.service
+    
     netfilter-persistent save
-    
+    log "Réseau et Portail Captif lighttpd/ipset configurés"
     log "Réseau configuré : wlan0 (client) + uap0 (hotspot)"
 }

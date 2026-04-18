@@ -21,18 +21,18 @@ source "$SCRIPT_DIR/install/channel_sync.sh"
 source "$SCRIPT_DIR/install/presence.sh"
 
 # ── Variables configurables ─────────────────────────────────
-SPOT_NAME="${SPOT_NAME:-SoundSpot_Pont}"      # SSID WiFi visible (réseau ouvert)
-SPOT_IP="${SPOT_IP:-192.168.10.1}"            # IP fixe du RPi sur uap0
-DHCP_START="${DHCP_START:-192.168.10.10}"
-DHCP_END="${DHCP_END:-192.168.10.50}"
-WIFI_SSID="${WIFI_SSID:-qo-op}"              # Réseau WiFi amont
-WIFI_PASS="${WIFI_PASS:-0penS0urce!}"
-WIFI_CHANNEL="${WIFI_CHANNEL:-6}"            # Doit correspondre au canal de WIFI_SSID
-BT_MAC="${BT_MAC:-}"                         # Adresse MAC principale (rétrocompat)
-BT_MACS="${BT_MACS:-${BT_MAC:-}}"           # Liste MACs séparés par espaces (multi-enceintes)
-SNAPCAST_PORT="${SNAPCAST_PORT:-1704}"
-PRESENCE_COOLDOWN="${PRESENCE_COOLDOWN:-30}" # Secondes entre deux messages d'accueil
-INSTALL_DIR="/opt/soundspot"
+export SPOT_NAME="${SPOT_NAME:-SoundSpot_Pont}"      # SSID WiFi visible (réseau ouvert)
+export DHCP_START="${DHCP_START:-192.168.10.10}"
+export DHCP_END="${DHCP_END:-192.168.10.50}"
+export SPOT_IP="${SPOT_IP:-192.168.10.1}"
+export WIFI_SSID="${WIFI_SSID:-qo-op}"              # Réseau WiFi amont
+export WIFI_PASS="${WIFI_PASS:-0penS0urce!}"
+export WIFI_CHANNEL="${WIFI_CHANNEL:-6}"            # Doit correspondre au canal de WIFI_SSID
+export BT_MAC="${BT_MAC:-}"                         # Adresse MAC principale (rétrocompat)
+export BT_MACS="${BT_MACS:-${BT_MAC:-}}"           # Liste MACs séparés par espaces (multi-enceintes)
+export SNAPCAST_PORT="${SNAPCAST_PORT:-1704}"
+export PRESENCE_COOLDOWN="${PRESENCE_COOLDOWN:-30}" # Secondes entre deux messages d'accueil
+export INSTALL_DIR="/opt/soundspot"
 export SOUNDSPOT_USER="${SUDO_USER:-pi}"          # Utilisateur qui exécute les services audio (snapclient, presence)
 # ── Vérifications préliminaires ──────────────────────────────
 hdr "Vérifications"
@@ -47,15 +47,16 @@ echo "icecast2 icecast2/icecast-setup boolean false" | debconf-set-selections
 
 apt update -y
 apt install -y --no-install-recommends \
-    hostapd dnsmasq opennds \
-    icecast2 \
-    bluez bluez-alsa-utils \
+    hostapd dnsmasq lighttpd ipset \
+    icecast2 rpicam-apps \
+    bluez bluez-alsa-utils libspa-0.2-bluetooth \
     pipewire pipewire-alsa pipewire-pulse wireplumber \
     snapserver snapclient \
     pulseaudio-utils \
     avahi-daemon \
     iptables-persistent netfilter-persistent \
     python3 python3-opencv python3-picamera2 \
+    python3-markdown \
     espeak-ng \
     curl wget ffmpeg \
     iw wireless-tools
@@ -68,6 +69,10 @@ for _py in presence_detector.py battery_monitor.py; do
     [ -f "$SCRIPT_DIR/$_py" ] && cp "$SCRIPT_DIR/$_py" "$INSTALL_DIR/" && \
         log "$_py copié depuis $SCRIPT_DIR" || true
 done
+
+# Copie des manuels
+cp "$SCRIPT_DIR/../README.md" "$INSTALL_DIR/" 2>/dev/null || true
+cp "$SCRIPT_DIR/../HOWTO.md" "$INSTALL_DIR/" 2>/dev/null || true
 
 # ── Configuration ─────────────────────────────────────────────
 setup_networking

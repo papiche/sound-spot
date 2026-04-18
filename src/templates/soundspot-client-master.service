@@ -9,7 +9,7 @@ User=${SOUNDSPOT_USER}
 Group=${SOUNDSPOT_USER}
 Environment="XDG_RUNTIME_DIR=/run/user/1000"
 Environment="PULSE_SERVER=unix:/run/user/1000/pulse/native"
-ExecStartPre=/bin/sleep 8
+ExecStartPre=/bin/sleep 15
 ExecStart=/usr/bin/snapclient -h 127.0.0.1 -p ${SNAPCAST_PORT} --player pulse
 ExecStartPost=/bin/sleep 5
 ExecStartPost=${INSTALL_DIR}/play_welcome.sh
