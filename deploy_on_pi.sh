@@ -214,7 +214,7 @@ fi
 
 log "Analyse des résultats..."
 DEVICES=$(echo "$BT_OUT" | grep "Device " | sed 's/.*Device //' | sort -u || true)
-if[ -z "$DEVICES" ]; then
+if [ -z "$DEVICES" ]; then
     DEVICES=$(bluetoothctl devices | grep -v "Scanning" || true)
 fi
 
