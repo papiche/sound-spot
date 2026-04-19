@@ -45,7 +45,7 @@ grep -q "Raspberry Pi" /proc/cpuinfo 2>/dev/null || warn "Pas un RPi détecté �
 log "RPi Zero 2W détecté — profil minimal activé"
 
 setup_picoport() {
-    hdr "Installation de Picoport (Micro-Astroport)"
+    hdr "Installation de Picoport (Astroport.ONE)"
 
     # Copie des sources picoport vers INSTALL_DIR
     cp -r "$SCRIPT_DIR/picoport" "$INSTALL_DIR/"

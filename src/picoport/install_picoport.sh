@@ -1,6 +1,6 @@
 #!/bin/bash
 # =======================================================================
-# Picoport — Micro-Astroport pour RPi Zero 2W (SoundSpot)
+# Picoport — Astroport.ONE pour RPi Zero 2W (SoundSpot)
 # Installe IPFS, socat, jq, configure le swarm UPlanet et le service.
 # =======================================================================
 set -e
@@ -168,7 +168,7 @@ EOF
 # --- 6b. picoport.service (logique Picoport — dépend d'ipfs.service) ---
 cat > /etc/systemd/system/picoport.service <<EOF
 [Unit]
-Description=Picoport (Micro-Astroport Node)
+Description=Picoport (Astroport.ONE Node)
 After=network-online.target ipfs.service
 Requires=ipfs.service
 

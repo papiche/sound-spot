@@ -23,7 +23,7 @@ sound-spot/
     ├── bt_update.sh
     ├── presence_detector.py
     ├── battery_monitor.py
-    ├── picoport/         ← Micro-Astroport UPlanet (IPFS + Nostr + G1 + IA swarm)
+    ├── picoport/         ← Astroport.ONE UPlanet (IPFS + Nostr + G1 + IA swarm)
     │   ├── install_picoport.sh         ← IPFS Kubo + g1cli + clés Y-Level + service systemd
     │   ├── picoport_init_keys.sh       ← Identité déterministe SSH→IPFS→Nostr
     │   ├── picoport.sh                 ← Daemon principal Picoport
@@ -192,7 +192,7 @@ Each `install/*.sh` file exports a single `setup_*` function, sourced by `instal
 | `channel_sync.sh` | `setup_channel_sync` — sync_channel.sh + systemd overrides |
 | `presence.sh` | `setup_presence` — welcome.wav + presence + battery services + venv |
 
-### Picoport (Micro-Astroport sur RPi Zero 2W)
+### Picoport (Astroport.ONE sur RPi Zero 2W)
 
 `setup_picoport()` dans `install_soundspot.sh` :
 1. `cp -r src/picoport/ /opt/soundspot/picoport/`
