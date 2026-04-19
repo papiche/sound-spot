@@ -10,7 +10,7 @@ RemainAfterExit=yes
 EnvironmentFile=/opt/soundspot/soundspot.conf
 # On laisse un peu de temps au boot
 ExecStartPre=/bin/sleep 5
-ExecStart=/opt/soundspot/bt-connect.sh
+ExecStart=/opt/soundspot/backend/system/bt-connect.sh
 Restart=always
 RestartSec=360
 

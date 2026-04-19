@@ -9,11 +9,11 @@ User=${SOUNDSPOT_USER}
 Group=${SOUNDSPOT_USER}
 Environment="XDG_RUNTIME_DIR=/run/user/${SOUNDSPOT_UID}"
 Environment="PULSE_SERVER=unix:/run/user/${SOUNDSPOT_UID}/pulse/native"
-ExecStartPre=${INSTALL_DIR}/wait-pw-socket.sh
-ExecStartPre=${INSTALL_DIR}/wait-bt-sink.sh
+ExecStartPre=${INSTALL_DIR}/backend/system/wait-pw-socket.sh
+ExecStartPre=${INSTALL_DIR}/backend/system/wait-bt-sink.sh
 ExecStart=/usr/bin/snapclient -h 127.0.0.1 -p ${SNAPCAST_PORT} --player pulse:server=unix:/run/user/${SOUNDSPOT_UID}/pulse/native
 ExecStartPost=/bin/sleep 5
-ExecStartPost=${INSTALL_DIR}/play_welcome.sh
+ExecStartPost=${INSTALL_DIR}/backend/audio/play_welcome.sh
 Restart=always
 RestartSec=5
 SyslogIdentifier=soundspot-client

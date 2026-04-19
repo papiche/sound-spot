@@ -7,7 +7,7 @@ Type=simple
 User=${SOUNDSPOT_USER}
 EnvironmentFile=${INSTALL_DIR}/soundspot.conf
 Environment="XDG_RUNTIME_DIR=/run/user/${SOUNDSPOT_UID}"
-ExecStart=${INSTALL_DIR}/idle_announcer.sh
+ExecStart=${INSTALL_DIR}/backend/audio/idle_announcer.sh
 Restart=always
 RestartSec=30
 SyslogIdentifier=soundspot-idle

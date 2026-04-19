@@ -409,12 +409,8 @@ mkdir -p "$INSTALL_DIR"
 
 # Fichiers Python
 for _py in presence_detector.py battery_monitor.py; do
-    if [ -f "$SRC_DIR/$_py" ]; then
-        cp "$SRC_DIR/$_py" "$INSTALL_DIR/"
-        log "$_py → $INSTALL_DIR/ ✓"
-    else
-        warn "$_py introuvable dans $SRC_DIR — le service correspondant sera ignoré"
-    fi
+    _path=$(find "$SRC_DIR/backend" -name "$_py")
+    cp "$_path" "$INSTALL_DIR/"
 done
 
 # Portail captif (sources live — /var/www/html sera un lien symbolique)

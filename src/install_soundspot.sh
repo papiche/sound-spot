@@ -2,13 +2,15 @@
 # ============================================================
 #  SoundSpot — G1FabLab / UPlanet ẐEN
 #  Script d'installation pour Raspberry Pi Zero 2W (maître)
-#  https://github.com/papiche/sound-spot
+#  Architecture : Backend métier + Config isolée
 # ============================================================
 set -e
 
+# Définition du répertoire racine du script
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # ── Modules d'installation ───────────────────────────────────
+# Note : install_template (dans colors.sh) utilise maintenant 'find'
 source "$SCRIPT_DIR/install/colors.sh"
 source "$SCRIPT_DIR/install/logging.sh"
 source "$SCRIPT_DIR/install/networking.sh"
@@ -24,49 +26,28 @@ source "$SCRIPT_DIR/install/idle.sh"
 source "$SCRIPT_DIR/install/jukebox.sh"
 
 # ── Variables configurables ─────────────────────────────────
-export SPOT_NAME="${SPOT_NAME:-SoundSpot_Pont}"      # SSID WiFi visible (réseau ouvert)
+export SPOT_NAME="${SPOT_NAME:-SoundSpot_Zicmama}"
 export DHCP_START="${DHCP_START:-192.168.10.10}"
 export DHCP_END="${DHCP_END:-192.168.10.50}"
 export SPOT_IP="${SPOT_IP:-192.168.10.1}"
-export WIFI_SSID="${WIFI_SSID:-qo-op}"              # Réseau WiFi amont
+export WIFI_SSID="${WIFI_SSID:-qo-op}"
 export WIFI_PASS="${WIFI_PASS:-0penS0urce!}"
-export WIFI_CHANNEL="${WIFI_CHANNEL:-6}"            # Doit correspondre au canal de WIFI_SSID
-export BT_MAC="${BT_MAC:-}"                         # Adresse MAC principale (rétrocompat)
-export BT_MACS="${BT_MACS:-${BT_MAC:-}}"           # Liste MACs séparés par espaces (multi-enceintes)
+export WIFI_CHANNEL="${WIFI_CHANNEL:-6}"
+export BT_MAC="${BT_MAC:-}"
+export BT_MACS="${BT_MACS:-${BT_MAC:-}}"
 export SNAPCAST_PORT="${SNAPCAST_PORT:-1704}"
-export PRESENCE_COOLDOWN="${PRESENCE_COOLDOWN:-30}" # Secondes entre deux messages d'accueil
+export PRESENCE_COOLDOWN="${PRESENCE_COOLDOWN:-30}"
 export INSTALL_DIR="/opt/soundspot"
-export SOUNDSPOT_USER="${SOUNDSPOT_USER:-${SUDO_USER:-pi}}"  # Utilisateur qui exécute les services audio
+export SOUNDSPOT_USER="${SOUNDSPOT_USER:-${SUDO_USER:-pi}}"
 export SOUNDSPOT_UID=$(id -u "${SOUNDSPOT_USER}" 2>/dev/null || echo "1000")
 export PRESENCE_ENABLED="${PRESENCE_ENABLED:-false}"
-export LOG_LEVEL="${LOG_LEVEL:-INFO}"           # DEBUG | INFO | WARN | ERROR
+export PICOPORT_ENABLED="${PICOPORT_ENABLED:-true}"
+export LOG_LEVEL="${LOG_LEVEL:-INFO}"
 export SOUNDSPOT_LOG="${SOUNDSPOT_LOG:-/var/log/sound-spot.log}"
 
-# ── Vérifications préliminaires ──────────────────────────────
-hdr "Vérifications"
-[ "$(id -u)" -eq 0 ] || err "Lance ce script en root : sudo bash install_soundspot.sh"
-grep -q "Raspberry Pi" /proc/cpuinfo 2>/dev/null || warn "Pas un RPi détecté — on continue quand même"
-log "RPi Zero 2W détecté — profil minimal activé"
-
-setup_picoport() {
-    hdr "Installation de Picoport (Astroport.ONE)"
-
-    # Copie des sources picoport vers INSTALL_DIR
-    cp -r "$SCRIPT_DIR/picoport" "$INSTALL_DIR/"
-    chmod +x "$INSTALL_DIR/picoport/"*.sh
-    # Permettre à SOUNDSPOT_USER d'écrire dans le dossier picoport
-    chown -R "${SOUNDSPOT_USER}:${SOUNDSPOT_USER}" "$INSTALL_DIR/picoport" 2>/dev/null || true
-
-    # Maintenance (clone Astroport.ONE, venv Python, outils) — exécuté comme SOUNDSPOT_USER
-    bash "$SCRIPT_DIR/install_astroport_light.sh" \
-        && log "Maintenance Picoport terminée" \
-        || warn "install_astroport_light.sh a échoué (IPFS/Astroport optionnel)"
-
-    # Installeur IPFS + clés + service systemd
-    sudo bash "$INSTALL_DIR/picoport/install_picoport.sh" \
-        && log "Picoport (IPFS) installé ✓" \
-        || warn "install_picoport.sh a échoué — Picoport optionnel, installation continue"
-}
+# ── Vérifications ────────────────────────────────────────────
+hdr "Vérifications préliminaires"
+[ "$(id -u)" -eq 0 ] || err "Lance ce script en root : sudo bash $0"
 
 # ── Paquets ──────────────────────────────────────────────────
 hdr "Installation des paquets"
@@ -84,90 +65,85 @@ apt_retry install -y --no-install-recommends \
     avahi-daemon \
     iptables-persistent netfilter-persistent \
     python3 python3-opencv python3-picamera2 \
-    python3-markdown \
-    espeak-ng \
+    python3-markdown python3-websocket \
+    espeak-ng jq \
     curl wget ffmpeg \
-    iw wireless-tools socat
+    iw wireless-tools socat gettext-base
 
-mkdir -p "$INSTALL_DIR"
+# ── Préparation de l'arborescence /opt/soundspot ─────────────
+hdr "Préparation de l'arborescence"
+mkdir -p "$INSTALL_DIR/backend/audio"
+mkdir -p "$INSTALL_DIR/backend/video"
+mkdir -p "$INSTALL_DIR/backend/system"
+mkdir -p "$INSTALL_DIR/portal"
+mkdir -p "$INSTALL_DIR/wav"
 
-# ── Logging centralisé (en premier — les autres setup_* peuvent écrire dans le log) ──
-setup_logging
+# ── Déploiement des scripts Backend ──────────────────────────
+log "Copie des scripts backend vers $INSTALL_DIR/backend/..."
+# Audio
+cp "$SCRIPT_DIR"/backend/audio/*.sh "$INSTALL_DIR/backend/audio/" 2>/dev/null || true
+# Video
+cp "$SCRIPT_DIR"/backend/video/*    "$INSTALL_DIR/backend/video/" 2>/dev/null || true
+# System
+cp "$SCRIPT_DIR"/backend/system/*   "$INSTALL_DIR/backend/system/" 2>/dev/null || true
 
-# ── Scripts Python → INSTALL_DIR (si appelé sans deploy_on_pi.sh) ──
-for _py in presence_detector.py battery_monitor.py; do
-    [ -f "$INSTALL_DIR/$_py" ] && continue
-    [ -f "$SCRIPT_DIR/$_py" ] && cp "$SCRIPT_DIR/$_py" "$INSTALL_DIR/" && \
-        log "$_py copié depuis $SCRIPT_DIR" || true
-done
+# Droits d'exécution
+chmod +x "$INSTALL_DIR"/backend/audio/*.sh
+chmod +x "$INSTALL_DIR"/backend/video/*.sh
+chmod +x "$INSTALL_DIR"/backend/system/*.sh
 
 # Copie des manuels
 cp "$SCRIPT_DIR/../README.md" "$INSTALL_DIR/" 2>/dev/null || true
 cp "$SCRIPT_DIR/../HOWTO.md" "$INSTALL_DIR/" 2>/dev/null || true
 
-# ── Configuration ─────────────────────────────────────────────
-setup_networking
-setup_captive_portal
-setup_icecast
-setup_bluetooth
-setup_pipewire
-setup_snapserver
-setup_snapclient master
-setup_channel_sync
-setup_presence
-setup_idle
-setup_jukebox
+# ── Configuration des services ───────────────────────────────
+setup_logging        # Logs centralisés
+setup_networking     # AP + IPSet + Firewall
+setup_captive_portal # Lighttpd
+setup_icecast        # Flux DJ
+setup_pipewire       # Audio engine
+setup_bluetooth      # BT Autoconnect
+setup_snapserver     # Serveur synchro
+setup_snapclient master # Client local sur BT
+setup_channel_sync   # Synchro WiFi radio
+setup_presence       # Caméra + Welcome.wav
+setup_idle           # Clocher numérique
+setup_jukebox        # Nostr Jukebox
 
-if [ "${PICOPORT_ENABLED:-true}" = "true" ]; then
-    setup_picoport
-else
-    log "Picoport désactivé (PICOPORT_ENABLED=false) — ignoré"
+# ── Installation Picoport ────────────────────────────────────
+if [ "$PICOPORT_ENABLED" = "true" ]; then
+    hdr "Installation de Picoport (Astroport.ONE Light)"
+    mkdir -p "$INSTALL_DIR/picoport"
+    
+    # On installe d'abord les outils Astroport de base
+    cp "$SCRIPT_DIR/picoport/install_astroport_light.sh" "$INSTALL_DIR/picoport/"
+    sudo -u "${SOUNDSPOT_USER}" bash "$INSTALL_DIR/picoport/install_astroport_light.sh"
+    
+    # Puis l'identité et Kubo
+    cp -r "$SCRIPT_DIR/picoport/"* "$INSTALL_DIR/picoport/"
+    bash "$INSTALL_DIR/picoport/install_picoport.sh"
+    
+    # Intégration UPassport et Swarm Sync (Port 12345)
+    log "Intégration UPassport & Swarm Sync..."
+    bash "$INSTALL_DIR/picoport/install_upassport.sh"
+    
+    # Installation du service swarm_sync via template
+    install_template soundspot-swarm-sync.service /etc/systemd/system/soundspot-swarm-sync.service '${INSTALL_DIR} ${SOUNDSPOT_USER}'
+    systemctl enable --now soundspot-swarm-sync
 fi
 
-# ── Fichier de configuration central ─────────────────────────
-hdr "Fichier de configuration central"
+# ── Fichier de configuration final ──────────────────────────
+hdr "Finalisation"
 install_template soundspot.conf.master "$INSTALL_DIR/soundspot.conf" \
     '${SPOT_NAME} ${SPOT_IP} ${WIFI_SSID} ${WIFI_CHANNEL} ${BT_MAC} ${BT_MACS} ${SNAPCAST_PORT} ${PRESENCE_COOLDOWN} ${INSTALL_DIR} ${IFACE_AP} ${IFACE_WAN} ${LOG_LEVEL} ${SOUNDSPOT_LOG}'
 
-chmod 644 "$INSTALL_DIR/soundspot.conf"
+# S'assurer que le log est accessible
+touch "$SOUNDSPOT_LOG"
+chmod 666 "$SOUNDSPOT_LOG"
 
-# ── Résumé final ──────────────────────────────────────────────
 hdr "Installation terminée ✓"
-
-echo -e "
-${W}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${N}
-${G}  SoundSpot installé avec succès !${N}
-${W}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${N}
-
-  WiFi AP  : ${C}${SPOT_NAME}${N}  (pass: ${SPOT_PASS})
-  Canal    : ${WIFI_CHANNEL}  (doit = canal de ${WIFI_SSID})
-  IP RPi   : ${C}${SPOT_IP}${N}
-  Snapcast : ${C}${SPOT_IP}:${SNAPCAST_PORT}${N}
-  Client BT : snapclient localhost → ${C}journalctl -fu soundspot-client${N}
-  Présence  : cooldown ${PRESENCE_COOLDOWN}s — ${C}journalctl -fu soundspot-presence${N}
-  Picoport  : ${PICOPORT_ENABLED:-true} — ${C}journalctl -fu picoport${N}
-
-${Y}Actions manuelles restantes :${N}
-
-  1. Coupler l'enceinte BT :
-     ${C}bluetoothctl${N}
-       power on / scan on / pair XX:XX / trust XX:XX
-
-  2. Mettre à jour BT_MACS dans :
-     ${C}${INSTALL_DIR}/soundspot.conf${N}
-     (liste de MACs séparés par espaces, ex: BT_MACS=\"AA:BB:CC:DD:EE:FF 11:22:33:44:55:66\")
-     puis : ${C}sudo systemctl enable bt-autoconnect${N}
-
-  3. Vérifier le canal de ${WIFI_SSID} :
-     ${C}iwlist wlan0 scan | grep -A2 '${WIFI_SSID}'${N}
-     Modifier 'channel=' dans /etc/hostapd/hostapd.conf
-     si différent de ${WIFI_CHANNEL}
-
-  4. Personnaliser le message d'accueil si besoin :
-     ${C}espeak-ng -v fr+f3 -s 120 -p 45 \"Votre texte...\" -w ${INSTALL_DIR}/welcome.wav${N}
-
-  5. Redémarrer :
-     ${C}sudo reboot${N}
-
-${W}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${N}
-"
+echo -e "${G}SoundSpot est prêt !${N}"
+echo -e "Utilisez la commande ${C}check${N} (alias) pour vérifier l'état des services."
+echo -e "Le nœud va redémarrer dans 10s..."
+sleep 10
+reboot

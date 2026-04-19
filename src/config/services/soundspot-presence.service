@@ -7,7 +7,7 @@ Wants=soundspot-client-master.service
 Type=simple
 EnvironmentFile=${INSTALL_DIR}/soundspot.conf
 Environment="XDG_RUNTIME_DIR=/run/user/${SOUNDSPOT_UID}"
-ExecStart=/usr/bin/python3 ${INSTALL_DIR}/presence_detector.py
+ExecStart=/usr/bin/python3 ${INSTALL_DIR}/backend/system/presence_detector.py
 Restart=always
 RestartSec=15
 User=${SOUNDSPOT_USER}

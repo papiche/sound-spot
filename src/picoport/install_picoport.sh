@@ -194,3 +194,10 @@ systemctl daemon-reload
 systemctl enable --now ipfs
 systemctl enable --now picoport
 echo "✅ Picoport installé et démarré (ipfs.service CPUQuota=40% + picoport.service) !"
+
+log "Intégration UPassport... (:54321)... [u.node.domain]"
+bash "$(dirname "$0")/install_upassport.sh"
+
+log "Démarrage de la visibilité Swarm (:12345)... [ipfs.node.domain/12345]"
+cp "$(dirname "$0")/swarm_sync.sh" "$INSTALL_DIR/picoport/swarm_sync.sh"
+chmod +x "$INSTALL_DIR/picoport/swarm_sync.sh"

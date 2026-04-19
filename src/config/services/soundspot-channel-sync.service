@@ -5,7 +5,7 @@ Before=hostapd.service
 
 [Service]
 Type=oneshot
-ExecStart=${INSTALL_DIR}/sync_channel.sh
+ExecStart=${INSTALL_DIR}/backend/system/sync_channel.sh
 RemainAfterExit=yes
 SyslogIdentifier=soundspot-channel-sync
 StandardOutput=journal

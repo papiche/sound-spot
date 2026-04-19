@@ -13,7 +13,7 @@
 #   --config     Templates systemd & configuration
 #   --all        Tout le code
 #
-# ── Convention de nommage src/templates/ ─────────────────────────────────────
+# ── Convention de nommage src/config/ ─────────────────────────────────────
 # Les nouveaux fichiers sont automatiquement routés vers le bon groupe selon :
 #
 #   portal_*.sh           → --frontend   (CGI web : portail captif)
@@ -146,7 +146,7 @@ _add_dir() {
 }
 
 # _templates_match PAT [PAT...]
-# Copie les fichiers de src/templates/ dont le basename correspond à AU MOINS UN pattern bash.
+# Copie les fichiers de src/config/ dont le basename correspond à AU MOINS UN pattern bash.
 _templates_match() {
     while IFS= read -r -d '' f; do
         local base; base=$(basename "$f")
@@ -159,11 +159,11 @@ _templates_match() {
         dest="$WORK_DIR/$rel"
         mkdir -p "$(dirname "$dest")"
         cp "$f" "$dest"
-    done < <(find "$SRC/templates" -maxdepth 1 -type f -print0)
+    done < <(find "$SRC/config" -maxdepth 1 -type f -print0)
 }
 
 # _templates_except PAT [PAT...]
-# Copie les fichiers de src/templates/ qui ne correspondent à AUCUN des patterns.
+# Copie les fichiers de src/config/ qui ne correspondent à AUCUN des patterns.
 _templates_except() {
     while IFS= read -r -d '' f; do
         local base; base=$(basename "$f")
@@ -176,10 +176,10 @@ _templates_except() {
         dest="$WORK_DIR/$rel"
         mkdir -p "$(dirname "$dest")"
         cp "$f" "$dest"
-    done < <(find "$SRC/templates" -maxdepth 1 -type f -print0)
+    done < <(find "$SRC/config" -maxdepth 1 -type f -print0)
 }
 
-# Patterns de routage src/templates/ (utilisés par plusieurs groupes)
+# Patterns de routage src/config/ (utilisés par plusieurs groupes)
 _PAT_FRONTEND=("portal_*.sh")
 _PAT_CONFIG=("*.service" "*.conf" "soundspot.conf.*" "soundspot-*logrotate*")
 _PAT_BACKEND=("*.sh" "*.py")   # tout le reste après exclusion frontend+config
@@ -211,7 +211,7 @@ case "$GROUP" in
 #   Convention templates : *.sh (hors portal_*) + *.py
 # ──────────────────────────────────────────────────────────────────────────
 --backend)
-    echo "Groupe : BACKEND"
+    _add_dir "src/backend"
     _add "src/idle_announcer.sh" \
          "src/presence_detector.py" \
          "src/battery_monitor.py" \

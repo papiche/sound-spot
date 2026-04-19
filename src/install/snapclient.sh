@@ -9,7 +9,7 @@ setup_snapclient() {
 
     # ── Scripts d'attente déployés dans INSTALL_DIR ──────────────
     for _script in wait-pw-socket.sh wait-bt-sink.sh; do
-        cp "$SCRIPT_DIR/templates/$_script" "$INSTALL_DIR/$_script"
+        cp "$(find $SCRIPT_DIR/config -name $_script" "$INSTALL_DIR/$_script"
         chmod +x "$INSTALL_DIR/$_script"
         log "$_script déployé"
     done

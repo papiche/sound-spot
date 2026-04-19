@@ -76,7 +76,7 @@ if [ "$CONNECTED_COUNT" -gt 0 ]; then
     # Si plusieurs enceintes, on les regroupe
     if [ $(echo "$MACS" | wc -w) -gt 1 ]; then
         sleep 2
-        /opt/soundspot/bt-combine-sinks.sh 2>/dev/null || true
+        /opt/soundspot/backend/system/bt-combine-sinks.sh 2>/dev/null || true
     fi
 
     # TRÈS IMPORTANT : Relancer le client pour qu'il "voit" la sortie Bluetooth

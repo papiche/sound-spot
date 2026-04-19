@@ -5,7 +5,7 @@ Wants=icecast2.service snapserver.service
 
 [Service]
 Type=simple
-ExecStart=${INSTALL_DIR}/decoder.sh
+ExecStart=${INSTALL_DIR}/backend/audio/decoder.sh
 Restart=always
 RestartSec=3
 SyslogIdentifier=soundspot-decoder

@@ -1,0 +1,16 @@
+[Unit]
+Description=SoundSpot — Picoport Swarm Sync (Port 12345)
+After=picoport.service upassport.service
+Requires=picoport.service
+
+[Service]
+Type=simple
+User=${SOUNDSPOT_USER}
+# On utilise le venv Astroport pour avoir accès aux outils python si besoin
+ExecStart=/bin/bash /opt/soundspot/picoport/swarm_sync.sh
+Restart=always
+RestartSec=30
+StandardOutput=journal
+
+[Install]
+WantedBy=multi-user.target

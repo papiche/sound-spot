@@ -26,11 +26,19 @@ apt_retry() {
 # Copie templates/SRC vers DEST.
 # Si VARS est fourni (ex: '${INSTALL_DIR} ${SNAPCAST_PORT}'), envsubst substitue
 # uniquement ces variables — les ${VAR} runtime dans les scripts installés restent intacts.
+# Dans src/install/colors.sh
 install_template() {
     local src="$1" dest="$2"; shift 2
+    # On cherche le template récursivement dans src/config
+    local template_path=$(find "${SCRIPT_DIR}/config" -name "${src}" | head -n 1)
+    
+    if [ -z "$template_path" ]; then
+        err "Template introuvable : ${src}"
+    fi
+
     if [ $# -eq 0 ]; then
-        cp "${SCRIPT_DIR}/templates/${src}" "${dest}"
+        cp "${template_path}" "${dest}"
     else
-        envsubst "$*" < "${SCRIPT_DIR}/templates/${src}" > "${dest}"
+        envsubst "$*" < "${template_path}" > "${dest}"
     fi
 }

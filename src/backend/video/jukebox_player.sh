@@ -8,7 +8,7 @@ export XDG_RUNTIME_DIR="/run/user/${USER_ID}"
 
 # Lancement du listener Python en tâche de fond via l'environnement ~/.astro
 PYTHON_BIN="$(getent passwd "$SOUNDSPOT_USER" | cut -d: -f6)/.astro/bin/python3"
-"$PYTHON_BIN" /opt/soundspot/jukebox_listener.py &
+"$PYTHON_BIN" /opt/soundspot/backend/video/jukebox_listener.py &
 LISTENER_PID=$!
 trap "kill $LISTENER_PID 2>/dev/null" EXIT
 
