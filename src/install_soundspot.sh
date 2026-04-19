@@ -68,7 +68,7 @@ apt_retry install -y --no-install-recommends \
     python3-markdown python3-websocket \
     espeak-ng jq \
     curl wget ffmpeg \
-    iw wireless-tools socat gettext-base
+    iw wireless-tools socat gettext-base rsyslog
 
 # ── Préparation de l'arborescence /opt/soundspot ─────────────
 hdr "Préparation de l'arborescence"
