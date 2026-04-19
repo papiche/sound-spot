@@ -68,6 +68,9 @@ ssh pi@soundspot.local
 Cloner le dépôt et lancer l'assistant :
 
 ```bash
+mkdir -p ~/.zen/workspace
+cd ~/.zen/workspace
+
 git clone https://github.com/papiche/sound-spot
 cd sound-spot
 sudo bash deploy_on_pi.sh

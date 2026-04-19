@@ -17,6 +17,15 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SRC_DIR="$SCRIPT_DIR/src"
 
+if [[ $SCRIPT_DIR != "$HOME/.zen/workspace/sound-spot" ]]; then
+    echo "Placer le code au bon endroit... Merci.
+    mkdir -p ~/.zen/workspace
+    cd ~/.zen/workspace
+    mv $SCRIPT_DIR $HOME/.zen/workspace"
+
+    exit 1
+fi
+
 # ── Couleurs ─────────────────────────────────────────────────────
 R='\033[0;31m'; G='\033[0;32m'; Y='\033[1;33m'
 C='\033[0;36m'; W='\033[1;37m'; M='\033[0;35m'; N='\033[0m'
