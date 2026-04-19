@@ -41,6 +41,7 @@ export SOUNDSPOT_UID=$(id -u "${SOUNDSPOT_USER}" 2>/dev/null || echo "1000")
 export PRESENCE_ENABLED="${PRESENCE_ENABLED:-false}"
 export LOG_LEVEL="${LOG_LEVEL:-INFO}"           # DEBUG | INFO | WARN | ERROR
 export SOUNDSPOT_LOG="${SOUNDSPOT_LOG:-/var/log/sound-spot.log}"
+
 # ── Vérifications préliminaires ──────────────────────────────
 hdr "Vérifications"
 [ "$(id -u)" -eq 0 ] || err "Lance ce script en root : sudo bash install_soundspot.sh"
@@ -54,19 +55,15 @@ setup_picoport() {
     cp -r "$SCRIPT_DIR/picoport" "$INSTALL_DIR/"
     chmod +x "$INSTALL_DIR/picoport/"*.sh
     # Permettre à SOUNDSPOT_USER d'écrire dans le dossier picoport
-    # (picoport_20h12.sh et les clés sont créés par le user, pas root)
     chown -R "${SOUNDSPOT_USER}:${SOUNDSPOT_USER}" "$INSTALL_DIR/picoport" 2>/dev/null || true
 
     # Maintenance (clone Astroport.ONE, venv Python, outils) — exécuté comme SOUNDSPOT_USER
-    # $HOME en sudo pointe vers /root ; on corrige via getent
-    local USER_HOME; USER_HOME=$(getent passwd "$SOUNDSPOT_USER" | cut -d: -f6)
-    sudo -u "$SOUNDSPOT_USER" HOME="$USER_HOME" \
-        bash "$SCRIPT_DIR/install_astroport_light.sh" \
+    bash "$SCRIPT_DIR/install_astroport_light.sh" \
         && log "Maintenance Picoport terminée" \
         || warn "install_astroport_light.sh a échoué (IPFS/Astroport optionnel)"
 
     # Installeur IPFS + clés + service systemd
-    bash "$INSTALL_DIR/picoport/install_picoport.sh" \
+    sudo bash "$INSTALL_DIR/picoport/install_picoport.sh" \
         && log "Picoport (IPFS) installé ✓" \
         || warn "install_picoport.sh a échoué — Picoport optionnel, installation continue"
 }

@@ -203,10 +203,10 @@
   <p>Il appartient à la constellation <span class="hi">UPlanet</span> — réseau P2P de nœuds IPFS + NOSTR reliés par la monnaie libre <span class="hi">Ğ1</span>.</p>
   <p style="font-size: 0.85rem; color: var(--gold); border-left: 2px solid var(--gold); padding-left: 10px; margin-bottom: 12px;">
     <strong>Anatomie de cette station :</strong><br>
-    👄 <i>Bouche & Oreilles</i> : Pi Zero 2W + Bluetooth + Micro<br>
-    👄 <i>Oeil & Stockage</i> : RPi5 + Camera + SSD<br>
-    🧠 <i>Cerveau & Mémoire</i> : Délégation IA via l'essaim UPlanet (PC/GPU distants)<br>
-    🔋 <i>Énergie</i> : Panneau solaire + LiFePO4 + Sonde.  Si je manque de protection et de soins, je m'éteins.
+    👄👂 <i>Bouche & Oreilles</i> : Pi Zero 2W + Bluetooth + Micro<br>
+    👁️📷 <i>Oeil & Stockage</i> : RPi5 + Camera + SSD<br>
+    🤖💾 <i>Cerveau & Mémoire</i> : Délégation IA via constellation UPlanet (PC/GPU distants)<br>
+    🔋🌞 <i>Énergie</i> : Panneau solaire + LiFePO4 + Sonde.  Si je manque de protection et de soins, je m'éteins.
   </p>
   <div class="ibox">
     <div class="irow"><span class="lbl">WiFi</span>        <span class="val" id="cfg-ssid"><span class="skel" style="width:80px;display:inline-block"></span></span></div>
@@ -569,9 +569,50 @@ async function doYtCopy() {
   if (!url) { toast('URL YouTube requise', false); return; }
 
   btn.disabled = true;
-  btn.textContent = 'Téléchargement… (1–3 min)';
   res.style.display = 'none';
 
+  // SCÉNARIO 1 : L'utilisateur a un MULTIPASS (Cypherpunk / Swarm UPlanet)
+  if (window.nostr) {
+    btn.textContent = 'Signature MULTIPASS en cours…';
+    try {
+      let relayUrl = "wss://relay.copylaradio.com"; 
+      if (window.location.hostname.includes("ipfs.")) {
+          relayUrl = "wss://" + window.location.hostname.replace("ipfs.", "relay.");
+      }
+
+      const event = {
+          kind: 1,
+          created_at: Math.floor(Date.now() / 1000),
+          tags:[["expiration", String(Math.floor(Date.now() / 1000) + 3600)],["t", "jukebox"]],
+          content: `#BRO #youtube #mp3 ${url}`
+      };
+
+      const signedEvent = await window.nostr.signEvent(event);
+      const ws = new WebSocket(relayUrl);
+
+      ws.onopen = () => {
+          ws.send(JSON.stringify(["EVENT", signedEvent]));
+          res.style.display = '';
+          res.className = '';
+          res.innerHTML = "✔ <b>Transmis au Capitaine !</b><br>L'IA distante de la constellation traite l'audio. Il sera copié dans votre uDRIVE et joué à l'antenne.";
+          toast('✅ Demande envoyée à l\'essaim');
+          document.getElementById('yt-url').value = '';
+          setTimeout(() => ws.close(), 2000);
+          btn.disabled = false;
+          btn.textContent = 'Télécharger et épingler →';
+      };
+      ws.onerror = () => { toast('❌ Impossible de joindre le relai', false); btn.disabled = false; };
+    } catch(e) {
+      toast('Erreur de signature : ' + e.message, false);
+      btn.disabled = false;
+      btn.textContent = 'Télécharger et épingler →';
+    }
+    return;
+  }
+
+  // SCÉNARIO 2 : Aucun MULTIPASS. Mode dégradé local (Le Pi Zero travaille)
+  toast('Aucun MULTIPASS détecté. Traitement local forcé...', false);
+  btn.textContent = 'Téléchargement local… (1-3 min)';
   try {
     const r = await fetch('/api.sh?action=yt_copy', {
       method: 'POST',
@@ -585,8 +626,8 @@ async function doYtCopy() {
       res.innerHTML =
         '✓ <b>' + (d.title || '—') + '</b><br>' +
         'CID : <a href="' + d.gateway + '" target="_blank">' + d.cid + '</a>' +
-        (d.queued ? '<br>🎵 Ajouté à la queue Jukebox' : '');
-      toast('✅ Épinglé sur IPFS');
+        (d.queued ? '<br>🎵 Ajouté à la queue Jukebox locale' : '');
+      toast('✅ Épinglé sur IPFS Local');
     } else {
       res.className = 'err';
       res.textContent = '✗ ' + (d.error || '?') + (d.hint ? ' — ' + d.hint : '');
@@ -595,8 +636,7 @@ async function doYtCopy() {
   } catch(e) {
     res.style.display = '';
     res.className = 'err';
-    res.textContent = '✗ Erreur réseau (requête longue — réessayez)';
-    toast('Erreur réseau', false);
+    res.textContent = '✗ Erreur réseau (requête trop longue ?)';
   } finally {
     btn.disabled = false;
     btn.textContent = 'Télécharger et épingler →';

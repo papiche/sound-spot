@@ -82,7 +82,7 @@ echo "🎫 Création du MULTIPASS Picoport : $PICO_EMAIL"
 # On utilise make_NOSTRCARD.sh avec les secrets déterministes
 # NOMAIL=1 pour éviter l'envoi d'email pendant le boot/install
 export NOMAIL=1
-bash "$ASTRO_TOOLS/../make_NOSTRCARD.sh" "$PICO_EMAIL" "fr" "0.00" "0.00" "$SECRET1" "$SECRET2"
+bash "$ASTRO_TOOLS/make_NOSTRCARD.sh" "$PICO_EMAIL" "fr" "0.00" "0.00" "$SECRET1" "$SECRET2"
 
 # 5. Publication de la Swarm Key (ORIGIN par défaut)
 if [[ ! -s ~/.ipfs/swarm.key ]]; then
