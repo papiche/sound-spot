@@ -1,8 +1,8 @@
 [Unit]
 Description=Reconnexion automatique enceinte Bluetooth
 # On ajoute l'attente du service utilisateur
-After=bluetooth.service user@1000.service
-Wants=bluetooth.service user@1000.service
+After=bluetooth.service user@${SOUNDSPOT_UID}.service
+Wants=bluetooth.service user@${SOUNDSPOT_UID}.service
 
 [Service]
 Type=simple

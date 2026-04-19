@@ -33,9 +33,13 @@ if [ "$(id -u)" -ne 0 ]; then
     err "Ce script doit être lancé avec sudo : sudo bash $0"
 fi
 
-# Vérifier si linger est déjà activé
-if ! loginctl show-user "$USER" | grep -q "Linger=yes"; then
-  sudo loginctl enable-linger "$USER"
+export SOUNDSPOT_USER="${SUDO_USER:-pi}"
+export SOUNDSPOT_UID=$(id -u "${SOUNDSPOT_USER}" 2>/dev/null || echo "1000")
+log "Utilisateur audio : ${W}${SOUNDSPOT_USER}${N} (UID ${SOUNDSPOT_UID})"
+
+# Vérifier si linger est activé pour le VRAI utilisateur
+if ! loginctl show-user "$SOUNDSPOT_USER" 2>/dev/null | grep -q "Linger=yes"; then
+  sudo loginctl enable-linger "$SOUNDSPOT_USER"
 fi
 
 # Vérifier si la config existe déjà
@@ -400,9 +404,6 @@ export SNAPCAST_PORT="1704"
 export PRESENCE_COOLDOWN="${PRESENCE_COOLDOWN:-30}"
 export PRESENCE_ENABLED="${PRESENCE_ENABLED:-false}"
 export SOUNDSPOT_MODE
-export SOUNDSPOT_USER="${SUDO_USER:-pi}"
-export SOUNDSPOT_UID=$(id -u "${SOUNDSPOT_USER}" 2>/dev/null || echo "1000")
-log "Utilisateur audio : ${W}${SOUNDSPOT_USER}${N} (UID ${SOUNDSPOT_UID})"
 
 mkdir -p "$INSTALL_DIR"
 
