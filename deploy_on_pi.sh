@@ -17,15 +17,6 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SRC_DIR="$SCRIPT_DIR/src"
 
-if [[ $SCRIPT_DIR != "$HOME/.zen/workspace/sound-spot" ]]; then
-    echo "Placer le code au bon endroit... Merci.
-    mkdir -p ~/.zen/workspace
-    cd ~/.zen/workspace
-    mv $SCRIPT_DIR $HOME/.zen/workspace"
-
-    exit 1
-fi
-
 # ── Couleurs ─────────────────────────────────────────────────────
 R='\033[0;31m'; G='\033[0;32m'; Y='\033[1;33m'
 C='\033[0;36m'; W='\033[1;37m'; M='\033[0;35m'; N='\033[0m'
@@ -45,6 +36,15 @@ fi
 export SOUNDSPOT_USER="${SUDO_USER:-pi}"
 export SOUNDSPOT_UID=$(id -u "${SOUNDSPOT_USER}" 2>/dev/null || echo "1000")
 log "Utilisateur audio : ${W}${SOUNDSPOT_USER}${N} (UID ${SOUNDSPOT_UID})"
+
+if [[ $SCRIPT_DIR != "/home/$SOUNDSPOT_USER/.zen/workspace/sound-spot" ]]; then
+    echo "Placer le code au bon endroit... Merci.
+    mkdir -p /home/$SOUNDSPOT_USER/.zen/workspace
+    cd /home/$SOUNDSPOT_USER/.zen/workspace
+    mv $SCRIPT_DIR /home/$SOUNDSPOT_USER/.zen/workspace/"
+
+    exit 1
+fi
 
 # Vérifier si linger est activé pour le VRAI utilisateur
 if ! loginctl show-user "$SOUNDSPOT_USER" 2>/dev/null | grep -q "Linger=yes"; then
