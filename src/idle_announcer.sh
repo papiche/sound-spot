@@ -140,12 +140,12 @@ announce_time() {
     read -r sol_h sol_m <<< "$(calc_solar_time "$lon")"
     case "$sol_m" in
         0)  m_str="heures" ;;
-        15) m_str="heures et quart" ;;
-        30) m_str="heures et demie" ;;
+        15) m_str="heures quinze" ;;
+        30) m_str="heures trente" ;;
         45) m_str="heures quarante-cinq" ;;
         *)  m_str="heures ${sol_m}" ;;
     esac
-    say "Il est ${sol_h} ${m_str} heure solaire"
+    say "Il est ${sol_h} ${m_str}"
 }
 
 # ── Boucle principale ─────────────────────────────────────────────
