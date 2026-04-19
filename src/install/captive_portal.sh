@@ -25,6 +25,7 @@ server.pid-file             = "/var/run/lighttpd.pid"
 server.username             = "www-data"
 server.groupname            = "www-data"
 server.port                 = 80
+include_shell "/usr/share/lighttpd/create-mime.conf.pl"
 cgi.assign                  = ( ".sh" => "/bin/bash" )
 
 # Servir directement si l'hôte est une adresse IP ou le nom local du RPi.
@@ -38,7 +39,7 @@ cgi.assign                  = ( ".sh" => "/bin/bash" )
 index-file.names = ( "index.html", "index.sh" )
 
 # Servir les fichiers .json comme JSON (manifest PWA)
-mimetype.assign = ( ".json" => "application/json", ".js" => "application/javascript" )
+
 
 # Capturer les URL de test Android/Apple
 url.rewrite-once = (
@@ -59,7 +60,8 @@ EOF
     install_template set_clock_mode.sh "$INSTALL_DIR/set_clock_mode.sh"
     chmod +x "$INSTALL_DIR/set_clock_mode.sh"
     log "set_clock_mode.sh déployé"
-    
+    # Activer explicitement le module CGI dans Debian
+    lighttpd-enable-mod cgi 2>/dev/null || true
     systemctl restart lighttpd
     systemctl enable lighttpd
     log "Portail captif Lighttpd configuré"

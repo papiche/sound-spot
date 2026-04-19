@@ -42,6 +42,7 @@ mkdir -p "$INSTALL_DIR/keys"
 echo "🔐 [Picoport] Initialisation de l'identité Y-Level..."
 
 # 1. S'assurer qu'une clé SSH existe (id_ed25519)
+mkdir -p ~/.ssh
 if [[ ! -s ~/.ssh/id_ed25519 ]]; then
     echo "🐣 Génération de la clé SSH initiale..."
     GPS_RAW=$(my_LatLon 2>/dev/null || echo "fr 0.00 0.00")
@@ -52,7 +53,7 @@ fi
 
 # 2. Calcul des secrets déterministes (Logique Y-Level)
 # On utilise le hash de la clé privée SSH comme SEED
-SSHASH=$(sudo cat ~/.ssh/id_ed25519 | sha512sum | cut -d ' ' -f 1)
+SSHASH=$(cat ~/.ssh/id_ed25519 | sha512sum | cut -d ' ' -f 1)
 SECRET1=$(echo "$SSHASH" | cut -c 1-64)
 SECRET2=$(echo "$SSHASH" | cut -c 65-128)
 

@@ -38,7 +38,7 @@ setup_idle() {
     # Format : un fichier .txt par message, .wav généré automatiquement si absent.
     # Pour personnaliser : remplacer le .wav correspondant par votre enregistrement.
 
-    declare -A MSGS
+declare -A MSGS
 
     MSGS[01]="Vous écoutez un Bien Commun Numérique. Mon corps est un Raspberry Pi, ma voix sort en Bluetooth, et ma mémoire réside dans la constellation UPlanet."
     MSGS[02]="Ce nœud audio fonctionne à l'énergie solaire. Mon existence dépend des rayons du soleil et de l'usure de ma batterie. Prenez soin de moi."
@@ -46,14 +46,10 @@ setup_idle() {
     MSGS[04]="La création de cette station a un coût matériel, mais son utilisation est libre. Soutenez le G1 FabLab en monnaie libre pour essaimer d'autres nœuds."
     MSGS[05]="Utilisez votre MULTIPASS depuis votre smartphone pour me donner des ordres. Je copierai la musique dans votre disque souverain uDRIVE."
     MSGS[06]="La monnaie June circule librement entre ses membres, sans banque centrale. Devenez Parrain ZEN avec une ZEN Card pour soutenir l'infrastructure."
-
     MSGS[07]="Ce n'est pas « Ici Londres » pendant la Seconde Guerre Mondiale. C'est « ALLO ici les DEV » pour mettre fin à la troisième. Construisons un réseau libre."
     MSGS[08]="Dans le cinquième Élément, l'humanité subit un futur dystopique. Ici, avec votre MULTIPASS, vous devenez co-bâtisseur du monde libre. Entrez, et amenez vos amis."
     MSGS[09]="La chaîne de confiance numérique est enfin raccourcie : Utilisateur, Capitaine, Armateur. Ce modèle est généralisable à toutes nos relations. Reprenez le contrôle."
-    MSGS[10]="Je suis une bouche et des oreilles. Pour réfléchir, je fais appel aux cerveaux GPU du réseau coopératif UPlanet. Rejoignez la constellation."
-    MSGS[11]="Utilisez votre MULTIPASS depuis votre smartphone pour me donner des ordres. L'Intelligence Artificielle copiera la musique dans votre disque souverain uDRIVE."
-    MSGS[12]="La monnaie libre June circule entre ses membres, sans banque centrale. Devenez Parrain avec une ZEN Card pour soutenir les infrastructures numériques physiques."
-
+    
     for id in "${!MSGS[@]}"; do
         local txt_file="$wav_dir/message_${id}.txt"
         local wav_file="$wav_dir/message_${id}.wav"

@@ -5,7 +5,8 @@ After=bluetooth.service user@${SOUNDSPOT_UID}.service
 Wants=bluetooth.service user@${SOUNDSPOT_UID}.service
 
 [Service]
-Type=simple
+Type=oneshot
+RemainAfterExit=yes
 EnvironmentFile=/opt/soundspot/soundspot.conf
 # On laisse un peu de temps au boot
 ExecStartPre=/bin/sleep 5

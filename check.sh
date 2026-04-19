@@ -123,7 +123,7 @@ check_svc icecast2              "icecast2"
 check_svc snapserver            "snapserver"
 check_svc soundspot-decoder     "soundspot-decoder (ffmpeg)"
 check_svc soundspot-client      "soundspot-client (snapclient)"
-check_svc soundspot-presence    "soundspot-presence (caméra)"
+if [ "${PRESENCE_ENABLED:-false}" = "true" ]; then check_svc soundspot-presence "soundspot-presence (caméra)"; else info "soundspot-presence désactivé"; fi
 check_svc soundspot-channel-sync "soundspot-channel-sync (canal WiFi)"
 check_svc bt-autoconnect        "bt-autoconnect"
 check_svc bluealsa              "bluealsa"   masked
