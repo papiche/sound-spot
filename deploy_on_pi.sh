@@ -38,11 +38,12 @@ export SOUNDSPOT_UID=$(id -u "${SOUNDSPOT_USER}" 2>/dev/null || echo "1000")
 log "Utilisateur audio : ${W}${SOUNDSPOT_USER}${N} (UID ${SOUNDSPOT_UID})"
 
 if [[ $SCRIPT_DIR != "/home/$SOUNDSPOT_USER/.zen/workspace/sound-spot" ]]; then
-    echo "Placer le code au bon endroit... Merci.
-    mkdir -p /home/$SOUNDSPOT_USER/.zen/workspace
-    cd /home/$SOUNDSPOT_USER/.zen/workspace
-    mv $SCRIPT_DIR /home/$SOUNDSPOT_USER/.zen/workspace/"
+    echo "... PLEASE RESPECT ~/.zen CODE LOCATION ... 
+mkdir -p /home/$SOUNDSPOT_USER/.zen/workspace
+cd /home/$SOUNDSPOT_USER/.zen/workspace
+mv $SCRIPT_DIR /home/$SOUNDSPOT_USER/.zen/workspace/
 
+... please..."
     exit 1
 fi
 
