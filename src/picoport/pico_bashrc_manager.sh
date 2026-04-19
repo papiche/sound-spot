@@ -52,6 +52,57 @@ pico-status() {
     fi
 }
 
+# ── Développement portail (src/dev/) ─────────────────────────────────────
+SS_DEV_DIR="\$HOME/.zen/workspace/sound-spot"
+
+# Activer le mode dev sur une branche (crée si nouvelle)
+ss-dev() {
+    local branch="\${1:-dev-\$(hostname)}"
+    if [ -f "\${SS_DEV_DIR}/src/dev/dev_setup.sh" ]; then
+        bash "\${SS_DEV_DIR}/src/dev/dev_setup.sh" "\$branch"
+    else
+        echo "dev_setup.sh introuvable — cloner d'abord le dépôt dans \${SS_DEV_DIR}"
+    fi
+}
+
+# Changer de branche en live
+ss-switch() {
+    bash "\${SS_DEV_DIR}/src/dev/dev_switch.sh" "\${1:-}"
+}
+
+# Restaurer le portail en mode production (copie depuis main)
+ss-prod() {
+    bash "\${SS_DEV_DIR}/src/dev/dev_restore.sh"
+}
+
+# Statut git de la branche active du portail
+ss-status() {
+    if [ -d "\${SS_DEV_DIR}/.git" ]; then
+        cd "\${SS_DEV_DIR}"
+        echo -e "\e[36mBranche active  :\e[0m \$(git branch --show-current)"
+        echo -e "\e[36mPortal symlink  :\e[0m \$(readlink -f /opt/soundspot/portal 2>/dev/null)"
+        echo -e "\e[36mFichiers modif. :\e[0m"
+        git status --short src/portal/ 2>/dev/null || true
+    else
+        echo "Mode production (pas de workspace dev)"
+    fi
+}
+
+# Tester un module API directement dans le terminal
+ss-api() {
+    local action="\${1:-status}"
+    shift 2>/dev/null || true
+    QUERY_STRING="action=\${action}" \
+    SPOT_NAME="\$(grep SPOT_NAME /opt/soundspot/soundspot.conf | cut -d= -f2 | tr -d '\"')" \
+    SPOT_IP="\$(grep SPOT_IP /opt/soundspot/soundspot.conf | cut -d= -f2 | tr -d '\"')" \
+    ICECAST_PORT="\$(grep ICECAST_PORT /opt/soundspot/soundspot.conf | cut -d= -f2 | tr -d '\"')" \
+    SNAPCAST_PORT="\$(grep SNAPCAST_PORT /opt/soundspot/soundspot.conf | cut -d= -f2 | tr -d '\"')" \
+    CLOCK_MODE="\$(grep CLOCK_MODE /opt/soundspot/soundspot.conf | cut -d= -f2 | tr -d '\"')" \
+    INSTALL_DIR="/opt/soundspot" \
+    bash /opt/soundspot/portal/api.sh 2>/dev/null | jq . 2>/dev/null || \
+    bash /opt/soundspot/portal/api.sh 2>/dev/null
+}
+
 # ── Liste des stations voisines ───────────────────────────────────────────
 swarm-nodes() {
     echo "Stations détectées dans l'essaim :"

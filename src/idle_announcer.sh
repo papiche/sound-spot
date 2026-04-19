@@ -71,16 +71,9 @@ count_messages() {
 
 # ── Vérifier si un DJ diffuse (source active sur Icecast) ────────
 is_dj_active() {
-    local json
-    json=$(curl -sf --max-time 3 \
-        "http://127.0.0.1:${ICECAST_PORT}/status-json.xsl" 2>/dev/null) || return 1
-    echo "$json" | python3 -c "
-import sys, json
-try:
-    src = json.load(sys.stdin).get('icestats', {}).get('source')
-    print('yes' if src else 'no')
-except Exception:
-    print('no')" 2>/dev/null | grep -q yes
+    # Vérifie si le montage /live existe (HTTP 200 = DJ présent)
+    local code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 2 "http://127.0.0.1:${ICECAST_PORT}/live" 2>/dev/null)
+    [ "$code" = "200" ]
 }
 
 # ── Coups de cloche (N × bip court avec fondu) ───────────────────

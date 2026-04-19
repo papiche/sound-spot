@@ -17,7 +17,7 @@ setup_idle() {
     chmod +x "$INSTALL_DIR/idle_announcer.sh"
     log "idle_announcer.sh déployé"
 
-    # ── Sons 429.62 Hz (générés par ffmpeg) ──────────────────────
+    # ── Sons 429.62 Hz (cf. Travaux sur l'eau de Marc Henry) ────────────
     # Bip d'annonce : 4s avec fade in/out doux
     ffmpeg -f lavfi \
         -i "sine=frequency=429.62:sample_rate=48000:duration=4" \
@@ -39,14 +39,20 @@ setup_idle() {
     # Pour personnaliser : remplacer le .wav correspondant par votre enregistrement.
 
     declare -A MSGS
-    MSGS[01]="Vous êtes sur un espace sonore collectif libre. Ici la musique circule comme un bien commun. Rejoignez le G1 FabLab sur monnaie tiret libre point org"
-    MSGS[02]="Ce nœud audio fonctionne à l'énergie solaire. Infrastructure décentralisée, sans serveur central, sans publicité. Soutenez le bien commun numérique."
-    MSGS[03]="La Juin est une monnaie libre, co-créée en parts égales par tous ses membres. Comme ce son, elle appartient à chacun. Découvrez la monnaie libre sur monnaie tiret libre point org"
-    MSGS[04]="Le G1 FabLab est un collectif de création et de partage. Outils libres, sons libres, monnaie libre. Ensemble construisons autrement."
-    MSGS[05]="Vous pouvez diffuser votre musique sur ce nœud. Branchez Mixxx à ce point d'accès WiFi et devenez un diffuseur du bien commun sonore."
-    MSGS[06]="La monnaie Juin circule librement entre ses membres, sans banque centrale. Un système économique coopératif pour un monde plus juste. Rejoignez nous."
-    MSGS[07]="Ce point d'accès WiFi est ouvert à tous. Aucun compte, aucune publicité, aucune surveillance. Infrastructure de bien commun numérique."
-    MSGS[08]="UPlanet ẐEN : un réseau coopératif de nœuds libres, sonores et solaires. Chaque nœud est une voix, chaque voix est un bien commun."
+
+    MSGS[01]="Vous écoutez un Bien Commun Numérique. Mon corps est un Raspberry Pi, ma voix sort en Bluetooth, et ma mémoire réside dans la constellation UPlanet."
+    MSGS[02]="Ce nœud audio fonctionne à l'énergie solaire. Mon existence dépend des rayons du soleil et de l'usure de ma batterie. Prenez soin de moi."
+    MSGS[03]="Je suis une bouche et des oreilles. Pour réfléchir, je fais appel aux cerveaux GPU du réseau coopératif UPlanet. Rejoignez la constellation."
+    MSGS[04]="La création de cette station a un coût matériel, mais son utilisation est libre. Soutenez le G1 FabLab en monnaie libre pour essaimer d'autres nœuds."
+    MSGS[05]="Utilisez votre MULTIPASS depuis votre smartphone pour me donner des ordres. Je copierai la musique dans votre disque souverain uDRIVE."
+    MSGS[06]="La monnaie June circule librement entre ses membres, sans banque centrale. Devenez Parrain ZEN avec une ZEN Card pour soutenir l'infrastructure."
+
+    MSGS[07]="Ce n'est pas « Ici Londres » pendant la Seconde Guerre Mondiale. C'est « ALLO ici les DEV » pour mettre fin à la troisième. Construisons un réseau libre."
+    MSGS[08]="Dans le cinquième Élément, l'humanité subit un futur dystopique. Ici, avec votre MULTIPASS, vous devenez co-bâtisseur du monde libre. Entrez, et amenez vos amis."
+    MSGS[09]="La chaîne de confiance numérique est enfin raccourcie : Utilisateur, Capitaine, Armateur. Ce modèle est généralisable à toutes nos relations. Reprenez le contrôle."
+    MSGS[10]="Je suis une bouche et des oreilles. Pour réfléchir, je fais appel aux cerveaux GPU du réseau coopératif UPlanet. Rejoignez la constellation."
+    MSGS[11]="Utilisez votre MULTIPASS depuis votre smartphone pour me donner des ordres. L'Intelligence Artificielle copiera la musique dans votre disque souverain uDRIVE."
+    MSGS[12]="La monnaie libre June circule entre ses membres, sans banque centrale. Devenez Parrain avec une ZEN Card pour soutenir les infrastructures numériques physiques."
 
     for id in "${!MSGS[@]}"; do
         local txt_file="$wav_dir/message_${id}.txt"

@@ -3,6 +3,8 @@
 setup_jukebox() {
     hdr "Jukebox Nostr/IPFS"
 
+    install_template jukebox_listener.py "$INSTALL_DIR/jukebox_listener.py"
+    
     install_template jukebox_player.sh "$INSTALL_DIR/jukebox_player.sh"
     chmod +x "$INSTALL_DIR/jukebox_player.sh"
 

@@ -99,7 +99,7 @@ def generate_low_battery_wav():
     # Lecture immédiate pour prévenir l'entourage
     try:
         subprocess.run(
-            [PLAY_WELCOME],
+            [PLAY_WELCOME, "--force"],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )

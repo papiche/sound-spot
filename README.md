@@ -256,6 +256,37 @@ Les paiements Ğ1 (Duniter v2s) sont disponibles via `gcli` (`g1cli` installé d
 
 ---
 
+### Description et rôle du Mode Picoport
+
+Le mode **Picoport** est l'épine dorsale web3 et IA du SoundSpot. En l'activant, le RPi Zero 2W devient un micro-nœud de l'essaim "UPlanet". 
+
+Voici ce qu'il accomplit en tâche de fond :
+1. **Transmutation Cryptographique (Y-Level)** : À l'installation, il génère une clé SSH (Ed25519) locale. Le hash de cette clé (le *salt & pepper*) sert de graine déterministe pour générer l'identité de son nœud IPFS (`PeerID`), son portefeuille monnaie libre `Ğ1 / ẑen`, et son Multipass Nostr. Le nœud a donc une seule et même identité prouvable mathématiquement sur SSH, IPFS, Duniter et Nostr.
+2. **IPFS Isolé en Basse Énergie** : Il installe *Kubo (IPFS)* compilé pour ARM64, purge les nœuds publics, et se branche exclusivement sur la `swarm.key` UPlanet. Il utilise un profil extrême basse consommation (`CPUQuota=40%`, limites de connexions baissées) pour ne pas entraver le flux audio.
+3. **Paiements et Monnaie Libre** : Il déploie `g1cli`, le client léger Rust pour la blockchain Duniter v2s, permettant au nœud de recevoir/émettre des pourboires et de signer des contrats.
+4. **Découverte et Essaim IA (Swarm)** : Le démon `picoport.sh` sonde ses voisins IPFS P2P. Étant donné que le RPi Zero 2W n'a qu'un *Power-Score* très bas (Score : 1 = "🌿 Nœud Light"), il délègue les tâches d'Intelligence Artificielle. Grâce à `astrosystemctl`, le nœud mappe ses ports P2P vers les "Brain-Nodes" de la constellation (des PC plus puissants qui font tourner `Ollama` ou `Strfry`), lui permettant de générer les requêtes Jukebox ou IA à distance, comme s'il les calculait en local.
+5. **Survie Solaire (Le Chrono 20h12)** : Un cron basé sur **l'heure solaire** (calculée avec la longitude GPS via `solar_time.sh`) déclenche le signal de maintenance à `20h12 solaire`. Le nœud envoie alors une balise de survie (Niveau de batterie, Uptime) via Nostr sur `wss://relay.copylaradio.com`.
+
+Le SoundSpot version PicoPort permet de dsposer de zones de diffusion de son multipoints chainable et accesible à distance
+il sert à faire la promotion du "Bien Commun Numérique" et physique (AGPL).
+
+La rencontre Homme/Machine qui pour fonctionner a besoin de recharge et changement de batterie, elle connait et annonce le cout de tous ses composants :
+ * PiZ2W pour la bouche et les oreilles
+ * Pi4/Pi5 pour la vision et le stockage
+ * PC Gamer / GPU pour le calcul, la mémoire
+
++ Client Smartphone "Zelkova" (ẑen) 
++ Parrain ẐEN (historique "ZEN Card") 
+
+- UPlanet ORIGIN & ẐEN - 
+
+Acteurs / Armateurs / Capitaines
+Constellations IPFS reliées par NOSTR
+NextCloud / uDRIVE / MULTIPASS
+IA / GeoKey UMAP / synchro N²
+
+Ce programme fait partie des oeuvres nuémériques libres sélectionnées, reliés et maintenus par les adhérents du G1FabLab 
+
 ## Licence
 
 AGPL-3.0 — [G1FabLab](https://opencollective.com/monnaie-libre) / [UPlanet ẐEN](https://qo-op.com) / [zicmama.com](https://zicmama.com)

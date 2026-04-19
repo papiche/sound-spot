@@ -407,7 +407,7 @@ export SOUNDSPOT_MODE
 
 mkdir -p "$INSTALL_DIR"
 
-# Les fichiers Python sont dans src/ (sous-répertoire de deploy_on_pi.sh)
+# Fichiers Python
 for _py in presence_detector.py battery_monitor.py; do
     if [ -f "$SRC_DIR/$_py" ]; then
         cp "$SRC_DIR/$_py" "$INSTALL_DIR/"
@@ -416,6 +416,15 @@ for _py in presence_detector.py battery_monitor.py; do
         warn "$_py introuvable dans $SRC_DIR — le service correspondant sera ignoré"
     fi
 done
+
+# Portail captif (sources live — /var/www/html sera un lien symbolique)
+if [ -d "$SRC_DIR/portal" ]; then
+    cp -r "$SRC_DIR/portal" "$INSTALL_DIR/"
+    chown -R www-data:www-data "$INSTALL_DIR/portal"
+    log "portal/ → $INSTALL_DIR/ ✓"
+else
+    warn "src/portal/ introuvable — le portail captif ne sera pas déployé"
+fi
 
 # ════════════════════════════════════════════════════════════════
 #  9. Installation

@@ -34,8 +34,11 @@ cgi.assign                  = ( ".sh" => "/bin/bash" )
     url.redirect = ( ".*" => "http://${SPOT_IP}/index.sh" )
 }
 
-# Assigner index.sh par défaut
-index-file.names = ( "index.sh" )
+# Assigner index.html en priorité (SPA statique), puis index.sh (fallback CGI)
+index-file.names = ( "index.html", "index.sh" )
+
+# Servir les fichiers .json comme JSON (manifest PWA)
+mimetype.assign = ( ".json" => "application/json", ".js" => "application/javascript" )
 
 # Capturer les URL de test Android/Apple
 url.rewrite-once = (
@@ -43,17 +46,14 @@ url.rewrite-once = (
 )
 EOF
 
-    # Installer les pages du portail
-    install_template portal_index.sh /var/www/html/index.sh \
-        '${SPOT_NAME} ${SPOT_IP} ${SNAPCAST_PORT} ${ICECAST_PORT} ${ICECAST_PASS}'
-    install_template portal_auth.sh /var/www/html/auth.sh
-    install_template portal_docs.sh /var/www/html/docs.sh
-    install_template portal_set_clock.sh /var/www/html/set_clock.sh
-
-    chmod +x /var/www/html/index.sh
-    chmod +x /var/www/html/auth.sh
-    chmod +x /var/www/html/docs.sh
-    chmod +x /var/www/html/set_clock.sh
+    # Lien symbolique : /var/www/html → $INSTALL_DIR/portal
+    # Un simple `git pull` dans le dépôt source suffit à mettre le portail à jour.
+    rm -rf /var/www/html
+    ln -sfn "$INSTALL_DIR/portal" /var/www/html
+    chmod +x /var/www/html/*.sh
+    chmod +x /var/www/html/api/core/*.sh
+    chmod +x /var/www/html/api/apps/*/run.sh 2>/dev/null || true
+    log "Portail lié : /var/www/html → $INSTALL_DIR/portal"
 
     # Script root pour modification de soundspot.conf depuis le portail
     install_template set_clock_mode.sh "$INSTALL_DIR/set_clock_mode.sh"
