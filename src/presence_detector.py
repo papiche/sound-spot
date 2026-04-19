@@ -44,12 +44,35 @@ WELCOME_CMD     = os.getenv(
 )
 HAAR_XML = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [presence] %(levelname)s %(message)s",
-    datefmt="%H:%M:%S",
-)
-log = logging.getLogger()
+_LOG_LEVEL_STR = os.getenv("LOG_LEVEL", "INFO").upper()
+_LOG_LEVEL_MAP = {
+    "DEBUG": logging.DEBUG,
+    "INFO":  logging.INFO,
+    "WARN":  logging.WARNING,
+    "WARNING": logging.WARNING,
+    "ERROR": logging.ERROR,
+}
+_PY_LOG_LEVEL = _LOG_LEVEL_MAP.get(_LOG_LEVEL_STR, logging.INFO)
+
+_LOG_FILE = os.getenv("SOUNDSPOT_LOG", "/var/log/sound-spot.log")
+_FMT = "%(asctime)s [%(levelname)-5s] [presence     ] %(message)s"
+_DATEFMT = "%Y-%m-%d %H:%M:%S"
+
+log = logging.getLogger("presence")
+log.setLevel(_PY_LOG_LEVEL)
+
+# Handler stdout → journald
+_sh = logging.StreamHandler()
+_sh.setFormatter(logging.Formatter(_FMT, _DATEFMT))
+log.addHandler(_sh)
+
+# Handler fichier → /var/log/sound-spot.log
+try:
+    _fh = logging.FileHandler(_LOG_FILE, encoding="utf-8")
+    _fh.setFormatter(logging.Formatter(_FMT, _DATEFMT))
+    log.addHandler(_fh)
+except OSError:
+    pass  # fichier non accessible (pas encore créé par setup_logging) : journald suffit
 
 
 def open_camera():

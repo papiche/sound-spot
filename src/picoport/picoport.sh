@@ -9,6 +9,14 @@ INSTALL_DIR="/opt/soundspot/picoport"
 BOOTSTRAP_FILE="$INSTALL_DIR/A_boostrap_nodes.txt"
 SWARM_DIR="$TMP_DIR/swarm"
 
+_SS_SERVICE="picoport"
+# shellcheck source=/opt/soundspot/log.sh
+_LOGLIB="/opt/soundspot/log.sh"
+[ -f "$_LOGLIB" ] && source "$_LOGLIB" || {
+    ss_info()  { :; }; ss_warn()  { :; }
+    ss_error() { :; }; ss_debug() { :; }
+}
+
 # État pour la publication conditionnelle
 LAST_JSON_CONTENT=""
 LAST_PUBLISH_TIME=0
@@ -26,6 +34,7 @@ IPFSNODEID=$(ipfs id -f="<id>")
 HOSTNAME=$(hostname)
 mkdir -p "$TMP_DIR/$IPFSNODEID"
 JSON_FILE="$TMP_DIR/$IPFSNODEID/12345.json"
+ss_info "démarrage — nœud ${IPFSNODEID} hôte=${HOSTNAME}"
 
 expose_my_services() {
     for entry in $MY_EXPOSED_SERVICES; do
@@ -35,6 +44,7 @@ expose_my_services() {
         if ss -tln | grep -q ":$LPORT "; then
             if ! ipfs p2p ls | grep -q "$PROTO"; then
                 ipfs p2p listen "$PROTO" "/ip4/127.0.0.1/tcp/$LPORT"
+                ss_debug "service exposé : ${PROTO} → port ${LPORT}"
             fi
         fi
     done
@@ -64,8 +74,11 @@ while true; do
     CURRENT_PEERS=$(ipfs swarm peers 2>/dev/null)
     PEERS_COUNT=$(echo "$CURRENT_PEERS" | grep -c "p2p" || echo 0)
     if [ "$PEERS_COUNT" -eq 0 ]; then
+        ss_warn "swarm vide — reconnexion aux bootstraps UPlanet"
         grep -v '^#' "$BOOTSTRAP_FILE" | while read -r node; do ipfs swarm connect "$node" >/dev/null 2>&1 & done
         sleep 5
+    else
+        ss_debug "swarm: ${PEERS_COUNT} pair(s) connecté(s)"
     fi
 
     expose_my_services
@@ -95,10 +108,10 @@ EOF
     # --- PUBLICATION CONDITIONNELLE ---
     SHOULD_PUBLISH=false
     if [ "$NEW_JSON" != "$LAST_JSON_CONTENT" ]; then
-        echo "📢 Statut modifié, mise à jour..."
+        ss_info "statut modifié — publication IPNS (icecast=${ICECAST_UP} snapcast=${SNAPCAST_UP})"
         SHOULD_PUBLISH=true
     elif [ $((MOATS - LAST_PUBLISH_TIME)) -gt $FORCE_PUBLISH_INTERVAL ]; then
-        echo "🕒 Publication de routine (refresh IPNS)..."
+        ss_info "publication IPNS de routine (refresh ${FORCE_PUBLISH_INTERVAL}s)"
         SHOULD_PUBLISH=true
     fi
 

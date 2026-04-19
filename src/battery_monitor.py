@@ -25,12 +25,35 @@ import subprocess
 import sys
 import time
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [battery] %(levelname)s %(message)s",
-    datefmt="%H:%M:%S",
-)
-log = logging.getLogger()
+_LOG_LEVEL_STR = os.getenv("LOG_LEVEL", "INFO").upper()
+_LOG_LEVEL_MAP = {
+    "DEBUG": logging.DEBUG,
+    "INFO":  logging.INFO,
+    "WARN":  logging.WARNING,
+    "WARNING": logging.WARNING,
+    "ERROR": logging.ERROR,
+}
+_PY_LOG_LEVEL = _LOG_LEVEL_MAP.get(_LOG_LEVEL_STR, logging.INFO)
+
+_LOG_FILE = os.getenv("SOUNDSPOT_LOG", "/var/log/sound-spot.log")
+_FMT = "%(asctime)s [%(levelname)-5s] [battery      ] %(message)s"
+_DATEFMT = "%Y-%m-%d %H:%M:%S"
+
+log = logging.getLogger("battery")
+log.setLevel(_PY_LOG_LEVEL)
+
+# Handler stdout → journald
+_sh = logging.StreamHandler()
+_sh.setFormatter(logging.Formatter(_FMT, _DATEFMT))
+log.addHandler(_sh)
+
+# Handler fichier → /var/log/sound-spot.log
+try:
+    _fh = logging.FileHandler(_LOG_FILE, encoding="utf-8")
+    _fh.setFormatter(logging.Formatter(_FMT, _DATEFMT))
+    log.addHandler(_fh)
+except OSError:
+    pass  # fichier non accessible : journald suffit
 
 # ── Configuration ──────────────────────────────────────────────────────
 CHECK_INTERVAL  = int(float(os.getenv("BATTERY_CHECK_INTERVAL", "600")))

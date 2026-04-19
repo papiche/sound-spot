@@ -24,6 +24,13 @@ SOUNDSPOT_USER="${SOUNDSPOT_USER:-pi}"
 USER_ID=$(id -u "${SOUNDSPOT_USER}" 2>/dev/null || echo 1000)
 export XDG_RUNTIME_DIR="/run/user/${USER_ID}"
 
+_SS_SERVICE="idle"
+# shellcheck source=/opt/soundspot/log.sh
+[ -f "$INSTALL_DIR/log.sh" ] && source "$INSTALL_DIR/log.sh" || {
+    ss_info()  { :; }; ss_warn()  { :; }
+    ss_error() { :; }; ss_debug() { :; }
+}
+
 # Re-lire la configuration à chaque cycle (changements du portail pris en compte à chaud)
 reload_conf() {
     [ -f "$CONF" ] && source "$CONF"
@@ -31,6 +38,8 @@ reload_conf() {
     IDLE_ANNOUNCE_INTERVAL="${IDLE_ANNOUNCE_INTERVAL:-900}"
     CLOCK_MODE="${CLOCK_MODE:-bells}"
 }
+
+ss_info "démarrage clocher — mode=${CLOCK_MODE:-bells} intervalle=${IDLE_ANNOUNCE_INTERVAL:-900}s"
 
 # ── Audio : paplay → pw-play → aplay ─────────────────────────────
 play_wav() {
@@ -156,7 +165,11 @@ main() {
         if [[ "$sol_m" =~ ^(0|15|30|45)$ ]] && [ "$elapsed" -ge 840 ]; then
             last_announce=$now
 
-            if ! is_dj_active; then
+            if is_dj_active; then
+                ss_debug "DJ actif sur Icecast — annonce ignorée"
+            else
+                ss_info "annonce h${sol_h}:$(printf '%02d' "$sol_m") mode=${CLOCK_MODE:-bells}"
+
                 # 1. Bip 429.62 Hz (signal de vie — non désactivable)
                 play_wav "$WAV_DIR/tone_429hz.wav"
                 sleep 1
@@ -165,6 +178,7 @@ main() {
                 if [ "$sol_m" = "0" ] && [ "${CLOCK_MODE:-bells}" = "bells" ]; then
                     local bells=$(( sol_h % 12 ))
                     [ "$bells" -eq 0 ] && bells=12
+                    ss_debug "coups de cloche : ${bells}"
                     ring_bells "$bells"
                     sleep 1
                 fi
@@ -177,6 +191,7 @@ main() {
                 local total; total=$(count_messages)
                 if [ "$total" -gt 0 ]; then
                     msg_index=$(( (msg_index % total) + 1 ))
+                    ss_debug "lecture message_$(printf '%02d' "$msg_index")"
                     play_message_file "$msg_index"
                 fi
             fi

@@ -9,6 +9,7 @@ EnvironmentFile=${INSTALL_DIR}/soundspot.conf
 ExecStart=${INSTALL_DIR}/jukebox_player.sh
 Restart=always
 RestartSec=10
+SyslogIdentifier=soundspot-jukebox
 StandardOutput=journal
 
 [Install]

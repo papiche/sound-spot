@@ -9,6 +9,7 @@ Type=oneshot
 RemainAfterExit=yes
 ExecStart=/opt/soundspot/soundspot-firewall.sh
 ExecStop=/sbin/iptables -F FORWARD
+SyslogIdentifier=soundspot-firewall
 StandardOutput=journal
 
 [Install]

@@ -261,7 +261,7 @@ Les paiements Ğ1 (Duniter v2s) sont disponibles via `gcli` (`g1cli` installé d
 Le mode **Picoport** est l'épine dorsale web3 et IA du SoundSpot. En l'activant, le RPi Zero 2W devient un micro-nœud de l'essaim "UPlanet". 
 
 Voici ce qu'il accomplit en tâche de fond :
-1. **Transmutation Cryptographique (Y-Level)** : À l'installation, il génère une clé SSH (Ed25519) locale. Le hash de cette clé (le *salt & pepper*) sert de graine déterministe pour générer l'identité de son nœud IPFS (`PeerID`), son portefeuille monnaie libre `Ğ1 / ẑen`, et son Multipass Nostr. Le nœud a donc une seule et même identité prouvable mathématiquement sur SSH, IPFS, Duniter et Nostr.
+1. **Transmutation Cryptographique (Y-Level)** : À l'installation, il génère une clé SSH (Ed25519) locale. Le hash de cette clé (le *salt & pepper*) sert de graine déterministe pour générer l'identité de son nœud IPFS (`PeerID`), son identité monnaie libre `Ğ1 / ẑen`, et son Multipass Nostr. Le nœud a donc une seule et même identité prouvable mathématiquement sur SSH, IPFS, Duniter et Nostr.
 2. **IPFS Isolé en Basse Énergie** : Il installe *Kubo (IPFS)* compilé pour ARM64, purge les nœuds publics, et se branche exclusivement sur la `swarm.key` UPlanet. Il utilise un profil extrême basse consommation (`CPUQuota=40%`, limites de connexions baissées) pour ne pas entraver le flux audio.
 3. **Paiements et Monnaie Libre** : Il déploie `g1cli`, le client léger Rust pour la blockchain Duniter v2s, permettant au nœud de recevoir/émettre des pourboires et de signer des contrats.
 4. **Découverte et Essaim IA (Swarm)** : Le démon `picoport.sh` sonde ses voisins IPFS P2P. Étant donné que le RPi Zero 2W n'a qu'un *Power-Score* très bas (Score : 1 = "🌿 Nœud Light"), il délègue les tâches d'Intelligence Artificielle. Grâce à `astrosystemctl`, le nœud mappe ses ports P2P vers les "Brain-Nodes" de la constellation (des PC plus puissants qui font tourner `Ollama` ou `Strfry`), lui permettant de générer les requêtes Jukebox ou IA à distance, comme s'il les calculait en local.
@@ -286,6 +286,36 @@ NextCloud / uDRIVE / MULTIPASS
 IA / GeoKey UMAP / synchro N²
 
 Ce programme fait partie des oeuvres nuémériques libres sélectionnées, reliés et maintenus par les adhérents du G1FabLab 
+
+# Système de logs — /var/log/sound-spot.log
+
+Format du log
+
+```
+2026-04-19 14:23:45 [INFO ] [idle        ] annonce h14:00 mode=bells
+2026-04-19 14:23:46 [DEBUG] [idle        ] coups de cloche : 2
+2026-04-19 14:23:50 [INFO ] [picoport    ] statut modifié — publication IPNS (icecast=true snapcast=true)
+2026-04-19 14:24:01 [WARN ] [picoport    ] swarm vide — reconnexion aux bootstraps UPlanet
+2026-04-19 14:24:05 [INFO ] [presence    ] picamera2 (libcamera) ouverte — 320x240 @ 15 fps
+2026-04-19 14:24:10 [ERROR] [battery     ] Erreur lecture INA219 : I2C bus not found
+```
+
+Changer le niveau en live
+
+```
+# Éditer soundspot.conf (relu à chaque cycle par idle_announcer)
+sed -i 's/LOG_LEVEL=.*/LOG_LEVEL="DEBUG"/' /opt/soundspot/soundspot.conf
+# Redémarrer presence et battery (lisent LOG_LEVEL au démarrage)
+systemctl restart soundspot-presence soundspot-battery
+```
+
+Consulter les logs
+
+```
+tail -f /var/log/sound-spot.log          # tous les services
+grep '\[ERROR\]' /var/log/sound-spot.log  # erreurs uniquement
+grep '\[picoport\]' /var/log/sound-spot.log  # picoport uniquement
+```
 
 ## Licence
 

@@ -15,6 +15,12 @@ INSTALL_DIR="${INSTALL_DIR}"
 IFACE_AP="${IFACE_AP}"
 IFACE_WAN="${IFACE_WAN}"
 
+# ── Logs centralisés ─────────────────────────────────────────────
+# Niveau de filtre : DEBUG | INFO | WARN | ERROR
+# DEBUG active les messages détaillés (boucles, pairs IPFS, frames caméra…)
+LOG_LEVEL="${LOG_LEVEL}"
+SOUNDSPOT_LOG="${SOUNDSPOT_LOG}"
+
 # ── Clocher numérique ────────────────────────────────────────────
 # Intervalle entre annonces quand aucun DJ ne diffuse (secondes).
 # Les annonces et le bip 429.62 Hz ne peuvent pas être désactivés.

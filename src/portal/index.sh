@@ -230,7 +230,7 @@ cat <<HTMLEOF
 <div class="card card-pass">
   <div class="badge badge-pass">🪪 Identité coopérative</div>
   <h2>Obtenir son MULTIPASS Ẑelkova</h2>
-  <p>Le <span class="hi">MULTIPASS</span> est votre identité dans la constellation UPlanet : portefeuille <span class="hi">Ğ1</span>, compte <span class="hi">NOSTR</span>, accès aux services ẐEN.</p>
+  <p>Le <span class="hi">MULTIPASS</span> est votre identité dans la constellation UPlanet : identité <span class="hi">Ğ1</span>, compte <span class="hi">NOSTR</span>, accès aux services ẐEN.</p>
   <div class="steps">
     <div class="step"><div class="sn sn-g">01</div>
       <span>Installer l'app <span class="hi">Ẑelkova</span> (wallet ẐEN) :<br>
@@ -239,7 +239,7 @@ cat <<HTMLEOF
         <!-- 🍎 App Store : TODO -->
       </span></div>
     <div class="step"><div class="sn sn-g">02</div>
-      <span>Créer votre profil → votre <span class="hi">clé NOSTR</span> + <span class="hi">portefeuille Ğ1</span> sont générés localement.</span></div>
+      <span>Créer votre profil → votre <span class="hi">clé NOSTR</span> + <span class="hi">identité Ğ1</span> sont générés localement.</span></div>
     <div class="step"><div class="sn sn-g">03</div>
       <span>Votre MULTIPASS vous relie à la coopérative <a href="https://opencollective.com/monnaie-libre">G1FabLab</a> et au réseau <span class="hi">UPlanet ẐEN</span>.</span></div>
     <div class="step"><div class="sn sn-g">04</div>

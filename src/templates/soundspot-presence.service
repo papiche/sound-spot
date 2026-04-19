@@ -11,6 +11,7 @@ ExecStart=/usr/bin/python3 ${INSTALL_DIR}/presence_detector.py
 Restart=always
 RestartSec=15
 User=${SOUNDSPOT_USER}
+SyslogIdentifier=soundspot-presence
 StandardOutput=journal
 StandardError=journal
 

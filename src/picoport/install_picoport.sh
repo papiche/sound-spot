@@ -154,12 +154,14 @@ Wants=network-online.target
 Type=notify
 User=$SOUNDSPOT_USER
 Environment="IPFS_PATH=$USER_HOME/.ipfs"
+EnvironmentFile=-/opt/soundspot/soundspot.conf
 ExecStart=/usr/local/bin/ipfs daemon --migrate --enable-gc
 Restart=on-failure
 RestartSec=15
 TimeoutStartSec=120
 CPUQuota=40%
 Nice=10
+SyslogIdentifier=ipfs
 
 [Install]
 WantedBy=multi-user.target
@@ -176,9 +178,13 @@ Requires=ipfs.service
 Type=simple
 User=$SOUNDSPOT_USER
 Environment="IPFS_PATH=$USER_HOME/.ipfs"
+EnvironmentFile=-/opt/soundspot/soundspot.conf
 ExecStart=$INSTALL_DIR/picoport.sh
 Restart=always
 RestartSec=10
+SyslogIdentifier=picoport
+StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=multi-user.target

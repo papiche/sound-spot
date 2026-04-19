@@ -16,6 +16,7 @@ ExecStartPost=/bin/sleep 5
 ExecStartPost=${INSTALL_DIR}/play_welcome.sh
 Restart=always
 RestartSec=5
+SyslogIdentifier=soundspot-client
 StandardOutput=journal
 
 [Install]

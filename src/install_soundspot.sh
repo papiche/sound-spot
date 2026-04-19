@@ -10,6 +10,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # ── Modules d'installation ───────────────────────────────────
 source "$SCRIPT_DIR/install/colors.sh"
+source "$SCRIPT_DIR/install/logging.sh"
 source "$SCRIPT_DIR/install/networking.sh"
 source "$SCRIPT_DIR/install/captive_portal.sh"
 source "$SCRIPT_DIR/install/icecast.sh"
@@ -38,6 +39,8 @@ export INSTALL_DIR="/opt/soundspot"
 export SOUNDSPOT_USER="${SOUNDSPOT_USER:-${SUDO_USER:-pi}}"  # Utilisateur qui exécute les services audio
 export SOUNDSPOT_UID=$(id -u "${SOUNDSPOT_USER}" 2>/dev/null || echo "1000")
 export PRESENCE_ENABLED="${PRESENCE_ENABLED:-false}"
+export LOG_LEVEL="${LOG_LEVEL:-INFO}"           # DEBUG | INFO | WARN | ERROR
+export SOUNDSPOT_LOG="${SOUNDSPOT_LOG:-/var/log/sound-spot.log}"
 # ── Vérifications préliminaires ──────────────────────────────
 hdr "Vérifications"
 [ "$(id -u)" -eq 0 ] || err "Lance ce script en root : sudo bash install_soundspot.sh"
@@ -91,6 +94,9 @@ apt_retry install -y --no-install-recommends \
 
 mkdir -p "$INSTALL_DIR"
 
+# ── Logging centralisé (en premier — les autres setup_* peuvent écrire dans le log) ──
+setup_logging
+
 # ── Scripts Python → INSTALL_DIR (si appelé sans deploy_on_pi.sh) ──
 for _py in presence_detector.py battery_monitor.py; do
     [ -f "$INSTALL_DIR/$_py" ] && continue
@@ -124,7 +130,7 @@ fi
 # ── Fichier de configuration central ─────────────────────────
 hdr "Fichier de configuration central"
 install_template soundspot.conf.master "$INSTALL_DIR/soundspot.conf" \
-    '${SPOT_NAME} ${SPOT_IP} ${WIFI_SSID} ${WIFI_CHANNEL} ${BT_MAC} ${BT_MACS} ${SNAPCAST_PORT} ${PRESENCE_COOLDOWN} ${INSTALL_DIR} ${IFACE_AP} ${IFACE_WAN}'
+    '${SPOT_NAME} ${SPOT_IP} ${WIFI_SSID} ${WIFI_CHANNEL} ${BT_MAC} ${BT_MACS} ${SNAPCAST_PORT} ${PRESENCE_COOLDOWN} ${INSTALL_DIR} ${IFACE_AP} ${IFACE_WAN} ${LOG_LEVEL} ${SOUNDSPOT_LOG}'
 
 chmod 644 "$INSTALL_DIR/soundspot.conf"
 
