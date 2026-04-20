@@ -4,7 +4,7 @@
 # Installe IPFS, socat, jq, configure pour joindre sa constellation UPlanet.
 # =======================================================================
 set -e
-
+[ "$(id -u)" -eq 0 ] || { echo "❌ Veuillez lancer ce script en root (sudo bash ...)"; exit 1; }
 INSTALL_DIR="/opt/soundspot/picoport"
 SOUNDSPOT_USER="${SOUNDSPOT_USER:-pi}"
 # Récupération propre du HOME de l'utilisateur (évite les erreurs sudo -E)
@@ -146,7 +146,7 @@ sudo -u "$SOUNDSPOT_USER" bash "$INSTALL_DIR/pico_bashrc_manager.sh" install
 echo "=== 6. Services Systemd : ipfs.service + picoport.service ==="
 
 # --- 6a. ipfs.service (daemon IPFS avec CPUQuota=40%) ---
-sudo cat > /etc/systemd/system/ipfs.service <<EOF
+cat > /etc/systemd/system/ipfs.service <<EOF
 [Unit]
 Description=IPFS Daemon — Picoport UPlanet (CPUQuota 40%%)
 After=network-online.target
@@ -170,7 +170,7 @@ WantedBy=multi-user.target
 EOF
 
 # --- 6b. picoport.service (logique Picoport — dépend d'ipfs.service) ---
-sudo cat > /etc/systemd/system/picoport.service <<EOF
+cat > /etc/systemd/system/picoport.service <<EOF
 [Unit]
 Description=Picoport (Astroport.ONE Node)
 After=network-online.target ipfs.service
@@ -192,9 +192,9 @@ StandardError=journal
 WantedBy=multi-user.target
 EOF
 
-sudo systemctl daemon-reload
-sudo systemctl enable --now ipfs
-sudo systemctl enable --now picoport
+systemctl daemon-reload
+systemctl enable --now ipfs
+systemctl enable --now picoport
 echo "✅ Picoport installé et démarré (ipfs.service CPUQuota=40% + picoport.service) !"
 
 echo "=== 7. Intégration UPassport ==="
