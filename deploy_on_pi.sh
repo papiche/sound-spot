@@ -189,8 +189,9 @@ export WIFI_CHANNEL="6"
 if [ "$SOUNDSPOT_MODE" != "2" ]; then
     hdr "Optimisation du Canal WiFi"
     
-    # Détection du canal amont (Internet)
+    # 1. Détection canal amont
     UPSTREAM_CHAN=$(iw dev wlan0 info 2>/dev/null | awk '/channel/{print $2; exit}' || echo "11")
+    UPSTREAM_CHAN=$(echo "$UPSTREAM_CHAN" | tr -d '[:space:]') # Nettoyage strict
     log "Canal Internet (wlan0) : ${C}${UPSTREAM_CHAN}${N}"
 
     if [ "$IFACE_AP" = "uap0" ]; then
@@ -199,31 +200,32 @@ if [ "$SOUNDSPOT_MODE" != "2" ]; then
     else
         log "Mode Dual-WiFi : Recherche du canal le plus calme..."
         
-        # Tentative de scan sécurisée (ne fait pas planter le script si busy)
-        # On essaie d'abord de lire le cache, sinon on tente un scan rapide
+        # Scan sécurisé
         SCAN_RAW=$(sudo iw wlan0 scan dump 2>/dev/null | grep "primary channel" | awk '{print $4}' || true)
-        
         if [ -z "$SCAN_RAW" ]; then
-            # Si le dump est vide, on tente un vrai scan mais on autorise l'échec
             SCAN_RAW=$(sudo iw wlan0 scan 2>/dev/null | grep "primary channel" | awk '{print $4}' || echo "")
         fi
         
-        # Comptage des réseaux (méthode robuste)
-        C1=$(echo "$SCAN_RAW" | grep -c "^1$" || echo 0)
-        C6=$(echo "$SCAN_RAW" | grep -c "^6$" || echo 0)
-        C11=$(echo "$SCAN_RAW" | grep -c "^11$" || echo 0)
+        # Comptage rigoureux (on force une seule ligne en sortie)
+        # -w dans grep évite que "1" match "11"
+        C1=$(echo "$SCAN_RAW" | grep -cw "1" | head -n 1 || echo 0)
+        C6=$(echo "$SCAN_RAW" | grep -cw "6" | head -n 1 || echo 0)
+        C11=$(echo "$SCAN_RAW" | grep -cw "11" | head -n 1 || echo 0)
         
-        log "Réseaux détectés : CH1:${C1} | CH6:${C6} | CH11:${C11}"
+        log "Encombrement : CH1:${C1} | CH6:${C6} | CH11:${C11}"
         
-        # Logique de sélection : On prend le moins peuplé parmi (1, 6, 11) 
-        # en évitant à tout prix le canal amont
+        # Choix du meilleur canal
         BEST_CHAN=1
         [ "$UPSTREAM_CHAN" == "1" ] && BEST_CHAN=6
         
         MIN_RESEAUX=999
         for CH in 1 6 11; do
             if [ "$CH" != "$UPSTREAM_CHAN" ]; then
-                COUNT=$(echo "$SCAN_RAW" | grep -c "^$CH$" || echo 0)
+                # On récupère le compteur correspondant au canal testé
+                COUNT=$(echo "$SCAN_RAW" | grep -cw "$CH" | head -n 1 || echo 0)
+                # On s'assure que COUNT est un entier pur pour le test [ ]
+                COUNT=$(echo "$COUNT" | tr -d '[:space:]')
+                
                 if [ "$COUNT" -lt "$MIN_RESEAUX" ]; then
                     MIN_RESEAUX=$COUNT
                     BEST_CHAN=$CH
@@ -232,7 +234,8 @@ if [ "$SOUNDSPOT_MODE" != "2" ]; then
         done
         
         export WIFI_CHANNEL="$BEST_CHAN"
-        ok "Choix automatique : ${G}Canal ${WIFI_CHANNEL}${N} (${MIN_RESEAUX} voisins)"
+        # Utilisation de 'log' car 'ok' n'est pas défini dans ce script
+        log "${G}✓${N} Choix automatique : ${W}Canal ${WIFI_CHANNEL}${N} (${MIN_RESEAUX} voisins)"
         
         ask "Utiliser ce canal ou saisir manuellement [${WIFI_CHANNEL}] : "
         read -r INPUT_CHAN
