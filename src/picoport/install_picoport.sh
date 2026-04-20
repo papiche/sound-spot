@@ -1,7 +1,7 @@
 #!/bin/bash
 # =======================================================================
 # Picoport — Astroport.ONE pour RPi Zero 2W (SoundSpot)
-# Installe IPFS, socat, jq, configure le swarm UPlanet et le service.
+# Installe IPFS, socat, jq, configure pour joindre sa constellation UPlanet.
 # =======================================================================
 set -e
 
@@ -133,7 +133,10 @@ chmod +x "$INSTALL_DIR/picoport_init_keys.sh"
 sudo -u "$SOUNDSPOT_USER" IPFS_PATH="$USER_HOME/.ipfs" HOME="$USER_HOME" bash "$INSTALL_DIR/picoport_init_keys.sh"
 
 echo "=== 5. Mise en place de la station Picoport ==="
-cp "$(dirname "$0")/picoport.sh" "$INSTALL_DIR/picoport.sh"
+# PROTECTION CONTRE L'AUTO-COPIE SI ON S'EXÉCUTE DÉJÀ DANS LE DOSSIER DE DESTINATION
+if [ "$(cd "$(dirname "$0")" && pwd)" != "$INSTALL_DIR" ]; then
+    cp "$(dirname "$0")/picoport.sh" "$INSTALL_DIR/picoport.sh"
+fi
 chmod +x "$INSTALL_DIR/picoport.sh"
 
 echo "=== 5b. Mise à jour du .bashrc ==="
@@ -143,9 +146,6 @@ sudo -u "$SOUNDSPOT_USER" bash "$INSTALL_DIR/pico_bashrc_manager.sh" install
 echo "=== 6. Services Systemd : ipfs.service + picoport.service ==="
 
 # --- 6a. ipfs.service (daemon IPFS avec CPUQuota=40%) ---
-# Daemon IPFS isolé dans son propre service pour limiter la charge CPU
-# sur RPi Zero 2W. CPUQuota=40% = 40% d'un cœur (quota systemd single-core).
-# Nice=10 réduit la priorité I/O sans bloquer les autres services audio.
 cat > /etc/systemd/system/ipfs.service <<EOF
 [Unit]
 Description=IPFS Daemon — Picoport UPlanet (CPUQuota 40%%)
@@ -197,9 +197,12 @@ systemctl enable --now ipfs
 systemctl enable --now picoport
 echo "✅ Picoport installé et démarré (ipfs.service CPUQuota=40% + picoport.service) !"
 
-log "Intégration UPassport... (:54321)... [u.node.domain]"
+echo "=== 7. Intégration UPassport ==="
 bash "$(dirname "$0")/install_upassport.sh"
 
-log "Démarrage de la visibilité Swarm (:12345)... [ipfs.node.domain/12345]"
-cp "$(dirname "$0")/swarm_sync.sh" "$INSTALL_DIR/picoport/swarm_sync.sh"
-chmod +x "$INSTALL_DIR/picoport/swarm_sync.sh"
+echo "=== 8. Démarrage de la visibilité Swarm ==="
+# CORRECTION DU CHEMIN DUPLIQUÉ ET PROTECTION CONTRE L'AUTO-COPIE
+if [ "$(cd "$(dirname "$0")" && pwd)" != "$INSTALL_DIR" ]; then
+    cp "$(dirname "$0")/swarm_sync.sh" "$INSTALL_DIR/swarm_sync.sh"
+fi
+chmod +x "$INSTALL_DIR/swarm_sync.sh"
