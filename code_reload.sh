@@ -18,7 +18,7 @@ DEV_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 INSTALL_DIR="/opt/soundspot"
 SOUNDSPOT_USER=$(grep "SOUNDSPOT_USER" "$INSTALL_DIR/soundspot.conf" 2>/dev/null | cut -d= -f2 | tr -d '"' || echo "pi")
 
-if[ ! -d "${DEV_DIR}/src/backend" ]; then
+if [ ! -d "${DEV_DIR}/src/backend" ]; then
     err "Dossier src/backend introuvable dans ${DEV_DIR}"
 fi
 
