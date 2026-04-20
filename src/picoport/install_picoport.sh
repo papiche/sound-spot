@@ -118,6 +118,7 @@ sudo -u "$SOUNDSPOT_USER" bash -c "
         ipfs config --json Experimental.Libp2pStreamMounting true
         # Optionnel mais recommandé pour les performances du Pi Zero :
         ipfs config --json Experimental.FilestoreEnabled true
+        ipfs config --json Logging '' '"error"'
     fi
     
     # 4. Swarm Key UPlanet ORIGIN

@@ -14,6 +14,7 @@ PRESENCE_ENABLED="${PRESENCE_ENABLED}"
 INSTALL_DIR="${INSTALL_DIR}"
 IFACE_AP="${IFACE_AP}"
 IFACE_WAN="${IFACE_WAN}"
+PICOPORT_ENABLED="${PICOPORT_ENABLED}"
 
 # ── Logs centralisés ─────────────────────────────────────────────
 # Niveau de filtre : DEBUG | INFO | WARN | ERROR

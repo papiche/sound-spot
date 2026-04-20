@@ -10,7 +10,7 @@ ExecStartPre=/bin/bash -c 'if [ "${IFACE_AP}" = "uap0" ]; then /sbin/iw dev wlan
 # Monter l'interface
 ExecStart=/sbin/ip link set dev ${IFACE_AP} up
 # Assigner l'IP (Corrige le bug de dnsmasq au passage !)
-ExecStartPost=/sbin/ip addr add ${SPOT_IP}/24 dev ${IFACE_AP}
+ExecStartPost=/sbin/ip addr replace ${SPOT_IP}/24 dev ${IFACE_AP}
 ExecStop=/bin/bash -c 'if [ "${IFACE_AP}" = "uap0" ]; then /sbin/iw dev uap0 del; else /sbin/ip link set dev ${IFACE_AP} down; fi'
 RemainAfterExit=yes
 Restart=on-failure

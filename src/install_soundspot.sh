@@ -42,7 +42,7 @@ export SOUNDSPOT_USER="${SOUNDSPOT_USER:-${SUDO_USER:-pi}}"
 export SOUNDSPOT_UID=$(id -u "${SOUNDSPOT_USER}" 2>/dev/null || echo "1000")
 export PRESENCE_ENABLED="${PRESENCE_ENABLED:-false}"
 export PICOPORT_ENABLED="${PICOPORT_ENABLED:-true}"
-export LOG_LEVEL="${LOG_LEVEL:-INFO}"
+export LOG_LEVEL="${LOG_LEVEL:-WARN}"
 export SOUNDSPOT_LOG="${SOUNDSPOT_LOG:-/var/log/sound-spot.log}"
 
 # ── Vérifications ────────────────────────────────────────────
@@ -137,7 +137,7 @@ if [ "$PICOPORT_ENABLED" = "true" ]; then
     # Intégration UPassport et Swarm Sync (Port 12345)
     log "Intégration UPassport & Swarm Sync..."
     bash "$INSTALL_DIR/picoport/install_upassport.sh"
-    
+
     # Installation du service swarm_sync via template
     install_template soundspot-swarm-sync.service /etc/systemd/system/soundspot-swarm-sync.service '${INSTALL_DIR} ${SOUNDSPOT_USER}'
     systemctl enable --now soundspot-swarm-sync
