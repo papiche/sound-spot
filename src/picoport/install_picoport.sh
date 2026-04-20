@@ -128,7 +128,9 @@ EOF
 
 echo "=== 4b. Configuration de l'identité déterministe (Y-Level) ==="
 # On s'assure que le script de clé s'exécute aussi avec le bon IPFS_PATH
-sudo -u "$SOUNDSPOT_USER" IPFS_PATH="$IPFS_PATH" bash "$INSTALL_DIR/picoport_init_keys.sh"
+chown -R "$SOUNDSPOT_USER:$SOUNDSPOT_USER" "$INSTALL_DIR"
+chmod +x "$INSTALL_DIR/picoport_init_keys.sh"
+sudo -u "$SOUNDSPOT_USER" IPFS_PATH="$USER_HOME/.ipfs" HOME="$USER_HOME" bash "$INSTALL_DIR/picoport_init_keys.sh"
 
 echo "=== 5. Mise en place de la station Picoport ==="
 cp "$(dirname "$0")/picoport.sh" "$INSTALL_DIR/picoport.sh"
