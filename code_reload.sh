@@ -14,7 +14,7 @@ err() { echo -e "${R}✗${N}  $*" >&2; exit 1; }
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Correction du chemin DEV_DIR : on remonte à la racine du dépôt (depuis src/dev/)
-DEV_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+DEV_DIR="$SCRIPT_DIR"
 INSTALL_DIR="/opt/soundspot"
 SOUNDSPOT_USER=$(grep "SOUNDSPOT_USER" "$INSTALL_DIR/soundspot.conf" 2>/dev/null | cut -d= -f2 | tr -d '"' || echo "pi")
 

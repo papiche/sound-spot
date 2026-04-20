@@ -5,6 +5,7 @@ After=bluetooth.service user@${SOUNDSPOT_UID}.service
 Wants=bluetooth.service user@${SOUNDSPOT_UID}.service
 
 [Service]
+Environment=SOUNDSPOT_UID=${SOUNDSPOT_UID}
 Type=oneshot
 RemainAfterExit=yes
 EnvironmentFile=/opt/soundspot/soundspot.conf

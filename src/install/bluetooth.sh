@@ -27,7 +27,7 @@ setup_bluetooth() {
 
     install_template bt-autoconnect.service \
         /etc/systemd/system/bt-autoconnect.service \
-        '${INSTALL_DIR}'
+        '${INSTALL_DIR} ${SOUNDSPOT_UID}'
 
     install_template bt-connect.sh      "$INSTALL_DIR/bt-connect.sh"
     chmod +x "$INSTALL_DIR/bt-connect.sh"

@@ -66,7 +66,9 @@ SVCEOF
     # 7. Firewall — service dédié (évite la fragilité de netfilter-persistent avec ipset)
     install_template soundspot-firewall.sh  "$INSTALL_DIR/soundspot-firewall.sh"
     install_template soundspot-firewall.service \
-        /etc/systemd/system/soundspot-firewall.service
+        /etc/systemd/system/soundspot-firewall.service \
+        '${INSTALL_DIR}'
+
     chmod +x "$INSTALL_DIR/soundspot-firewall.sh"
     systemctl enable soundspot-firewall.service
 
