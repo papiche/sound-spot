@@ -146,7 +146,7 @@ sudo -u "$SOUNDSPOT_USER" bash "$INSTALL_DIR/pico_bashrc_manager.sh" install
 echo "=== 6. Services Systemd : ipfs.service + picoport.service ==="
 
 # --- 6a. ipfs.service (daemon IPFS avec CPUQuota=40%) ---
-cat > /etc/systemd/system/ipfs.service <<EOF
+sudo cat > /etc/systemd/system/ipfs.service <<EOF
 [Unit]
 Description=IPFS Daemon — Picoport UPlanet (CPUQuota 40%%)
 After=network-online.target
@@ -170,7 +170,7 @@ WantedBy=multi-user.target
 EOF
 
 # --- 6b. picoport.service (logique Picoport — dépend d'ipfs.service) ---
-cat > /etc/systemd/system/picoport.service <<EOF
+sudo cat > /etc/systemd/system/picoport.service <<EOF
 [Unit]
 Description=Picoport (Astroport.ONE Node)
 After=network-online.target ipfs.service
@@ -192,9 +192,9 @@ StandardError=journal
 WantedBy=multi-user.target
 EOF
 
-systemctl daemon-reload
-systemctl enable --now ipfs
-systemctl enable --now picoport
+sudo systemctl daemon-reload
+sudo systemctl enable --now ipfs
+sudo systemctl enable --now picoport
 echo "✅ Picoport installé et démarré (ipfs.service CPUQuota=40% + picoport.service) !"
 
 echo "=== 7. Intégration UPassport ==="
