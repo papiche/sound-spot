@@ -36,10 +36,4 @@ if [[ -f ~/.ipfs/config ]]; then
     echo "✅ PeerID synchronisé : $PEER_ID"
 fi
 
-# 4. MULTIPASS Nostr (Version allégée)
-PICO_EMAIL="pico-$(hostname)@$(hostname).local"
-echo "🎫 Création du MULTIPASS : $PICO_EMAIL"
-export NOMAIL=1
-bash "$ASTRO_TOOLS/make_NOSTRCARD.sh" "$PICO_EMAIL" "fr" "0.00" "0.00" "$SECRET1" "$SECRET2"
-
-echo "🚀 Identity setup complete."
+echo "🚀 IPFS NODE Identity setup complete."
