@@ -53,15 +53,22 @@ expose_my_services() {
 # --- NOUVEAU : DÉCOUVERTE DU SWARM (Coherence avec _12345.sh) ---
 discover_neighbors() {
     # On récupère les IDs des pairs actuellement connectés
-    PEERS=$(ipfs swarm peers | grep -oP 'p2p/\K.*' | sort -u | head -n 10) # Max 10 pour le Pi Zero
+    PEERS=$(ipfs swarm peers | grep -oP 'p2p/\K.*' | sort -u | head -n 10)
     for peer in $PEERS; do
         if [ "$peer" != "$IPFSNODEID" ]; then
-            # Si le dossier n'existe pas ou date de plus d'une heure
-            if [ ! -f "$SWARM_DIR/$peer/12345.json" ] || [ "$(find "$SWARM_DIR/$peer/12345.json" -mmin +60)" ]; then
-                mkdir -p "$SWARM_DIR/$peer"
-                # On tente de récupérer la balise de la station voisine
-                # Timeout court pour ne pas bloquer le script
-                ipfs --timeout 15s get -o "$SWARM_DIR/$peer/12345.json" "/ipns/$peer/12345.json" >/dev/null 2>&1 &
+            # On vérifie si le dossier existe ou s'il est vieux (> 1h)
+            if [ ! -d "$SWARM_DIR/$peer" ] || [ "$(find "$SWARM_DIR/$peer" -maxdepth 0 -mmin +60)" ]; then
+                # On télécharge TOUT le contenu du répertoire IPNS du voisin
+                # On utilise un dossier temporaire pour l'atomicité
+                TMP_GET="/tmp/pico_get_$peer"
+                rm -rf "$TMP_GET"
+                
+                # IPFS GET sur la racine (/) sans spécifier 12345.json
+                if ipfs --timeout 30s get -o "$TMP_GET" "/ipns/$peer/" >/dev/null 2>&1; then
+                    rm -rf "$SWARM_DIR/$peer"
+                    mv "$TMP_GET" "$SWARM_DIR/$peer"
+                    ss_debug "balise complète récupérée pour $peer"
+                fi
             fi
         fi
     done

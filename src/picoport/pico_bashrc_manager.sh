@@ -6,16 +6,16 @@ START_MARKER="# >>> PICOPORT ALIASES START >>>"
 END_MARKER="# <<< PICOPORT ALIASES END <<<"
 
 # Contenu du bloc PicoPort
+# Contenu du bloc PicoPort
 read -r -d '' PICO_BLOCK << EOF
 $START_MARKER
 
 # ── Diagnostic & Surveillance ─────────────────────────────────────────────
-alias check='sudo bash /opt/soundspot/check.sh'
+# Correction de l'alias check pour pointer vers le workspace si absent de /opt
+alias check='[ -f /opt/soundspot/check.sh ] && sudo bash /opt/soundspot/check.sh || sudo bash \$HOME/.zen/workspace/sound-spot/check.sh'
 alias svc='systemctl status soundspot-* bt-autoconnect picoport 2>/dev/null | grep -E "●|Active:"'
 alias pico-log='tail -f ~/.zen/log/picoport_20h12.log'
 alias pico-svc='journalctl -u picoport.service -f'
-alias cam-log='journalctl -u soundspot-presence.service -f'
-alias bt-log='journalctl -u bt-autoconnect -f'
 alias 12345='cat ~/.zen/tmp/\$(ipfs id -f="<id>" 2>/dev/null)/12345.json 2>/dev/null | jq'
 
 # ── Audio & Bluetooth ─────────────────────────────────────────────────────
@@ -25,9 +25,43 @@ alias vol='wpctl get-volume @DEFAULT_AUDIO_SINK@'
 alias sound-test='pw-play /usr/share/sounds/alsa/Front_Center.wav'
 alias bt-fix='sudo systemctl restart bt-autoconnect && journalctl -u bt-autoconnect -f'
 
-# ── Clocher numérique (idle_announcer) ────────────────────────────────────
+# ── Clocher numérique ─────────────────────────────────────────────────────
 alias clock-bells='sudo sed -i "s/^CLOCK_MODE=.*/CLOCK_MODE=bells/" /opt/soundspot/soundspot.conf && echo "Mode : coups de cloche"'
 alias clock-silent='sudo sed -i "s/^CLOCK_MODE=.*/CLOCK_MODE=silent/" /opt/soundspot/soundspot.conf && echo "Mode : heure vocale seule"'
+
+# ── Développement & Update ────────────────────────────────────────────────
+alias cd-pico='cd \$HOME/.zen/workspace/sound-spot'
+alias pico-update='cd \$HOME/.zen/workspace/sound-spot && git pull && sudo bash deploy_on_pi.sh'
+
+pico-welcome() {
+    echo -e "\e[36m"
+    echo "  ░▀▀█░▀█▀░█▀▀░█▄█░█▀█░█▄█░█▀█"
+    echo "  ░▄▀░░░█░░█░░░█░█░█▀█░█░█░█▀█"
+    echo "  ░▀▀▀░▀▀▀░▀▀▀░▀░▀░▀░▀░▀░▀░▀░▀"
+    echo -e "\e[0m"
+    echo -e "\e[1mBienvenue sur ton SoundSpot Picoport !\e[0m"
+    echo -e "Version : \e[32m$(git -C $HOME/.zen/workspace/sound-spot rev-parse --short HEAD 2>/dev/null || echo 'live')\e[0m"
+    echo ""
+    echo -e "\e[33m[Diagnostic]\e[0m"
+    echo -e "  check         : Diagnostic complet réseau/audio"
+    echo -e "  pico-status   : État rapide (Temp, IPFS, BT)"
+    echo -e "  swarm-nodes   : Voir les voisins de l'essaim"
+    echo ""
+    echo -e "\e[33m[Audio]\e[0m"
+    echo -e "  sound-test    : Vérifier si l'enceinte chante"
+    echo -e "  bt-fix        : Relancer la connexion Bluetooth"
+    echo ""
+    echo -e "\e[33m[Maintenance]\e[0m"
+    echo -e "  pico-update   : \e[5m⚠️\e[0m Mettre à jour le code et redéployer"
+    echo -e "  conf          : Modifier la configuration (SSID, MAC, etc.)"
+    echo ""
+    echo -e "\e[35m[IA Swarm]\e[0m"
+    echo -e "  ai ollama     : Se connecter au cerveau du Swarm"
+    echo ""
+}
+
+# Lancer le message de bienvenue
+pico-welcome
 
 # ── Configuration ─────────────────────────────────────────────────────────
 alias conf='sudo nano /opt/soundspot/soundspot.conf'

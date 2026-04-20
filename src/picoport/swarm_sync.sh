@@ -131,8 +131,14 @@ EOF
     # Maintenance du cache swarm : on télécharge les voisins détectés
     PEERS=$(ipfs swarm peers | grep -oP 'p2p/\K.*' | head -n 5)
     for p in $PEERS; do
-        mkdir -p "$HOME/.zen/tmp/swarm/$p"
-        ipfs --timeout 10s get -o "$HOME/.zen/tmp/swarm/$p/12345.json" /ipns/$p/12345.json >/dev/null 2>&1 &
+        # On télécharge le répertoire complet (contient 12345.json + x_*.sh)
+        # On utilise --timeout pour ne pas bloquer si un voisin est lent
+        TMP_SWARM="/tmp/swarm_$p"
+        if ipfs --timeout 20s get -o "$TMP_SWARM" "/ipns/$p/" >/dev/null 2>&1; then
+            mkdir -p ~/.zen/tmp/swarm/
+            rm -rf ~/.zen/tmp/swarm/$p
+            mv "$TMP_SWARM" ~/.zen/tmp/swarm/$p
+        fi
     done
 
     # Pause de 5 minutes avant le prochain cycle
