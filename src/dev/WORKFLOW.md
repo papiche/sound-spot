@@ -159,3 +159,23 @@ bash src/portal/api.sh
 
 Le dépôt est dans `~/.zen/workspace/` pour être visible des outils
 Astroport.ONE (`astrosystemctl`, `ai`, `asys*`).
+
+---
+
+## Travailler sur des Forks et mettre à jour le Backend
+
+Contrairement au portail (frontend) qui se met à jour instantanément grâce au lien symbolique `/var/www/html`, le **backend** (les daemons `.py`, les scripts audio `.sh`) est exécuté depuis le dossier isolé `/opt/soundspot/`.
+
+Si vous :
+- Testez le fork d'un autre dev via un `git remote add ...` puis `git pull`
+- Modifiez un daemon Python (`presence_detector.py`, etc.)
+- Touchez aux scripts de l'infrastructure backend
+
+Vous n'avez pas besoin de relancer le gros `deploy_on_pi.sh`. Utilisez simplement la commande de hot-reload :
+
+```bash
+# Applique les modifications backend instantanément (copie + restart services)
+ss-reload
+
+# (Ce qui équivaut à lancer :)
+sudo bash ~/.zen/workspace/sound-spot/src/dev/dev_reload.sh

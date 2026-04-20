@@ -313,7 +313,7 @@ cat <<HTMLEOF
         <div class="info-row"><span class="lbl">Format</span><span class="val">MP3 (audio uniquement)</span></div>
         <div class="info-row"><span class="lbl">Gateway</span><span class="val">http://${SPOT_IP}:8080/ipfs/&lt;CID&gt;</span></div>
       </div>
-      <input class="yt-input" type="url" id="yt-url" placeholder="https://www.youtube.com/watch?v=…">
+      <input class="yt-input" type="text" id="yt-url" placeholder="Lien YouTube ou recherche (ex: Daft Punk)">
       <button class="btn btn-red btn-sm" onclick="doYtCopy()" id="btn-yt">Télécharger et épingler →</button>
       <div id="yt-result"></div>
     </div>
@@ -460,7 +460,7 @@ async function doYtCopy() {
   const url = document.getElementById('yt-url').value.trim();
   const res = document.getElementById('yt-result');
   const btn = document.getElementById('btn-yt');
-  if (!url) { toast('URL YouTube requise', false); return; }
+  if (!url) { toast('URL ou recherche requise', false); return; }
 
   if (!window.nostr) {
     res.style.display = '';
@@ -474,7 +474,7 @@ async function doYtCopy() {
   res.style.display = 'none';
 
   try {
-    let relayUrl = "wss://relay.copylaradio.com"; 
+    let relayUrl = "ws://" + window.location.hostname + ":9999"; 
     if (window.location.hostname.includes("ipfs.")) {
         relayUrl = "wss://" + window.location.hostname.replace("ipfs.", "relay.");
     }

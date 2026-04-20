@@ -313,13 +313,13 @@
   <details>
     <summary><span><div class="badge byt" style="margin:0">📥 Copie YouTube → IPFS</div></span></summary>
     <div class="dbody">
-      <h2>Archiver en audio (MP3)</h2>
-      <p>Télécharge l'audio d'une vidéo YouTube, l'épingle sur ce nœud IPFS et l'ajoute à la queue Jukebox.</p>
+      <h2>Alimentez le JUKEBOX en audio (MP3)</h2>
+      <p>Recherche de vidéo YouTube copie son mp3 et l'ajoute à la playlist du Jukebox.</p>
       <div class="ibox">
         <div class="irow"><span class="lbl">Format</span> <span class="val">MP3 (audio uniquement)</span></div>
         <div class="irow"><span class="lbl">Gateway</span><span class="val" id="yt-gw">…</span></div>
       </div>
-      <input class="yt-input" type="url" id="yt-url" placeholder="https://www.youtube.com/watch?v=…">
+      <input class="yt-input" type="text" id="yt-url" placeholder="Lien YouTube ou recherche (ex: daft punk get lucky)">
       <button class="btn btn-red btn-sm" onclick="doYtCopy()" id="btn-yt">Télécharger et épingler →</button>
       <div id="yt-result"></div>
     </div>
@@ -566,7 +566,7 @@ async function doYtCopy() {
   const url = document.getElementById('yt-url').value.trim();
   const res = document.getElementById('yt-result');
   const btn = document.getElementById('btn-yt');
-  if (!url) { toast('URL YouTube requise', false); return; }
+  if (!url) { toast('URL ou recherche requise', false); return; }
 
   btn.disabled = true;
   res.style.display = 'none';
@@ -575,7 +575,7 @@ async function doYtCopy() {
   if (window.nostr) {
     btn.textContent = 'Signature MULTIPASS en cours…';
     try {
-      let relayUrl = "wss://relay.copylaradio.com"; 
+      let relayUrl = "ws://" + window.location.hostname + ":9999"; 
       if (window.location.hostname.includes("ipfs.")) {
           relayUrl = "wss://" + window.location.hostname.replace("ipfs.", "relay.");
       }

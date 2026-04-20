@@ -6,7 +6,9 @@ source /opt/soundspot/soundspot.conf 2>/dev/null || true
 source "$HOME/.astro/bin/activate" 2>/dev/null || true
 
 ASTRO_TOOLS="$HOME/.zen/Astroport.ONE/tools"
+set +e
 [ -f "$ASTRO_TOOLS/my.sh" ] && source "$ASTRO_TOOLS/my.sh" 2>/dev/null || true
+set -e
 
 IPFSNODEID=$(ipfs id -f="<id>")
 JSON_FILE="/tmp/12345.json"

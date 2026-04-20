@@ -4,7 +4,9 @@ set -e
 # Outils Astroport.ONE
 ASTRO_TOOLS="$HOME/.zen/Astroport.ONE/tools"
 [ -f "$ASTRO_TOOLS/my.sh" ] || { echo "❌ Astroport.ONE introuvable dans $ASTRO_TOOLS"; exit 1; }
+set +e ## Certaines variables non initilisées (Astroport.ONE light_installer -- CHECK :install_astroport_light.sh )
 source "$ASTRO_TOOLS/my.sh"
+set -e
 
 # On utilise le venv déjà préparé
 source "$HOME/.astro/bin/activate"
@@ -15,7 +17,7 @@ echo "🔐 [Picoport] Initialisation de l'identité Y-Level..."
 mkdir -p ~/.ssh
 if [[ ! -s ~/.ssh/id_ed25519 ]]; then
     echo "▶ Génération de la clé SSH..."
-    ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519 -N "" -C "pico-$(hostname)@uplanet"
+    ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519 -N "" -C "pico-$(hostname)@qo-op.com"
 fi
 
 # 2. Secrets déterministes
@@ -28,6 +30,9 @@ echo "🧬 Transmutation IPFS..."
 # Utilisation du chemin absolu pour keygen
 PEER_ID=$(python3 "$ASTRO_TOOLS/keygen" -t ipfs "$SECRET1" "$SECRET2")
 PRIV_KEY=$(python3 "$ASTRO_TOOLS/keygen" -t ipfs -s "$SECRET1" "$SECRET2")
+
+G1PUB=$(python3 "$ASTRO_TOOLS/keygen" "$SECRET1" "$SECRET2")
+echo 
 
 if [[ -f ~/.ipfs/config ]]; then
     # Mise à jour silencieuse du PeerID

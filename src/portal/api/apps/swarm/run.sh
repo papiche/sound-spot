@@ -47,7 +47,7 @@ NODES_JSON="${NODES_JSON%,}]"
 IPFS_PEERS=0
 if command -v ipfs &>/dev/null; then
     IPFS_PEERS=$(ipfs swarm peers 2>/dev/null | wc -l || echo 0)
-elif curl -sf --max-time 1 "http://127.0.0.1:5001/api/v0/version" >/dev/null 2>&1; then
+elif curl -sX POST "http://127.0.0.1:5001/api/v0/version" >/dev/null 2>&1; then
     IPFS_PEERS=$(curl -sf -X POST "http://127.0.0.1:5001/api/v0/swarm/peers" 2>/dev/null \
         | jq -r '.Peers | length' 2>/dev/null || echo 0)
 fi

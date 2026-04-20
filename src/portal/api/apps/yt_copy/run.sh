@@ -2,7 +2,7 @@
 # api/apps/yt_copy/run.sh — Copie YouTube → MP3 → IPFS → Queue Jukebox
 #
 # POST body : url=https://www.youtube.com/watch?v=XXXXXX
-# Retourne  : {"status":"ok","cid":"QmXXX","title":"...","gateway":"http://IP:8080/ipfs/CID"}
+# Retourne  : {"status":"ok","cid":"QmXXX","title":"...","gateway":"http://IP:8080/ipfs/CID/nom_du_morceau.mp3"}
 #
 # Prérequis :
 #   - yt-dlp    : sudo apt install yt-dlp
@@ -13,13 +13,13 @@
 # ── Vérification des prérequis ────────────────────────────────
 for _cmd in yt-dlp jq curl; do
     if ! command -v "$_cmd" &>/dev/null; then
-        jq -n --arg cmd "$_cmd" '{"error":"missing_dependency","cmd":$cmd,"hint":"sudo apt install \($cmd)"}'
+        jq -n --arg cmd "$_cmd" '{"error":"missing_dependency","cmd":$cmd,"hint":"sudo apt install $cmd"}'
         exit 0
     fi
 done
 
 # IPFS API HTTP (port 5001) — contourne le problème des droits www-data vs pi
-if ! curl -sf --max-time 1 "http://127.0.0.1:5001/api/v0/version" >/dev/null 2>&1; then
+if ! curl -sX POST "http://127.0.0.1:5001/api/v0/version" >/dev/null 2>&1; then
     jq -n '{"error":"ipfs_not_available","hint":"Picoport requis (PICOPORT_ENABLED=true) et IPFS démarré"}'
     exit 0
 fi
@@ -32,40 +32,55 @@ YT_URL=$(printf '%s' "$POST_DATA" \
     | python3 -c "import sys,urllib.parse; print(urllib.parse.unquote_plus(sys.stdin.read().strip()))" \
     2>/dev/null)
 
-# ── Validation de l'URL ───────────────────────────────────────
-if ! printf '%s' "$YT_URL" | grep -qE '^https://(www\.)?(youtube\.com/watch|youtu\.be)/'; then
-    jq -n --arg url "${YT_URL:-}" '{"error":"invalid_url","url":$url,"hint":"https://www.youtube.com/watch?v=... requis"}'
-    exit 0
+# ── Préparation de la requête (URL ou Recherche) ──────────────
+if [[ "$YT_URL" =~ ^https?:// ]]; then
+    TARGET="$YT_URL"
+else
+    TARGET="ytsearch1:$YT_URL"
 fi
 
 # ── Téléchargement ────────────────────────────────────────────
 TMPDIR=$(mktemp -d /tmp/soundspot_yt_XXXXXX)
 trap 'rm -rf "$TMPDIR"' EXIT
 
-TITLE=$(yt-dlp --print title --no-warnings --no-playlist "$YT_URL" 2>/dev/null | head -1)
+TITLE=$(yt-dlp --print title --no-warnings --no-playlist -- "$TARGET" 2>/dev/null | head -1)
 TITLE="${TITLE:-unknown}"
 
+# Téléchargement du fichier audio
 yt-dlp \
     --no-warnings \
+    --embed-thumbnail --add-metadata \
     --no-playlist \
     --extract-audio \
     --audio-format mp3 \
     --audio-quality 5 \
     -o "${TMPDIR}/audio.%(ext)s" \
-    "$YT_URL" \
+    -- "$TARGET" \
     >/dev/null 2>&1
 
+# ── Amélioration du nom de fichier pour IPFS ──────────────────
 AUDIO_FILE=$(find "$TMPDIR" -name "*.mp3" | head -1)
 if [ -z "$AUDIO_FILE" ]; then
-    jq -n --arg url "$YT_URL" '{"error":"download_failed","url":$url}'
+    jq -n --arg url "$TARGET" '{"error":"download_failed","url":$url}'
     exit 0
 fi
 
-# ── Ajout IPFS via API HTTP (fonctionne avec www-data) ────────
+# Nettoyage du titre pour le nom de fichier
+SAFE_TITLE=$(printf "%s" "$TITLE" | sed -e "s/[^a-zA-Z0-9._-]/_/g" | tr -s "_" | cut -c1-100)
+[ -z "$SAFE_TITLE" ] && SAFE_TITLE="jukebox_track"
+
+# Renommage du fichier
+mv "$AUDIO_FILE" "${TMPDIR}/${SAFE_TITLE}.mp3"
+AUDIO_FILE="${TMPDIR}/${SAFE_TITLE}.mp3"
+
+# ── Ajout IPFS via API HTTP (en tant que dossier) ─────────────
+IPFS_DIR=$(mktemp -d "${TMPDIR}/ipfs_XXXXXX")
+mv "$AUDIO_FILE" "$IPFS_DIR/"
+
 IPFS_RESP=$(curl -sf \
     -X POST \
-    -F "file=@${AUDIO_FILE}" \
-    "http://127.0.0.1:5001/api/v0/add?pin=true" \
+    -F "file=@${IPFS_DIR}" \
+    "http://127.0.0.1:5001/api/v0/add?pin=true&wrap-with-directory=true" \
     2>/dev/null)
 
 CID=$(printf '%s' "$IPFS_RESP" | jq -r '.Hash // empty')
@@ -76,16 +91,23 @@ if [ -z "$CID" ]; then
 fi
 
 # ── Ajouter à la queue Jukebox ────────────────────────────────
-QUEUE_FILE="/tmp/soundspot_jukebox.queue"
-printf 'http://127.0.0.1:8080/ipfs/%s\n' "$CID" >> "$QUEUE_FILE"
+# ── Déduction de l'IPFSNODEID via API (car www-data ne peut pas lire ~/.ipfs) ──
+SOUNDSPOT_USER=$(grep "^SOUNDSPOT_USER=" /opt/soundspot/soundspot.conf 2>/dev/null | cut -d= -f2 | tr -d "\"" || echo "pi")
+USER_HOME=$(getent passwd "$SOUNDSPOT_USER" | cut -d: -f6)
+IPFSNODEID=$(curl -sX POST http://127.0.0.1:5001/api/v0/id | jq -r ".ID // empty" 2>/dev/null || echo "unknown")
+QUEUE_DIR="${USER_HOME}/.zen/tmp/${IPFSNODEID}/soundspot_queue"
+mkdir -p "$QUEUE_DIR" 2>/dev/null || true
+mkdir -p "$QUEUE_DIR"
+JOB_ID=$(date +%s%N)
+printf "http://127.0.0.1:8080/ipfs/%s/%s.mp3\n" "$CID" "$SAFE_TITLE" > "$QUEUE_DIR/${JOB_ID}.job"
 
-# ── Réponse JSON (via jq — 100% sûr contre les caractères spéciaux) ──
-GATEWAY="http://${SPOT_IP}:8080/ipfs/${CID}"
+# ── Réponse JSON (via jq) ──
+GATEWAY="http://${SPOT_IP}:8080/ipfs/${CID}/${SAFE_TITLE}.mp3"
 jq -n \
     --arg status  "ok" \
     --arg cid     "$CID" \
     --arg title   "$TITLE" \
     --arg gateway "$GATEWAY" \
-    --arg source  "$YT_URL" \
+    --arg source  "$TARGET" \
     --argjson queued true \
     '{status:$status, cid:$cid, title:$title, gateway:$gateway, source:$source, queued:$queued}'

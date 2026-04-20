@@ -1,6 +1,6 @@
 #!/bin/bash
 # =======================================================================
-# Picoport.sh — Version DRAGON & SWARM
+# Picoport.sh — Version DRAGON & SWARM -- :12345
 # =======================================================================
 
 export IPFS_PATH="${IPFS_PATH:-$HOME/.ipfs}"
@@ -69,7 +69,7 @@ discover_neighbors() {
     PEERS=$(ipfs swarm peers | grep -oP 'p2p/\K.*' | sort -u | head -n 5)
     for peer in $PEERS; do
         if [ "$peer" != "$IPFSNODEID" ]; then
-            if [ ! -d "$SWARM_DIR/$peer" ] || [ "$(find "$SWARM_DIR/$peer" -maxdepth 0 -mmin +60)" ]; then
+            if [ ! -d "$SWARM_DIR/$peer" ] ||[ "$(find "$SWARM_DIR/$peer" -maxdepth 0 -mmin +60)" ]; then
                 ss_debug "Téléchargement balise complète : $peer"
                 TMP_GET="/tmp/get_$peer"
                 if ipfs --timeout 20s get -o "$TMP_GET" "/ipns/$peer/" >/dev/null 2>&1; then
@@ -81,6 +81,16 @@ discover_neighbors() {
             fi
         fi
     done
+
+    # --- AUTO-CONNECT AUX RELAIS NOSTR DE L'ESSAIM (Jukebox / IA) ---
+    # Si le tunnel strfry (9999) n'est pas déjà actif, on lance le premier x_strfry.sh trouvé
+    if ! ss -tln 2>/dev/null | grep -q ":9999 "; then
+        local X_STRFRY=$(find "$SWARM_DIR" -name "x_strfry.sh" -type f 2>/dev/null | head -n 1)
+        if [ -n "$X_STRFRY" ]; then
+            ss_info "Auto-connect au Nostr Relay Swarm via $X_STRFRY"
+            bash "$X_STRFRY" &
+        fi
+    fi
 }
 
 # Boucle principale
@@ -109,5 +119,5 @@ EOF
     ss_info "Publication de la balise (Services: $DRAGON_LIST)"
     ipfs add -rwQ "$MY_NODE_DIR" | tail -n 1 | xargs ipfs name publish --lifetime=24h --ttl=1h >/dev/null 2>&1 &
 
-    sleep 300
+    sleep 900
 done
