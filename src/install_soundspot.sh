@@ -136,8 +136,8 @@ if [ "$PICOPORT_ENABLED" = "true" ]; then
     
     # Intégration UPassport et Swarm Sync (Port 12345)
     log "Intégration UPassport & Swarm Sync..."
-    sudo -u "${SOUNDSPOT_USER}" HOME="$USER_HOME" bash "$INSTALL_DIR/picoport/install_upassport.sh"
-
+    bash "$INSTALL_DIR/picoport/install_upassport.sh"
+    
     # Installation du service swarm_sync via template
     install_template soundspot-swarm-sync.service /etc/systemd/system/soundspot-swarm-sync.service '${INSTALL_DIR} ${SOUNDSPOT_USER}'
     systemctl enable --now soundspot-swarm-sync

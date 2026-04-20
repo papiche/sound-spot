@@ -248,116 +248,83 @@ fi
 # ════════════════════════════════════════════════════════════════
 hdr "Enceinte Bluetooth"
 
-# 1. Vérifier si des appareils sont déjà connus/connectés
-log "Vérification des appareils déjà connus..."
-KNOWN_DEVICES=$(bluetoothctl devices Paired 2>/dev/null || true)
-if [ -n "$KNOWN_DEVICES" ]; then
-    echo -e "${DIM}Appareils déjà couplés sur ce Raspberry :${N}"
-    echo "$KNOWN_DEVICES" | while read -r line; do
-        MAC=$(echo "$line" | awk '{print $2}')
-        NAME=$(echo "$line" | cut -d' ' -f3-)
-        if bluetoothctl info "$MAC" 2>/dev/null | grep -q "Connected: yes"; then
-            echo -e "  - ${C}$MAC${N} ${W}$NAME${N} ${G}[Connecté]${N}"
-        else
-            echo -e "  - ${C}$MAC${N} ${W}$NAME${N} ${Y}[Couplé]${N}"
-        fi
-    done
-    echo ""
-fi
-
-# 2. Option de scanner ou de sauter directement à la sélection
-ask "Faire un scan Bluetooth (15s) pour chercher une enceinte ?[O/n] : "
-read -r DO_SCAN
-if [[ "${DO_SCAN,,}" != "n" ]]; then
-    log "Préparation du contrôleur (Power ON + Pairable)..."
-    rfkill unblock bluetooth 2>/dev/null || true
-    {
-      echo "power on"
-      echo "pairable on"
-      echo "discoverable on"
-      echo "agent on"
-      echo "default-agent"
-      echo "quit"
-    } | bluetoothctl >/dev/null 2>&1
-    sleep 1
-
-    echo -e "${Y}Veuillez mettre votre enceinte en MODE APPAIRAGE maintenant.${N}"
-    echo -e "${DIM}(Appui long sur le bouton Bluetooth jusqu'au clignotement)${N}"
-    echo ""
-    ask "Prêt pour le scan ?[Appuyez sur Entrée]"
-    read -r _READY
-
-    log "Scan en cours (15 s)..."
-    coproc BT { bluetoothctl; }
-    echo "scan on" >&${BT[1]}
-
-    for i in $(seq 1 15); do
-        echo -ne "\r  Recherche active... $i/15s "
-        sleep 1
-    done
-    echo -e "\n"
-
-    echo "devices" >&${BT[1]}
-    echo "quit" >&${BT[1]}
-    BT_OUT=$(cat <&${BT[0]})
-else
-    BT_OUT=""
-fi
-
-log "Analyse des résultats..."
-DEVICES=$(echo "$BT_OUT" | grep "Device " | sed 's/.*Device //' | sort -u || true)
-if [ -z "$DEVICES" ]; then
-    DEVICES=$(bluetoothctl devices | grep -v "Scanning" || true)
-fi
-
-if [ -z "$DEVICES" ]; then
-    warn "Aucun appareil détecté ou mémorisé."
-    if ! bluetoothctl show | grep -q "Powered: yes"; then
-        err "Le contrôleur Bluetooth est éteint. Problème matériel ?"
-    fi
-    ask "Saisir la MAC manuellement (ex: F4:4E:FC:E9:C6:15) ou Entrée : "
-    read -r BT_INPUT
-else
-    hdr "Appareils disponibles"
-    echo -e "Sélectionnez votre enceinte :\n"
+ask_bt_selection() {
+    local BT_RAW=$(bluetoothctl devices 2>/dev/null || true)
+    declare -A BT_MAP
+    local IDX=1
     
-    IFS=$'\n'
-    DEV_ARRAY=($DEVICES)
+    echo -e "Appareils Bluetooth connus (déjà couplés/scannés) :\n"
     
-    for i in "${!DEV_ARRAY[@]}"; do
-        DISPLAY_NAME="${DEV_ARRAY[$i]}"
-        MAC=$(echo "$DISPLAY_NAME" | grep -oE "([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}" || true)
-        
-        # Ajouter le statut visuel
-        STATUS=""
-        if [ -n "$MAC" ]; then
+    if [ -n "$BT_RAW" ]; then
+        while IFS= read -r line; do
+            MAC=$(echo "$line" | awk '{print $2}')
+            NAME=$(echo "$line" | cut -d' ' -f3-)
+            [[ "$MAC" =~ ^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$ ]] || continue
+            BT_MAP[$IDX]="${MAC}|${NAME}"
+            
+            STATUS=""
             if bluetoothctl info "$MAC" 2>/dev/null | grep -q "Connected: yes"; then
                 STATUS=" ${G}[Connecté]${N}"
             elif bluetoothctl info "$MAC" 2>/dev/null | grep -q "Paired: yes"; then
                 STATUS=" ${Y}[Couplé]${N}"
             fi
-        fi
 
-        if echo "$DISPLAY_NAME" | grep -qiE "audio|speaker|w-king|jbl|sound"; then
-            echo -e "  ${C}[$((i+1))]${N} ${W}${DISPLAY_NAME}${N}${STATUS} ${G}← recommandé${N}"
-        else
-            echo -e "  ${C}[$((i+1))]${N} ${DISPLAY_NAME}${STATUS}"
-        fi
-    done
-    echo -e "  ${C}[0]${N} Saisie manuelle / Ignorer"
+            if echo "$NAME" | grep -qiE "$SPEAKER_PATTERN"; then
+                echo -e "  ${C}[$IDX]${N} ${W}${NAME}${N} ${MAC}${STATUS} ${G}← recommandé${N}"
+            else
+                echo -e "  ${C}[$IDX]${N} ${NAME} ${MAC}${STATUS}"
+            fi
+            ((IDX++))
+        done <<< "$BT_RAW"
+    else
+        echo "  (Aucun appareil en mémoire)"
+    fi
+    
     echo ""
+    echo -e "  ${C}[S]${N} Lancer un scan pour trouver une nouvelle enceinte (15s)"
+    echo -e "  ${C}[M]${N} Saisie manuelle de l'adresse MAC"
+    echo -e "  ${C}[0]${N} Ignorer / Plus tard"
+    echo ""
+    
     ask "Votre choix : "
     read -r CHOICE
     
-    if [[ "$CHOICE" =~ ^[0-9]+$ ]] &&[ "$CHOICE" -gt 0 ] && [ "$CHOICE" -le "${#DEV_ARRAY[@]}" ]; then
-        SELECTED="${DEV_ARRAY[$((CHOICE-1))]}"
-        BT_INPUT=$(echo "$SELECTED" | grep -oE "([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}")
+    if [[ "${CHOICE,,}" == "s" ]]; then
+        log "Allumez vos enceintes en mode appairage maintenant..."
+        rfkill unblock bluetooth 2>/dev/null || true
+        bluetoothctl power on >/dev/null 2>&1 || true
+        bluetoothctl agent on >/dev/null 2>&1 || true
+        bluetoothctl default-agent >/dev/null 2>&1 || true
+        bluetoothctl scan on >/dev/null 2>&1 &
+        SCAN_PID=$!
+        for i in $(seq 1 15); do
+            echo -ne "\r  Recherche active... $i/15s "
+            sleep 1
+        done
+        echo -e "\n"
+        kill "$SCAN_PID" 2>/dev/null || true
+        bluetoothctl scan off >/dev/null 2>&1 || true
+        # On relance le menu, qui affichera la liste mise à jour !
+        ask_bt_selection
+    elif [[ "${CHOICE,,}" == "m" ]]; then
+        ask "Adresse MAC (ex: F4:4E:FC:E9:C6:15) : "
+        read -r BT_INPUT
+        export BT_INPUT
+    elif [[ "$CHOICE" == "0" || -z "$CHOICE" ]]; then
+        log "Configuration Bluetooth ignorée."
+        export BT_INPUT=""
+    elif [[ "$CHOICE" =~ ^[0-9]+$ ]] &&[ "$CHOICE" -gt 0 ] && [ "$CHOICE" -lt "$IDX" ]; then
+        SELECTED="${BT_MAP[$CHOICE]}"
+        export BT_INPUT=$(echo "$SELECTED" | cut -d'|' -f1)
         log "Sélectionné : ${W}$BT_INPUT${N}"
     else
-        ask "Adresse MAC manuelle ou Entrée : "
-        read -r BT_INPUT
+        warn "Choix invalide."
+        ask_bt_selection
     fi
-fi
+}
+
+# Lancer le menu interactif
+ask_bt_selection
 
 # ── Appairage final ────────────────────────────────────────────
 export BT_MAC=""
