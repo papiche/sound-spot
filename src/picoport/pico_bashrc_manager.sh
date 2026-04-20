@@ -111,7 +111,7 @@ ss-prod() {
 
 # Recharger le code backend en runtime
 ss-reload() {
-    if[ -f "\${SS_DEV_DIR}/src/dev/dev_reload.sh" ]; then
+    if [ -f "\${SS_DEV_DIR}/src/dev/dev_reload.sh" ]; then
         sudo bash "\${SS_DEV_DIR}/src/dev/dev_reload.sh"
     else
         echo "Script dev_reload.sh introuvable."

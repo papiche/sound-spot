@@ -11,8 +11,8 @@ echo "🚀 Installation UPassport Light pour Picoport..."
 
 # 1 à 3 : Toutes les actions fichiers/python doivent se faire via sudo -u
 sudo -u "$SOUNDSPOT_USER" bash -c "
-    mkdir -p '$USER_HOME/.zen/workspace'
-    cd '$USER_HOME/.zen/workspace'
+    mkdir -p '$USER_HOME/.zen'
+    cd '$USER_HOME/.zen'
     if [ ! -d 'UPassport' ]; then
         git clone --depth 1 https://github.com/papiche/UPassport.git
     else
@@ -22,7 +22,7 @@ sudo -u "$SOUNDSPOT_USER" bash -c "
     source '$USER_HOME/.astro/bin/activate'
     pip install -U -r UPassport/requirements.txt
 
-    cat > '$USER_HOME/.zen/workspace/UPassport/.env' <<EOL
+    cat > '$USER_HOME/.zen/UPassport/.env' <<EOL
 myDUNITER=\"https://g1.cgeek.fr\"
 myCESIUM=\"https://g1.data.e-is.pro\"
 EOL
@@ -37,7 +37,7 @@ After=network.target
 [Service]
 Type=simple
 User=$SOUNDSPOT_USER
-WorkingDirectory=$USER_HOME/.zen/workspace/UPassport
+WorkingDirectory=$USER_HOME/.zen/UPassport
 ExecStart=$USER_HOME/.astro/bin/python3 -m uvicorn main:app --host 0.0.0.0 --port 54321
 Restart=always
 RestartSec=10

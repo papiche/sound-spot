@@ -1,4 +1,3 @@
-<<<<
 # ── Convention de nommage src/config/ ─────────────────────────────────────
 # Les nouveaux fichiers sont automatiquement routés vers le bon groupe selon :
 #
@@ -520,4 +519,3 @@ case "$GROUP" in
     ;;
 
 esac
->>>>
