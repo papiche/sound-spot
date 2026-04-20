@@ -69,6 +69,11 @@ PICO_ID="support+$(hostname)_${GPS_SUFFIX}@qo-op.com"
 echo "▶ Identité Picoport : $PICO_ID"
 mkdir -p "$HOME/.zen/game/players/.current/"
 echo "$PICO_ID" > "$HOME/.zen/game/players/.current/.player"
+CC=$(echo $RES | awk '{print $1}')
+LAT=$(echo $RES | awk '{print $2}')
+LON=$(echo $RES | awk '{print $3}')
+
+echo "LAT=$LAT; LON=$LON" > ~/.zen/GPS
 
 # --- Bonus 
 echo "installation yt-dlp"
