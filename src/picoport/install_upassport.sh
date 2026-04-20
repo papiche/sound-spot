@@ -13,7 +13,7 @@ echo "🚀 Installation UPassport Light pour Picoport..."
 sudo -u "$SOUNDSPOT_USER" bash -c "
     mkdir -p '$USER_HOME/.zen/workspace'
     cd '$USER_HOME/.zen/workspace'
-    if[ ! -d 'UPassport' ]; then
+    if [ ! -d 'UPassport' ]; then
         git clone --depth 1 https://github.com/papiche/UPassport.git
     else
         cd UPassport && git pull && cd ..
