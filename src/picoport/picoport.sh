@@ -14,6 +14,19 @@ MY_SERVICES="icecast:8111 snapcast:1704 upassport:54321 ssh:22"
 
 mkdir -p "$MY_NODE_DIR" "$SWARM_DIR"
 
+# --- CHARGEMENT DES LOGS ---
+_SS_SERVICE="picoport"
+LOG_LIB="/opt/soundspot/log.sh"
+
+if [ -f "$LOG_LIB" ]; then
+    source "$LOG_LIB"
+else
+    # Fallback si la lib est absente
+    ss_info() { echo -e "\e[32m[INFO]\e[0m [\$_SS_SERVICE] \$*"; }
+    ss_debug() { echo -e "\e[36m[DEBUG]\e[0m [\$_SS_SERVICE] \$*"; }
+    ss_warn() { echo -e "\e[33m[WARN]\e[0m [\$_SS_SERVICE] \$*"; }
+fi
+
 # --- FONCTION DRAGON : GÉNÉRATION DES SCRIPTS CLIENTS x_*.sh ---
 generate_dragon_scripts() {
     ss_debug "DRAGON: Détection des services locaux..."
