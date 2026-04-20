@@ -189,37 +189,41 @@ export WIFI_CHANNEL="6"
 if [ "$SOUNDSPOT_MODE" != "2" ]; then
     hdr "Optimisation du Canal WiFi"
     
-    # 1. Détection du canal du réseau amont (Internet)
-    UPSTREAM_CHAN=$(iw dev wlan0 info 2>/dev/null | awk '/channel/{print $2; exit}' || echo "6")
+    # Détection du canal amont (Internet)
+    UPSTREAM_CHAN=$(iw dev wlan0 info 2>/dev/null | awk '/channel/{print $2; exit}' || echo "11")
     log "Canal Internet (wlan0) : ${C}${UPSTREAM_CHAN}${N}"
 
     if [ "$IFACE_AP" = "uap0" ]; then
-        # MODE MONOCARTE : Contrainte matérielle stricte
         export WIFI_CHANNEL="$UPSTREAM_CHAN"
         warn "Mode Monocarte : AP forcée sur le canal ${WIFI_CHANNEL} (doit suivre wlan0)."
     else
-        # MODE DUAL-WIFI : On cherche le meilleur canal libre
         log "Mode Dual-WiFi : Recherche du canal le plus calme..."
         
-        # Petit scan rapide (3-5 secondes)
-        # On compte les réseaux sur les canaux 1, 6 et 11 (les seuls sans chevauchement)
-        SCAN_RESULTS=$(sudo iw dev wlan0 scan 2>/dev/null | grep "primary channel" | awk '{print $4}')
+        # Tentative de scan sécurisée (ne fait pas planter le script si busy)
+        # On essaie d'abord de lire le cache, sinon on tente un scan rapide
+        SCAN_RAW=$(sudo iw wlan0 scan dump 2>/dev/null | grep "primary channel" | awk '{print $4}' || true)
         
-        C1=$(echo "$SCAN_RESULTS" | grep -c "^1$")
-        C6=$(echo "$SCAN_RESULTS" | grep -c "^6$")
-        C11=$(echo "$SCAN_RESULTS" | grep -c "^11$")
+        if [ -z "$SCAN_RAW" ]; then
+            # Si le dump est vide, on tente un vrai scan mais on autorise l'échec
+            SCAN_RAW=$(sudo iw wlan0 scan 2>/dev/null | grep "primary channel" | awk '{print $4}' || echo "")
+        fi
         
-        log "Encombrement détecté : CH1:${C1} réseaux, CH6:${C6} réseaux, CH11:${C11} réseaux"
+        # Comptage des réseaux (méthode robuste)
+        C1=$(echo "$SCAN_RAW" | grep -c "^1$" || echo 0)
+        C6=$(echo "$SCAN_RAW" | grep -c "^6$" || echo 0)
+        C11=$(echo "$SCAN_RAW" | grep -c "^11$" || echo 0)
         
-        # Logique de choix : on évite le canal amont et on prend le moins peuplé
-        BEST_CHAN=6
+        log "Réseaux détectés : CH1:${C1} | CH6:${C6} | CH11:${C11}"
+        
+        # Logique de sélection : On prend le moins peuplé parmi (1, 6, 11) 
+        # en évitant à tout prix le canal amont
+        BEST_CHAN=1
+        [ "$UPSTREAM_CHAN" == "1" ] && BEST_CHAN=6
+        
         MIN_RESEAUX=999
-        
         for CH in 1 6 11; do
-            # On ignore le canal de la box internet pour wlan1
             if [ "$CH" != "$UPSTREAM_CHAN" ]; then
-                # On récupère le score pour ce canal
-                COUNT=$(eval echo "\$C${CH}")
+                COUNT=$(echo "$SCAN_RAW" | grep -c "^$CH$" || echo 0)
                 if [ "$COUNT" -lt "$MIN_RESEAUX" ]; then
                     MIN_RESEAUX=$COUNT
                     BEST_CHAN=$CH
@@ -228,7 +232,7 @@ if [ "$SOUNDSPOT_MODE" != "2" ]; then
         done
         
         export WIFI_CHANNEL="$BEST_CHAN"
-        ok "Canal optimal sélectionné pour ZICMAMA : ${G}Canal ${WIFI_CHANNEL}${N} (${MIN_RESEAUX} voisins)"
+        ok "Choix automatique : ${G}Canal ${WIFI_CHANNEL}${N} (${MIN_RESEAUX} voisins)"
         
         ask "Utiliser ce canal ou saisir manuellement [${WIFI_CHANNEL}] : "
         read -r INPUT_CHAN
