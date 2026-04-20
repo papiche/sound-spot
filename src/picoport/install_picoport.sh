@@ -109,12 +109,15 @@ sudo -u "$SOUNDSPOT_USER" bash -c "
             ipfs bootstrap add \"\$node\"
         done
         
-        # 3. Optimisation extrême pour RPi Zero (Low RAM)
+        # 3. Optimisation extrême pour RPi Zero (Low RAM)        
         ipfs config Swarm.ConnMgr.HighWater --json 50
         ipfs config Swarm.ConnMgr.LowWater --json 20
         ipfs config Datastore.StorageMax '2GB'
         ipfs config Routing.Type 'dhtclient'
         ipfs config AutoConf.Enabled false --bool
+        ipfs config --json Experimental.Libp2pStreamMounting true
+        # Optionnel mais recommandé pour les performances du Pi Zero :
+        ipfs config --json Experimental.FilestoreEnabled true
     fi
     
     # 4. Swarm Key UPlanet ORIGIN

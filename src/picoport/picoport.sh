@@ -1,149 +1,100 @@
 #!/bin/bash
 # =======================================================================
-# Picoport.sh — Version STREAM & SWARM (Optimisée)
+# Picoport.sh — Version DRAGON & SWARM
 # =======================================================================
 
 export IPFS_PATH="${IPFS_PATH:-$HOME/.ipfs}"
 TMP_DIR="$HOME/.zen/tmp"
-INSTALL_DIR="/opt/soundspot/picoport"
-BOOTSTRAP_FILE="$INSTALL_DIR/A_boostrap_nodes.txt"
+IPFSNODEID=$(ipfs id -f="<id>")
+MY_NODE_DIR="$TMP_DIR/$IPFSNODEID"
 SWARM_DIR="$TMP_DIR/swarm"
 
-_SS_SERVICE="picoport"
-# shellcheck source=/opt/soundspot/log.sh
-_LOGLIB="/opt/soundspot/log.sh"
-[ -f "$_LOGLIB" ] && source "$_LOGLIB" || {
-    ss_info()  { :; }; ss_warn()  { :; }
-    ss_error() { :; }; ss_debug() { :; }
-}
+# Services à exposer (Nom:PortLocal)
+MY_SERVICES="icecast:8111 snapcast:1704 upassport:54321 ssh:22"
 
-# État pour la publication conditionnelle
-LAST_JSON_CONTENT=""
-LAST_PUBLISH_TIME=0
-FORCE_PUBLISH_INTERVAL=14400 # 4 heures (en secondes)
+mkdir -p "$MY_NODE_DIR" "$SWARM_DIR"
 
-MY_EXPOSED_SERVICES="icecast:8111 snapcast:1704 snapweb:1780"
-AI_SERVICES_TO_CONSUME="ollama:11434 open-webui:8000 strfry:9999"
-
-mkdir -p "$SWARM_DIR"
-
-# Attente IPFS
-until ipfs id >/dev/null 2>&1; do sleep 2; done
-
-IPFSNODEID=$(ipfs id -f="<id>")
-HOSTNAME=$(hostname)
-mkdir -p "$TMP_DIR/$IPFSNODEID"
-JSON_FILE="$TMP_DIR/$IPFSNODEID/12345.json"
-ss_info "démarrage — nœud ${IPFSNODEID} hôte=${HOSTNAME}"
-
-expose_my_services() {
-    for entry in $MY_EXPOSED_SERVICES; do
+# --- FONCTION DRAGON : GÉNÉRATION DES SCRIPTS CLIENTS x_*.sh ---
+generate_dragon_scripts() {
+    ss_debug "DRAGON: Détection des services locaux..."
+    
+    for entry in $MY_SERVICES; do
         SVC_NAME="${entry%%:*}"
         LPORT="${entry##*:}"
         PROTO="/x/$SVC_NAME-$IPFSNODEID"
+        
+        # 1. Vérifier si le service tourne localement
         if ss -tln | grep -q ":$LPORT "; then
+            # 2. Ouvrir l'écoute P2P si pas déjà fait
             if ! ipfs p2p ls | grep -q "$PROTO"; then
                 ipfs p2p listen "$PROTO" "/ip4/127.0.0.1/tcp/$LPORT"
-                ss_debug "service exposé : ${PROTO} → port ${LPORT}"
+                ss_info "DRAGON: Service exposé -> $PROTO"
             fi
+            
+            # 3. Générer le script x_service.sh pour le Swarm
+            # Ce script sera téléchargé par les voisins pour se connecter à TOI
+            cat > "$MY_NODE_DIR/x_$SVC_NAME.sh" << EOF
+#!/bin/bash
+# Client tunnel pour $SVC_NAME @ $HOSTNAME
+NODE_ID="$IPFSNODEID"
+PROTO="$PROTO"
+LPORT="$LPORT"
+if [[ "\${1,,}" == "off" || "\${1,,}" == "stop" ]]; then
+    ipfs p2p close -p "\$PROTO"
+    exit 0
+fi
+echo "Établissement du tunnel vers $SVC_NAME..."
+ipfs p2p forward "\$PROTO" "/ip4/127.0.0.1/tcp/\$LPORT" "/p2p/\$NODE_ID"
+EOF
+            chmod +x "$MY_NODE_DIR/x_$SVC_NAME.sh"
         fi
     done
 }
 
-# --- NOUVEAU : DÉCOUVERTE DU SWARM (Coherence avec _12345.sh) ---
+# --- DÉCOUVERTE DU SWARM (Balises complètes) ---
 discover_neighbors() {
-    # On récupère les IDs des pairs actuellement connectés
-    PEERS=$(ipfs swarm peers | grep -oP 'p2p/\K.*' | sort -u | head -n 10)
+    PEERS=$(ipfs swarm peers | grep -oP 'p2p/\K.*' | sort -u | head -n 5)
     for peer in $PEERS; do
         if [ "$peer" != "$IPFSNODEID" ]; then
-            # On vérifie si le dossier existe ou s'il est vieux (> 1h)
             if [ ! -d "$SWARM_DIR/$peer" ] || [ "$(find "$SWARM_DIR/$peer" -maxdepth 0 -mmin +60)" ]; then
-                # On télécharge TOUT le contenu du répertoire IPNS du voisin
-                # On utilise un dossier temporaire pour l'atomicité
-                TMP_GET="/tmp/pico_get_$peer"
-                rm -rf "$TMP_GET"
-                
-                # IPFS GET sur la racine (/) sans spécifier 12345.json
-                if ipfs --timeout 30s get -o "$TMP_GET" "/ipns/$peer/" >/dev/null 2>&1; then
+                ss_debug "Téléchargement balise complète : $peer"
+                TMP_GET="/tmp/get_$peer"
+                if ipfs --timeout 20s get -o "$TMP_GET" "/ipns/$peer/" >/dev/null 2>&1; then
                     rm -rf "$SWARM_DIR/$peer"
                     mv "$TMP_GET" "$SWARM_DIR/$peer"
-                    ss_debug "balise complète récupérée pour $peer"
+                    # Donner les droits d'exécution aux scripts reçus
+                    find "$SWARM_DIR/$peer" -name "x_*.sh" -exec chmod +x {} \;
                 fi
             fi
         fi
     done
 }
 
+# Boucle principale
 while true; do
     MOATS=$(date +%s)
     
-    # Résilience réseau
-    CURRENT_PEERS=$(ipfs swarm peers 2>/dev/null)
-    PEERS_COUNT=$(echo "$CURRENT_PEERS" | grep -c "p2p" || echo 0)
-    if [ "$PEERS_COUNT" -eq 0 ]; then
-        ss_warn "swarm vide — reconnexion aux bootstraps UPlanet"
-        grep -v '^#' "$BOOTSTRAP_FILE" | while read -r node; do ipfs swarm connect "$node" >/dev/null 2>&1 & done
-        sleep 5
-    else
-        ss_debug "swarm: ${PEERS_COUNT} pair(s) connecté(s)"
-    fi
+    generate_dragon_scripts  # Crée les x_*.sh locaux
+    discover_neighbors       # Télécharge les x_*.sh voisins
 
-    expose_my_services
-    discover_neighbors # Capture les stations voisines comme _12345.sh
-
-    # Données système
-    GPS_LAT="0"; GPS_LON="0"
-    [ -f "$HOME/.zen/GPS" ] && source "$HOME/.zen/GPS"
-    ICECAST_UP=$(ss -tln | grep -q ":8111 " && echo "true" || echo "false")
-    SNAPCAST_UP=$(ss -tln | grep -q ":1704 " && echo "true" || echo "false")
+    # Mise à jour du 12345.json (ajoute les services détectés)
+    DRAGON_LIST=$(ls "$MY_NODE_DIR"/x_*.sh 2>/dev/null | xargs -I{} basename {} .sh | sed 's/^x_//' | paste -sd',' -)
     
-    # Génération du JSON
-    NEW_JSON=$(cat << EOF
+    cat > "$MY_NODE_DIR/12345.json" << EOF
 {
-    "version": "picoport-0.5",
+    "version": "picoport-0.5-dragon",
     "created": $MOATS,
-    "hostname": "$HOSTNAME",
+    "hostname": "$(hostname)",
     "ipfsnodeid": "$IPFSNODEID",
     "type": "soundspot",
-    "streaming": { "icecast": $ICECAST_UP, "snapcast": $SNAPCAST_UP },
-    "gps": { "lat": "${LAT:-0}", "lon": "${LON:-0}" },
-    "services": { "ipfs_peers": $PEERS_COUNT }
+    "dragon_services": "$DRAGON_LIST",
+    "streaming": { "icecast": true, "snapcast": true }
 }
 EOF
-)
 
-    # --- PUBLICATION CONDITIONNELLE ---
-    SHOULD_PUBLISH=false
-    if [ "$NEW_JSON" != "$LAST_JSON_CONTENT" ]; then
-        ss_info "statut modifié — publication IPNS (icecast=${ICECAST_UP} snapcast=${SNAPCAST_UP})"
-        SHOULD_PUBLISH=true
-    elif [ $((MOATS - LAST_PUBLISH_TIME)) -gt $FORCE_PUBLISH_INTERVAL ]; then
-        ss_info "publication IPNS de routine (refresh ${FORCE_PUBLISH_INTERVAL}s)"
-        SHOULD_PUBLISH=true
-    fi
+    # Publication IPNS
+    ss_info "Publication de la balise (Services: $DRAGON_LIST)"
+    ipfs add -rwQ "$MY_NODE_DIR" | tail -n 1 | xargs ipfs name publish --lifetime=24h --ttl=1h >/dev/null 2>&1 &
 
-    if [ "$SHOULD_PUBLISH" = true ]; then
-        echo "$NEW_JSON" > "$JSON_FILE"
-        # Ajout du fichier de moats pour la compatibilité _12345.sh
-        echo "$MOATS" > "$TMP_DIR/$IPFSNODEID/_MySwarm.moats"
-        
-        # Publication IPNS (en arrière-plan pour ne pas bloquer la boucle)
-        (ipfs add -rwQ "$TMP_DIR/$IPFSNODEID" | tail -n 1 | xargs ipfs name publish --lifetime=24h --ttl=1h >/dev/null 2>&1) &
-        
-        LAST_JSON_CONTENT="$NEW_JSON"
-        LAST_PUBLISH_TIME=$MOATS
-    fi
-
-    # Consommation IA Swarm (tunnels entrants)
-    OPEN_TUNNELS=$(ipfs p2p ls 2>/dev/null)
-    for peer in $(echo "$CURRENT_PEERS" | grep -oP 'p2p/\K.*' | head -n 5); do
-        for entry in $AI_SERVICES_TO_CONSUME; do
-            SVC_NAME="${entry%%:*}"; LPORT="${entry##*:}"
-            if ! echo "$OPEN_TUNNELS" | grep -q "$SVC_NAME"; then
-                ipfs p2p forward "/x/$SVC_NAME-$peer" "/ip4/127.0.0.1/tcp/$LPORT" "/p2p/$peer" 2>/dev/null
-            fi
-        done
-    done
-
-    sleep 120
+    sleep 300
 done
