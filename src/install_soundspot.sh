@@ -113,20 +113,31 @@ setup_jukebox        # Nostr Jukebox
 # ── Installation Picoport ────────────────────────────────────
 if [ "$PICOPORT_ENABLED" = "true" ]; then
     hdr "Installation de Picoport (Astroport.ONE Light)"
-    mkdir -p "$INSTALL_DIR/picoport"
     
-    # On installe d'abord les outils Astroport de base
+    # 1. Créer le dossier et donner les droits à l'utilisateur AVANT de continuer
+    mkdir -p "$INSTALL_DIR/picoport"
+    chown -R "${SOUNDSPOT_USER}:${SOUNDSPOT_USER}" "$INSTALL_DIR/picoport"
+    
+    # 2. Copier l'installeur light et s'assurer qu'il appartient à l'utilisateur
     cp "$SCRIPT_DIR/picoport/install_astroport_light.sh" "$INSTALL_DIR/picoport/"
+    chown "${SOUNDSPOT_USER}:${SOUNDSPOT_USER}" "$INSTALL_DIR/picoport/install_astroport_light.sh"
+    
+    # 3. Exécuter en tant qu'utilisateur (maintenant il a les droits d'écriture)
     sudo -u "${SOUNDSPOT_USER}" bash "$INSTALL_DIR/picoport/install_astroport_light.sh"
     
-    # Puis l'identité et Kubo
+    # 4. Continuer l'installation des composants restants
+    # On recopie tout le dossier picoport (identité, scripts)
     cp -r "$SCRIPT_DIR/picoport/"* "$INSTALL_DIR/picoport/"
+    # On redonne les droits sur tout ce qui vient d'être copié
+    chown -R "${SOUNDSPOT_USER}:${SOUNDSPOT_USER}" "$INSTALL_DIR/picoport"
+    
+    # 5. Lancer l'installation Picoport (IPFS, identité, etc.)
     bash "$INSTALL_DIR/picoport/install_picoport.sh"
     
     # Intégration UPassport et Swarm Sync (Port 12345)
     log "Intégration UPassport & Swarm Sync..."
-    bash "$INSTALL_DIR/picoport/install_upassport.sh"
-    
+    sudo -u "${SOUNDSPOT_USER}" HOME="$USER_HOME" bash "$INSTALL_DIR/picoport/install_upassport.sh"
+
     # Installation du service swarm_sync via template
     install_template soundspot-swarm-sync.service /etc/systemd/system/soundspot-swarm-sync.service '${INSTALL_DIR} ${SOUNDSPOT_USER}'
     systemctl enable --now soundspot-swarm-sync
