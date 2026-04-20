@@ -187,24 +187,53 @@ fi
 # ════════════════════════════════════════════════════════════════
 export WIFI_CHANNEL="6"
 if [ "$SOUNDSPOT_MODE" != "2" ]; then
-    hdr "Canal WiFi"
-    echo -e "  Le RPi Zero 2W n'a qu'une radio — le canal de l'AP"
-    echo -e "  doit correspondre au canal du réseau ${C}${WIFI_SSID}${N}."
-    echo ""
-    DETECTED_CHAN=$(iw dev wlan0 info 2>/dev/null | awk '/channel/{print $2; exit}' || true)
-    if [[ "$DETECTED_CHAN" =~ ^[1-9][0-9]?$ ]]; then
-        export WIFI_CHANNEL="$DETECTED_CHAN"
-        log "Canal détecté depuis wlan0 : ${W}canal ${WIFI_CHANNEL}${N}"
+    hdr "Optimisation du Canal WiFi"
+    
+    # 1. Détection du canal du réseau amont (Internet)
+    UPSTREAM_CHAN=$(iw dev wlan0 info 2>/dev/null | awk '/channel/{print $2; exit}' || echo "6")
+    log "Canal Internet (wlan0) : ${C}${UPSTREAM_CHAN}${N}"
+
+    if [ "$IFACE_AP" = "uap0" ]; then
+        # MODE MONOCARTE : Contrainte matérielle stricte
+        export WIFI_CHANNEL="$UPSTREAM_CHAN"
+        warn "Mode Monocarte : AP forcée sur le canal ${WIFI_CHANNEL} (doit suivre wlan0)."
     else
-        ask "Canal WiFi de '${WIFI_SSID}' [6] : "
+        # MODE DUAL-WIFI : On cherche le meilleur canal libre
+        log "Mode Dual-WiFi : Recherche du canal le plus calme..."
+        
+        # Petit scan rapide (3-5 secondes)
+        # On compte les réseaux sur les canaux 1, 6 et 11 (les seuls sans chevauchement)
+        SCAN_RESULTS=$(sudo iw dev wlan0 scan 2>/dev/null | grep "primary channel" | awk '{print $4}')
+        
+        C1=$(echo "$SCAN_RESULTS" | grep -c "^1$")
+        C6=$(echo "$SCAN_RESULTS" | grep -c "^6$")
+        C11=$(echo "$SCAN_RESULTS" | grep -c "^11$")
+        
+        log "Encombrement détecté : CH1:${C1} réseaux, CH6:${C6} réseaux, CH11:${C11} réseaux"
+        
+        # Logique de choix : on évite le canal amont et on prend le moins peuplé
+        BEST_CHAN=6
+        MIN_RESEAUX=999
+        
+        for CH in 1 6 11; do
+            # On ignore le canal de la box internet pour wlan1
+            if [ "$CH" != "$UPSTREAM_CHAN" ]; then
+                # On récupère le score pour ce canal
+                COUNT=$(eval echo "\$C${CH}")
+                if [ "$COUNT" -lt "$MIN_RESEAUX" ]; then
+                    MIN_RESEAUX=$COUNT
+                    BEST_CHAN=$CH
+                fi
+            fi
+        done
+        
+        export WIFI_CHANNEL="$BEST_CHAN"
+        ok "Canal optimal sélectionné pour ZICMAMA : ${G}Canal ${WIFI_CHANNEL}${N} (${MIN_RESEAUX} voisins)"
+        
+        ask "Utiliser ce canal ou saisir manuellement [${WIFI_CHANNEL}] : "
         read -r INPUT_CHAN
-        if [[ "${INPUT_CHAN:-6}" =~ ^[1-9][0-9]?$ ]]; then
-            export WIFI_CHANNEL="${INPUT_CHAN}"
-        else
-            warn "Canal invalide — défaut : 6"
-        fi
+        export WIFI_CHANNEL="${INPUT_CHAN:-$WIFI_CHANNEL}"
     fi
-    log "Canal configuré : ${W}${WIFI_CHANNEL}${N}"
 fi
 
 # ════════════════════════════════════════════════════════════════
