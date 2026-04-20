@@ -13,7 +13,7 @@ setup_idle() {
     log "Répertoire $wav_dir créé"
 
     # ── Script principal ─────────────────────────────────────────
-    cp "$SCRIPT_DIR/idle_announcer.sh" "$INSTALL_DIR/idle_announcer.sh"
+    install_template "idle_announcer.sh" "$INSTALL_DIR/idle_announcer.sh"
     chmod +x "$INSTALL_DIR/idle_announcer.sh"
     log "idle_announcer.sh déployé"
 
