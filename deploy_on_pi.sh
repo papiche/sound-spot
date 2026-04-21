@@ -248,6 +248,14 @@ fi
 # ════════════════════════════════════════════════════════════════
 hdr "Enceinte Bluetooth"
 
+# Heuristique : noms d'appareils qui ressemblent à une enceinte audio
+SPEAKER_PATTERN="speaker|enceinte|audio|sound|music|headset|headphone|earphone|buds"
+SPEAKER_PATTERN="${SPEAKER_PATTERN}|soundbar|jbl|bose|sony|marshall|harman|anker"
+SPEAKER_PATTERN="${SPEAKER_PATTERN}|ultimate|tribit|w-king|jabra|sennheiser|plantronics"
+SPEAKER_PATTERN="${SPEAKER_PATTERN}|soundlink|flip|charge|pulse|pill|roam|clip|boom"
+SPEAKER_PATTERN="${SPEAKER_PATTERN}|wonder|mega|party|bass|stereo|mini|go|loud|beats"
+# ---------------------------
+
 ask_bt_selection() {
     local BT_RAW=$(bluetoothctl devices 2>/dev/null || true)
     declare -A BT_MAP
