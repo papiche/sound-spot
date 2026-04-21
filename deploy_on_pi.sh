@@ -420,12 +420,6 @@ export SOUNDSPOT_MODE
 
 mkdir -p "$INSTALL_DIR"
 
-# Fichiers Python
-for _py in presence_detector.py battery_monitor.py; do
-    _path=$(find "$SRC_DIR/backend" -name "$_py")
-    cp "$_path" "$INSTALL_DIR/"
-done
-
 # Portail captif (sources live — /var/www/html sera un lien symbolique)
 if [ -d "$SRC_DIR/portal" ]; then
     cp -r "$SRC_DIR/portal" "$INSTALL_DIR/"

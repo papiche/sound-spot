@@ -19,10 +19,6 @@ setup_channel_sync() {
         return 0
     fi
 
-    log "Mode Monocarte : Synchronisation hostapd ↔ réseau amont activée."
-    install_template sync_channel.sh "$INSTALL_DIR/sync_channel.sh"
-    chmod +x "$INSTALL_DIR/sync_channel.sh"
-
     install_template soundspot-channel-sync.service \
         /etc/systemd/system/soundspot-channel-sync.service \
         '${INSTALL_DIR}'

@@ -82,7 +82,7 @@ bash $HOME/.zen/Astroport.ONE/install/youtube-dl.sh
 ## Pour que www-data puisse le lancer (TEST)
 sudo cp $(which yt-dlp) /usr/local/bin/yt-dlp
 sudo chmod +x /usr/local/bin/yt-dlp
-rm ~/.local/bin/yt-dlp
+rm -f ~/.local/bin/yt-dlp
 ln -s /usr/local/bin/yt-dlp ~/.local/bin/yt-dlp
 
 # ── 5. Script de maintenance quotidienne (20h12 solaire) ─────────

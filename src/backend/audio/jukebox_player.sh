@@ -20,11 +20,11 @@ QUEUE_DIR="${USER_HOME}/.zen/tmp/${IPFSNODEID}/soundspot_queue"
 
 # Création du dossier IPC avec permissions partagées (pour l'utilisateur web www-data)
 mkdir -p "$QUEUE_DIR"
-chmod 777 "$QUEUE_DIR"
+chmod 775 "$QUEUE_DIR"
 
 # Lancement du listener Python en tâche de fond via l'environnement ~/.astro
 PYTHON_BIN="${USER_HOME}/.astro/bin/python3"
-"$PYTHON_BIN" /opt/soundspot/backend/video/jukebox_listener.py &
+"$PYTHON_BIN" /opt/soundspot/backend/audio/jukebox_listener.py &
 LISTENER_PID=$!
 trap "kill $LISTENER_PID 2>/dev/null" EXIT
 

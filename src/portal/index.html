@@ -1,652 +1,397 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#080810">
-<meta name="description" content="SoundSpot PicoPort — Nœud coopératif audio UPlanet ẐEN">
-<link rel="manifest" href="/manifest.json">
-<title>SoundSpot</title>
-<style>
-  :root {
-    --black:  #080810; --dark:   #0f0f1a; --panel:  #161622;
-    --border: #26263a; --deep:   #1c1c2e;
-    --accent: #7fff6e; --teal:   #4ecdc4; --dj:    #ffb347;
-    --sat:    #b47fff; --red:    #ff6b6b; --gold:  #ffd700;
-    --text:   #e0e0f0; --muted:  #6a6a88;
-    --font: system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    --mono: ui-monospace,"Cascadia Code","Source Code Pro",Menlo,Monaco,Consolas,monospace;
-  }
-  *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
-  html { scroll-behavior: smooth; }
-  body {
-    background: var(--black); color: var(--text); font-family: var(--font);
-    display: flex; flex-direction: column; align-items: center;
-    padding: 0 0 60px;
-  }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#080810">
+  <meta name="description" content="SoundSpot PicoPort — Nœud coopératif audio UPlanet ẐEN">
+  <link rel="manifest" href="/manifest.json">
+  <title>SoundSpot — Portail</title>
+  
+  <!-- Chartist.js pour le monitoring énergie -->
+  <link rel="stylesheet" href="chartist.min.css">
+  <script src="chartist.min.js"></script>
 
-  /* ── Hero ── */
-  .hero {
-    width: 100%; background: var(--dark);
-    border-bottom: 1px solid var(--border);
-    display: flex; flex-direction: column; align-items: center;
-    padding: 32px 20px 24px; text-align: center;
-  }
-  .hero-logo { font-size: clamp(2rem,8vw,3.2rem); font-weight: 900; letter-spacing: -.04em; color: #fff; }
-  .hero-logo span { color: var(--accent); }
-  .hero-sub { font-family: var(--mono); font-size: 11px; letter-spacing: .15em; text-transform: uppercase; color: var(--muted); margin: 6px 0 18px; }
-  .dj-badge {
-    display: inline-flex; align-items: center; gap: 8px;
-    padding: 7px 16px; border-radius: 20px; font-size: 13px; font-weight: 700;
-    border: 1px solid; transition: all .4s;
-  }
-  .dj-live   { color: var(--dj); border-color: var(--dj); background: rgba(255,179,71,.08); }
-  .dj-idle   { color: var(--muted); border-color: var(--border); background: transparent; }
-  .pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--dj); animation: pulse 1.4s infinite; flex-shrink:0; }
-  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(1.5)} }
+  <style>
+    :root {
+      --black:  #080810; --dark:   #0f0f1a; --panel:  #161622;
+      --border: #26263a; --deep:   #1c1c2e;
+      --accent: #7fff6e; --teal:   #4ecdc4; --dj:    #ffb347;
+      --sat:    #b47fff; --red:    #ff6b6b; --gold:  #ffd700;
+      --text:   #e0e0f0; --muted:  #6a6a88;
+      --font: system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+      --mono: ui-monospace,"Cascadia Code","Source Code Pro",Menlo,Monaco,Consolas,monospace;
+    }
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      background: var(--black); color: var(--text); font-family: var(--font);
+      display: flex; flex-direction: column; align-items: center;
+      padding: 0 0 80px; /* Espace pour la nav bar */
+    }
 
-  /* ── Cartes ── */
-  .cards { display: flex; flex-direction: column; align-items: center; width: 100%; gap: 12px; padding: 20px 16px 0; }
-  .card {
-    background: var(--panel); border: 1px solid var(--border);
-    border-radius: 3px; padding: 24px 22px; width: 100%; max-width: 540px; position: relative;
-  }
-  .card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; border-radius:3px 3px 0 0; }
-  .c-what::before   { background: linear-gradient(90deg,#4a4a7a,#2e2e4a); }
-  .c-listen::before { background: linear-gradient(90deg,var(--teal),var(--accent)); }
-  .c-pass::before   { background: linear-gradient(90deg,var(--gold),#ff9966); }
-  .c-net::before    { background: linear-gradient(90deg,var(--accent),var(--teal)); }
-  .c-dj::before     { background: linear-gradient(90deg,var(--dj),var(--red)); }
-  .c-sat::before    { background: linear-gradient(90deg,var(--sat),var(--teal)); }
-  .c-yt::before     { background: linear-gradient(90deg,#ff0000,#cc0000); }
-  .c-clock::before  { background: linear-gradient(90deg,#555,#333); }
+    /* ── Hero & Status ── */
+    .hero {
+      width: 100%; background: var(--dark); border-bottom: 1px solid var(--border);
+      display: flex; flex-direction: column; align-items: center;
+      padding: 24px 20px; text-align: center;
+    }
+    .hero-logo { font-size: 1.8rem; font-weight: 900; color: #fff; }
+    .hero-logo span { color: var(--accent); }
+    .status-bar { display: flex; gap: 8px; margin-top: 12px; }
+    .badge-mini { 
+        padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; 
+        border: 1px solid var(--border); background: rgba(255,255,255,0.03);
+    }
+    .badge-mini.live { color: var(--dj); border-color: var(--dj); }
+    .badge-mini.batt { color: var(--accent); border-color: var(--accent); }
 
-  /* ── Typographie ── */
-  .badge {
-    display: inline-flex; align-items: center; gap: 5px;
-    font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
-    padding: 3px 10px; border-radius: 20px; margin-bottom: 14px;
-  }
-  .bw  { color:#8888bb; border:1px solid #3a3a5a; background:rgba(100,100,180,.06); }
-  .bt  { color:var(--teal); border:1px solid rgba(78,205,196,.3); background:rgba(78,205,196,.05); }
-  .bg  { color:var(--gold); border:1px solid rgba(255,215,0,.3); background:rgba(255,215,0,.05); }
-  .bv  { color:var(--accent); border:1px solid rgba(127,255,110,.3); background:rgba(127,255,110,.05); }
-  .bdj { color:var(--dj); border:1px solid rgba(255,179,71,.3); background:rgba(255,179,71,.05); }
-  .bs  { color:var(--sat); border:1px solid rgba(180,127,255,.3); background:rgba(180,127,255,.05); }
-  .byt { color:#ff4444; border:1px solid rgba(255,68,68,.3); background:rgba(255,68,68,.05); }
-  .bk  { color:#888; border:1px solid rgba(128,128,128,.3); background:rgba(128,128,128,.05); }
+    /* ── Navigation par Onglets ── */
+    .nav-tabs {
+      position: fixed; bottom: 0; width: 100%; height: 65px;
+      background: var(--panel); border-top: 1px solid var(--border);
+      display: flex; justify-content: space-around; align-items: center; z-index: 1000;
+    }
+    .tab-btn {
+      flex: 1; border: none; background: none; color: var(--muted);
+      display: flex; flex-direction: column; align-items: center; font-size: 10px;
+      cursor: pointer; transition: 0.2s;
+    }
+    .tab-btn.active { color: var(--accent); }
+    .tab-btn svg { width: 24px; height: 24px; margin-bottom: 4px; }
 
-  h2 { font-size: 1.15rem; font-weight: 700; color: #fff; margin: 0 0 10px; }
-  p  { line-height: 1.65; color: #9090b0; font-size: .93rem; margin-bottom: 10px; }
-  .hi { color: #fff; font-weight: 700; }
-  code { font-family: var(--mono); color: var(--teal); font-size: .88em; background: rgba(0,0,0,.4); padding: 2px 5px; border-radius: 2px; }
+    /* ── Contenu ── */
+    .tab-content { display: none; width: 100%; max-width: 540px; padding: 20px 16px; animation: fadeIn 0.3s; }
+    .tab-content.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-  /* ── Info-box ── */
-  .ibox { background: var(--deep); border: 1px solid var(--border); border-radius: 3px; padding: 11px 14px; margin: 12px 0; }
-  .irow { display:flex; justify-content:space-between; align-items:center; padding: 5px 0; border-bottom: 1px solid var(--border); font-size: .84rem; }
-  .irow:last-child { border-bottom: none; }
-  .irow .lbl { color: var(--muted); }
-  .irow .val { color: var(--text); font-family: var(--mono); }
+    .card {
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: 4px; padding: 20px; margin-bottom: 12px; position: relative;
+    }
+    h2 { font-size: 1.1rem; margin-bottom: 10px; color: #fff; display: flex; align-items: center; gap: 8px; }
+    p { font-size: 0.9rem; color: #9090b0; line-height: 1.5; margin-bottom: 12px; }
+    .hi { color: #fff; font-weight: 700; }
 
-  /* ── Steps ── */
-  .steps { display:flex; flex-direction:column; gap:9px; margin: 12px 0; }
-  .step  { display:flex; align-items:flex-start; gap:10px; font-size:.9rem; color:#9090b0; line-height:1.55; }
-  .sn    { font-family:var(--mono); font-size:10px; border-radius:2px; padding:2px 6px; white-space:nowrap; margin-top:2px; min-width:26px; text-align:center; flex-shrink:0; }
-  .st { color:var(--teal); border:1px solid var(--teal); }
-  .sg { color:var(--gold); border:1px solid var(--gold); }
-  .sd { color:var(--dj);   border:1px solid var(--dj); }
-  .ss { color:var(--sat);  border:1px solid var(--sat); }
-  a { color: var(--teal); text-decoration: none; }
-  a:hover { color: var(--accent); }
+    /* ── Inputs & Buttons ── */
+    .btn {
+      display: block; width: 100%; padding: 14px; text-align: center;
+      font-weight: 700; font-size: 14px; text-transform: uppercase;
+      border: none; border-radius: 3px; cursor: pointer; transition: 0.2s;
+      background: var(--accent); color: var(--black); text-decoration: none;
+    }
+    .btn:active { transform: scale(0.98); }
+    .btn-outline { background: transparent; border: 1px solid var(--accent); color: var(--accent); }
+    .btn-gold { background: var(--gold); }
+    .btn-sm { padding: 8px; font-size: 12px; }
+    
+    .yt-input {
+      width: 100%; padding: 12px; background: var(--deep); border: 1px solid var(--border);
+      border-radius: 3px; color: #fff; font-family: var(--mono); margin-bottom: 10px;
+    }
 
-  /* ── Boutons ── */
-  .btn {
-    display: block; width: 100%; padding: 14px; text-align: center;
-    font-family: var(--font); font-weight: 700; font-size: 14px; letter-spacing: .06em;
-    text-transform: uppercase; border: none; border-radius: 3px;
-    cursor: pointer; transition: opacity .15s, transform .1s; margin-top: 10px;
-    text-decoration: none;
-  }
-  .btn:active { transform: scale(.98); }
-  .btn:hover  { opacity: .85; }
-  .btn-green  { background: var(--accent); color: var(--black); }
-  .btn-teal   { background: var(--teal);   color: var(--black); }
-  .btn-gold   { background: var(--gold);   color: var(--black); }
-  .btn-dj     { background: var(--dj);     color: #000; }
-  .btn-sat    { background: var(--sat);    color: #000; }
-  .btn-red    { background: #cc0000;       color: #fff; }
-  .btn-outline{ background: transparent; border: 1px solid var(--border); color: var(--muted); font-size:12px; padding:9px 14px; }
-  .btn-sm     { padding: 9px 14px; font-size: 12px; margin-top: 6px; }
-  .row { display:flex; gap:8px; flex-wrap:wrap; }
-  .row .btn { flex: 1; }
+    /* ── Chartist Custom ── */
+    .ct-chart { height: 180px; margin-top: 10px; }
+    .ct-series-a .ct-line { stroke: var(--accent); stroke-width: 3px; }
+    .ct-series-a .ct-area { fill: var(--accent); fill-opacity: 0.1; }
+    .volt-display { font-family: var(--mono); font-size: 2rem; font-weight: bold; color: var(--accent); text-align: center; display: block; }
 
-  /* ── Accordéon ── */
-  details summary {
-    cursor: pointer; list-style: none; display: flex; align-items: center;
-    justify-content: space-between; padding: 18px 22px; margin: 0 -22px;
-    border-top: 1px solid var(--border); font-size: .9rem; font-weight: 600; color: var(--muted);
-  }
-  details summary::-webkit-details-marker { display: none; }
-  details summary::after { content: '▾'; font-size: 12px; transition: transform .2s; }
-  details[open] summary::after { transform: rotate(-180deg); }
-  details[open] summary { color: var(--text); }
-  .dbody { padding-top: 14px; }
+    /* ── UI Elements ── */
+    .ibox { background: var(--deep); padding: 12px; border-radius: 3px; margin: 10px 0; font-size: 0.85rem; }
+    .irow { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .irow:last-child { border-bottom: none; }
+    .lbl { color: var(--muted); }
+    .val { font-family: var(--mono); color: var(--teal); }
 
-  /* ── Formulaire YouTube ── */
-  .yt-input {
-    width: 100%; padding: 11px 14px; background: var(--deep); border: 1px solid var(--border);
-    border-radius: 3px; color: var(--text); font-family: var(--mono); font-size: .88rem;
-    outline: none; margin-top: 8px;
-  }
-  .yt-input:focus { border-color: #cc0000; }
-  #yt-result { margin-top:10px; font-size:.85rem; font-family:var(--mono); color:var(--teal); display:none; word-break:break-all; }
-  #yt-result.err { color: var(--red); }
-
-  /* ── Toast ── */
-  #toast {
-    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(80px);
-    background: var(--panel); border: 1px solid var(--accent); color: var(--accent);
-    padding: 10px 22px; border-radius: 20px; font-size: 13px; font-weight: 600;
-    transition: transform .3s ease; z-index: 999; pointer-events: none; white-space: nowrap;
-  }
-  #toast.show { transform: translateX(-50%) translateY(0); }
-
-  /* ── PWA install banner ── */
-  #pwa-banner {
-    display: none; width:100%; max-width:540px; margin: 12px 16px 0;
-    background: var(--deep); border: 1px solid var(--teal); border-radius: 3px;
-    padding: 12px 16px; display: flex; align-items: center; gap: 12px; font-size: .88rem;
-  }
-  #pwa-banner button { margin:0; padding:7px 14px; flex-shrink:0; }
-  #pwa-banner.hidden { display: none !important; }
-
-  /* ── Footer ── */
-  .footer {
-    max-width: 540px; width: 100%; text-align: center;
-    font-family: var(--mono); font-size: 9px; color: var(--muted);
-    letter-spacing: .07em; margin-top: 14px; padding: 0 16px; line-height: 1.8;
-  }
-  .footer a { color: var(--muted); }
-  .footer a:hover { color: var(--teal); }
-
-  /* ── Loader skeleton ── */
-  .skel { background: linear-gradient(90deg,var(--panel),var(--deep),var(--panel)); background-size:200% 100%; animation: skel 1.4s infinite; border-radius:3px; height:14px; }
-  @keyframes skel { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
-</style>
+    #toast {
+      position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+      background: var(--panel); border: 1px solid var(--accent); color: var(--accent);
+      padding: 10px 20px; border-radius: 20px; font-weight: bold; display: none; z-index: 2000;
+    }
+    
+    #pwa-banner { background: var(--deep); border: 1px solid var(--teal); padding: 12px; margin-bottom: 10px; border-radius: 4px; display: none; }
+    .skel { background: #222; height: 14px; border-radius: 2px; animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
+  </style>
 </head>
 <body>
 
-<!-- ═══ HERO ═══ -->
-<div class="hero">
-  <div class="hero-logo">Sound<span>Spot</span></div>
-  <div class="hero-sub" id="hero-sub">Nœud UPlanet ẐEN</div>
-  <div class="dj-badge dj-idle" id="dj-badge">
-    <div class="pulse" id="dj-dot" style="display:none"></div>
-    <span id="dj-txt">Chargement…</span>
+  <div id="toast"></div>
+
+  <div class="hero">
+    <div class="hero-logo">Sound<span>Spot</span></div>
+    <div id="hero-sub" class="status-bar">
+      <div id="dj-badge" class="badge-mini">Chargement...</div>
+      <div id="batt-badge" class="badge-mini batt">Batterie --%</div>
+    </div>
   </div>
-</div>
 
-<!-- ═══ Bannière PWA ═══ -->
-<div id="pwa-banner" class="hidden">
-  <span>📱 Installer SoundSpot sur votre écran d'accueil</span>
-  <button class="btn btn-teal btn-sm" id="pwa-btn" onclick="installPWA()">Installer</button>
-  <button class="btn btn-outline btn-sm" onclick="document.getElementById('pwa-banner').classList.add('hidden')">✕</button>
-</div>
-
-<div class="cards">
-
-<!-- ═══ CARTE 1 : C'EST QUOI ? ═══ -->
-<div class="card c-what">
-  <div class="badge bw">Bien Commun Numérique</div>
-  <h2>SoundSpot PicoPort</h2>
-  <p>Un <span class="hi">nœud coopératif libre</span> : WiFi ouvert, son synchronisé, infrastructure hors-ligne autonome, sans publicité ni collecte de données.</p>
-  <p>Il appartient à la constellation <span class="hi">UPlanet</span> — réseau P2P de nœuds IPFS + NOSTR reliés par la monnaie libre <span class="hi">Ğ1</span>.</p>
-  <p style="font-size: 0.85rem; color: var(--gold); border-left: 2px solid var(--gold); padding-left: 10px; margin-bottom: 12px;">
-    <strong>Anatomie de cette station :</strong><br>
-    👄👂 <i>Bouche & Oreilles</i> : Pi Zero 2W + Bluetooth + Micro<br>
-    👁️📷 <i>Oeil & Stockage</i> : RPi5 + Camera + SSD<br>
-    🤖💾 <i>Cerveau & Mémoire</i> : Délégation IA via constellation UPlanet (PC/GPU distants)<br>
-    🔋🌞 <i>Énergie</i> : Panneau solaire + LiFePO4 + Sonde.  Si je manque de protection et de soins, je m'éteins.
-  </p>
-  <div class="ibox">
-    <div class="irow"><span class="lbl">WiFi</span>        <span class="val" id="cfg-ssid"><span class="skel" style="width:80px;display:inline-block"></span></span></div>
-    <div class="irow"><span class="lbl">Stream audio</span><span class="val" id="cfg-stream"><span class="skel" style="width:120px;display:inline-block"></span></span></div>
-    <div class="irow"><span class="lbl">Picoport IPFS</span><span class="val" id="cfg-picoport">—</span></div>
-  </div>
-  <div class="row">
-    <a href="/docs.sh"       class="btn btn-outline" style="flex:none;width:auto">README →</a>
-    <a href="/docs.sh?howto" class="btn btn-outline" style="flex:none;width:auto">HOWTO →</a>
-  </div>
-</div>
-
-<!-- ═══ CARTE 2 : ÉCOUTER ═══ -->
-<div class="card c-listen">
-  <div class="badge bt">🎧 Écouter en direct</div>
-  <h2>Rejoindre le stream audio</h2>
-  <p>Synchronisé à la milliseconde sur tous les haut-parleurs. Zéro latence perçue.</p>
-  <div class="steps">
-    <div class="step"><div class="sn st">01</div><span>Connecté au WiFi <span class="hi" id="s-ssid">…</span> ✓</span></div>
-    <div class="step"><div class="sn st">02</div>
-      <span>Installer <span class="hi">Snapcast</span> :<br>
-        📱 Android : <span id="lnk-snapdroid">…</span><br>
-        🍎 iOS : <span id="lnk-snapios">…</span><br>
-        🖥 PC : <code id="s-cmd">snapclient -h …</code></span></div>
-    <div class="step"><div class="sn st">03</div>
-      <span>Serveur : <code id="s-ip">…</code> Port : <code id="s-port">…</code></span></div>
-  </div>
-</div>
-
-<!-- ═══ CARTE 3 : MULTIPASS ZELKOVA ═══ -->
-<div class="card c-pass">
-  <div class="badge bg">🪪 Identité coopérative</div>
-  <h2>Obtenir son MULTIPASS Ẑelkova</h2>
-  <p>Le <span class="hi">MULTIPASS</span> est votre identité dans la constellation UPlanet : identité <span class="hi">Ğ1</span>, compte <span class="hi">NOSTR</span>, accès aux services ẐEN.</p>
-  <div class="steps">
-    <div class="step"><div class="sn sg">01</div>
-      <span>Installer l'app <span class="hi">Ẑelkova</span> (wallet ẐEN) :<br>
-        📱 <a id="lnk-zelkova" href="#">GitHub release (APK)</a></span></div>
-    <div class="step"><div class="sn sg">02</div>
-      <span>Créer votre profil → votre <span class="hi">clé NOSTR</span> + <span class="hi">identité Ğ1</span> générés localement.</span></div>
-    <div class="step"><div class="sn sg">03</div>
-      <span>Votre MULTIPASS vous relie à la coopérative <a id="lnk-g1fablab" href="#">G1FabLab</a> et au réseau <span class="hi">UPlanet ẐEN</span>.</span></div>
-    <div class="step"><div class="sn sg">04</div>
-      <span>Ce nœud peut émettre des <span class="hi">ZenCards</span> — demandez à l'opérateur.</span></div>
-  </div>
-  <a id="btn-zelkova" href="#" class="btn btn-gold btn-sm">Télécharger Ẑelkova →</a>
-</div>
-
-<!-- ═══ CARTE 4 : ACCÈS INTERNET ═══ -->
-<div class="card c-net">
-  <div class="badge bv">🌐 Accès Internet</div>
-  <h2>Ouvrir l'accès — 15 min</h2>
-  <p>Un accès internet limité est proposé. Le stream audio reste <span class="hi">accessible sans limite</span>.</p>
-  <button class="btn btn-green" id="btn-auth" onclick="doAuth()">Ouvrir l'accès Internet →</button>
-  <p id="auth-msg" style="margin-top:8px;font-size:.82rem;color:var(--teal);display:none"></p>
-</div>
-
-<!-- ═══ CARTE 5 : DEVENIR DJ ═══ -->
-<div class="card c-dj">
-  <details>
-    <summary><span><div class="badge bdj" style="margin:0">🎛 Espace DJ</div></span></summary>
-    <div class="dbody">
-      <h2>Diffuser votre musique</h2>
+  <!-- ════ ONGLET 1 : DIRECT ════ -->
+  <div id="tab-live" class="tab-content active">
+    <div class="card">
+      <h2>📻 Écouter en Direct</h2>
+      <p>Son synchronisé sans latence. Branchez vos enceintes ou écouteurs.</p>
       <div class="ibox">
-        <div class="irow"><span class="lbl">Serveur Icecast</span><span class="val" id="dj-icecast">…</span></div>
-        <div class="irow"><span class="lbl">Montage</span>         <span class="val">/live</span></div>
-        <div class="irow"><span class="lbl">Login / Mdp</span>     <span class="val">source / (cf. opérateur)</span></div>
+        <div class="irow"><span class="lbl">WiFi</span><span class="val" id="cfg-ssid">...</span></div>
+        <div class="irow"><span class="lbl">Serveur</span><span class="val" id="cfg-stream">...</span></div>
       </div>
-      <div class="steps">
-        <div class="step"><div class="sn sd">01</div><span>Installer <span class="hi">Mixxx</span> + <code>snapclient</code></span></div>
-        <div class="step"><div class="sn sd">02</div><span>Retour casque : <code id="dj-cmd">…</code></span></div>
-        <div class="step"><div class="sn sd">03</div>
-          <span>Mixxx → Préférences → Live Broadcasting<br>
-            Serveur <code id="dj-ip">…</code> Port <code id="dj-port">…</code>
-            Montage <code>/live</code> Format <code>Ogg Vorbis</code></span></div>
-        <div class="step"><div class="sn sd">04</div><span>Cliquer sur l'icône <span class="hi">Antenne</span> → vous êtes en direct</span></div>
-      </div>
-      <p style="font-size:.8rem;margin-top:4px;color:var(--muted)">⚠ Latence 1–3 s — calez sur le casque Cue, pas sur les enceintes.</p>
-      <a href="/docs.sh?howto" class="btn btn-dj btn-sm">Guide DJ complet →</a>
+      <a id="lnk-snap-android" href="#" class="btn">Installer Snapclient</a>
+      <button onclick="fixAudio()" class="btn btn-outline" style="margin-top:10px;">🛠 Libérer le Son (Fix)</button>
     </div>
-  </details>
-</div>
 
-<!-- ═══ CARTE 6 : ÉTENDRE ═══ -->
-<div class="card c-sat">
-  <details>
-    <summary><span><div class="badge bs" style="margin:0">📡 Réseau de Nœuds</div></span></summary>
-    <div class="dbody">
-      <h2>Ajouter une enceinte satellite</h2>
-      <div class="steps">
-        <div class="step"><div class="sn ss">01</div><span>Flasher un <span class="hi">RPi Zero 2W</span> avec Raspberry Pi OS Lite</span></div>
-        <div class="step"><div class="sn ss">02</div><span>Connecter au même réseau WiFi</span></div>
-        <div class="step"><div class="sn ss">03</div>
-          <span><code>git clone https://github.com/papiche/sound-spot</code><br>
-            <code>sudo bash deploy_on_pi.sh --satellite</code></span></div>
-        <div class="step"><div class="sn ss">04</div><span>Maître : <code id="sat-ip">…</code> ou <code>soundspot.local</code></span></div>
-      </div>
+    <div class="card">
+      <h2>⏰ Clocher Numérique</h2>
+      <p>Annonces vocales et coups de cloche toutes les 15 min.</p>
+      <div class="irow"><span class="lbl">Mode actuel</span><span class="val" id="clock-lbl">...</span></div>
+      <button onclick="toggleClock()" id="btn-clock" class="btn btn-outline btn-sm">Changer</button>
     </div>
-  </details>
-</div>
+  </div>
 
-<!-- ═══ CARTE 7 : YOUTUBE → IPFS ═══ -->
-<div class="card c-yt" id="card-yt" style="display:none">
-  <details>
-    <summary><span><div class="badge byt" style="margin:0">📥 Copie YouTube → IPFS</div></span></summary>
-    <div class="dbody">
-      <h2>Alimentez le JUKEBOX en audio (MP3)</h2>
-      <p>Recherche de vidéo YouTube copie son mp3 et l'ajoute à la playlist du Jukebox.</p>
-      <div class="ibox">
-        <div class="irow"><span class="lbl">Format</span> <span class="val">MP3 (audio uniquement)</span></div>
-        <div class="irow"><span class="lbl">Gateway</span><span class="val" id="yt-gw">…</span></div>
-      </div>
-      <input class="yt-input" type="text" id="yt-url" placeholder="Lien YouTube ou recherche (ex: daft punk get lucky)">
-      <button class="btn btn-red btn-sm" onclick="doYtCopy()" id="btn-yt">Télécharger et épingler →</button>
-      <div id="yt-result"></div>
+  <!-- ════ ONGLET 2 : JUKEBOX ════ -->
+  <div id="tab-juke" class="tab-content">
+    <div class="card">
+      <h2>📥 Jukebox Swarm</h2>
+      <p>Partagez un lien YouTube. Si vous avez un <span class="hi">MULTIPASS</span>, l'IA de l'essaim traite la demande instantanément.</p>
+      <input type="text" id="yt-url" class="yt-input" placeholder="Lien YouTube ou Recherche...">
+      <button id="btn-yt" onclick="doYtCopy()" class="btn">Envoyer à l'antenne</button>
+      <div id="yt-result" style="margin-top:10px; font-size:0.8rem;"></div>
     </div>
-  </details>
-</div>
-
-<!-- ═══ CARTE 8 : CLOCHER ═══ -->
-<div class="card c-clock">
-  <details>
-    <summary><span><div class="badge bk" style="margin:0">⏰ Clocher Numérique</div></span></summary>
-    <div class="dbody">
-      <h2 style="color:#aaa">Annonces sonores</h2>
-      <p>Toutes les 15 min (sans DJ) : bip 429.62 Hz + heure solaire + message coopératif.</p>
-      <div class="ibox">
-        <div class="irow"><span class="lbl">Bip 429.62 Hz</span><span class="val">Toujours actif</span></div>
-        <div class="irow"><span class="lbl">Messages</span>     <span class="val">Toujours actifs</span></div>
-        <div class="irow"><span class="lbl">Coups de cloche</span><span class="val" id="clock-lbl">…</span></div>
-      </div>
-      <button class="btn btn-outline btn-sm" id="btn-clock" onclick="toggleClock()" style="margin-top:12px">…</button>
-      <p style="font-size:.78rem;color:var(--muted);margin-top:6px">Effectif immédiatement, sans redémarrage.</p>
+    
+    <div class="card">
+        <h2>🪪 Identité Ẑelkova</h2>
+        <p>Le MULTIPASS est votre clé pour le réseau UPlanet.</p>
+        <a id="lnk-zelkova" href="#" class="btn btn-gold btn-sm">Obtenir mon MULTIPASS</a>
     </div>
-  </details>
-</div>
+  </div>
 
-</div><!-- /cards -->
+  <!-- ════ ONGLET 3 : ÉNERGIE ════ -->
+  <div id="tab-node" class="tab-content">
+    <div class="card">
+      <h2>🔋 État Solaire</h2>
+      <span id="batt-volt" class="volt-display">--.- V</span>
+      <div class="ct-chart" id="energy-chart"></div>
+      <p style="text-align:center; margin-top:10px; font-size:0.7rem;">Tension batterie sur 10 minutes</p>
+    </div>
 
-<div class="footer">
-  <a id="ft-g1" href="#">G1FabLab</a> ·
-  <a id="ft-up" href="#">UPlanet ẐEN</a> ·
-  <a id="ft-src" href="#">Code AGPL-3.0</a>
-  · <span id="ft-ver" style="opacity:.4"></span><br>
-  <span style="opacity:.35">NO GOOGLE FONTS · NO TRACKING · SOLAR POWERED</span>
-</div>
+    <div class="card">
+      <h2>🌐 Accès Internet</h2>
+      <p>Ouvrir l'accès pour <span class="hi">15 minutes</span>. Privilégiez le stream local pour économiser la batterie.</p>
+      <button id="btn-auth" onclick="doAuth()" class="btn btn-teal">Ouvrir l'accès</button>
+      <p id="auth-msg" style="margin-top:10px; display:none; color:var(--accent); font-size:0.8rem;"></p>
+    </div>
+  </div>
 
-<div id="toast"></div>
+  <!-- ════ ONGLET 4 : INFOS ════ -->
+  <div id="tab-info" class="tab-content">
+    <div class="card">
+        <h2>🏗️ Bien Commun Numérique</h2>
+        <p>Ce nœud est autonome, alimenté par le soleil et géré par la coopérative <span class="hi">G1FabLab</span>.</p>
+        <div class="ibox">
+            <div class="irow"><span class="lbl">Logiciel</span><span class="val">AGPL-3.0</span></div>
+            <div class="irow"><span class="lbl">Picoport</span><span class="val" id="cfg-picoport">...</span></div>
+            <div class="irow"><span class="lbl">Version</span><span class="val" id="ft-ver">...</span></div>
+        </div>
+        <div style="display:flex; gap:5px;">
+            <a id="ft-src" href="#" class="btn btn-outline btn-sm">Code Source</a>
+            <a href="/docs.sh" class="btn btn-outline btn-sm">Docs</a>
+        </div>
+    </div>
+  </div>
 
-<!-- ══ Service Worker ═══════════════════════════════════════════ -->
-<script>
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js').catch(() => {});
-}
-</script>
+  <!-- ════ BARRE DE NAVIGATION ════ -->
+  <nav class="nav-tabs">
+    <button class="tab-btn active" onclick="showTab('tab-live', this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9M19.1 4.9c3.9 3.9 3.9 10.3 0 14.2M8.3 15.7c-2.1-2.1-2.1-5.5 0-7.6M15.7 8.3c2.1 2.1 2.1 5.5 0 7.6M12 12v.01"></path></svg>
+      Direct
+    </button>
+    <button class="tab-btn" onclick="showTab('tab-juke', this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+      Jukebox
+    </button>
+    <button class="tab-btn" onclick="showTab('tab-node', this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+      Solaire
+    </button>
+    <button class="tab-btn" onclick="showTab('tab-info', this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+      Infos
+    </button>
+  </nav>
 
-<!-- ══ PWA Install ══════════════════════════════════════════════ -->
-<script>
-let _deferredPrompt = null;
-window.addEventListener('beforeinstallprompt', e => {
-  e.preventDefault();
-  _deferredPrompt = e;
-  document.getElementById('pwa-banner').classList.remove('hidden');
-});
-function installPWA() {
-  if (!_deferredPrompt) return;
-  _deferredPrompt.prompt();
-  _deferredPrompt.userChoice.then(() => {
-    _deferredPrompt = null;
-    document.getElementById('pwa-banner').classList.add('hidden');
-  });
-}
-</script>
+  <script>
+    'use strict';
 
-<!-- ══ Application principale ══════════════════════════════════ -->
-<script>
-'use strict';
+    let CFG = {};
+    let clockMode = 'bells';
+    let chart;
+    let chartData = { labels: [], series: [[]] };
 
-// ── État ────────────────────────────────────────────────────────
-let CFG = {};       // config (chargée une fois)
-let clockMode = ''; // bells | silent
-
-// ── Utilitaires ─────────────────────────────────────────────────
-function toast(msg, ok = true) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.style.borderColor = ok ? 'var(--accent)' : 'var(--red)';
-  t.style.color       = ok ? 'var(--accent)' : 'var(--red)';
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 3000);
-}
-
-function set(id, html) {
-  const el = document.getElementById(id);
-  if (el) el.innerHTML = html;
-}
-function setText(id, txt) {
-  const el = document.getElementById(id);
-  if (el) el.textContent = txt;
-}
-function setHref(id, href) {
-  const el = document.getElementById(id);
-  if (el) el.href = href;
-}
-
-// ── 1. Chargement config (une seule fois) ──────────────────────
-async function loadConfig() {
-  try {
-    const r = await fetch('/api.sh?action=config');
-    CFG = await r.json();
-
-    // Hero
-    set('hero-sub', 'Nœud // ' + CFG.spot_name);
-    document.title = 'SoundSpot — ' + CFG.spot_name;
-
-    // Carte "C'est quoi"
-    setText('cfg-ssid',    CFG.spot_name + ' (ouvert)');
-    setText('cfg-stream',  CFG.spot_ip + ':' + CFG.snapcast_port);
-    setText('cfg-picoport', CFG.picoport_enabled ? '✓ Actif' : '✗ Inactif');
-
-    // Carte "Écouter"
-    setText('s-ssid', CFG.spot_name);
-    set('lnk-snapdroid',
-      '<a href="' + CFG.links.snapdroid_fdroid + '">Snapdroid (F-Droid)</a>' +
-      ' · <a href="' + CFG.links.snapdroid_play + '">Play Store</a>');
-    set('lnk-snapios', '<a href="' + CFG.links.snapcast_ios + '">Snapcast for iOS</a>');
-    setText('s-cmd',  'snapclient -h ' + CFG.spot_ip);
-    setText('s-ip',   CFG.spot_ip);
-    setText('s-port', CFG.snapcast_port);
-
-    // Carte "MULTIPASS"
-    setHref('lnk-zelkova', CFG.links.zelkova_release);
-    setHref('lnk-g1fablab', CFG.links.g1fablab);
-    setHref('btn-zelkova',  CFG.links.zelkova_release);
-
-    // Carte "DJ"
-    setText('dj-icecast', CFG.spot_ip + ':' + CFG.icecast_port);
-    setText('dj-cmd',  'snapclient -h ' + CFG.spot_ip);
-    setText('dj-ip',   CFG.spot_ip);
-    setText('dj-port', CFG.icecast_port);
-
-    // Carte "Satellite"
-    setText('sat-ip', CFG.spot_ip);
-
-    // Carte YouTube (visible si picoport + yt-dlp + jq)
-    if (CFG.picoport_enabled && CFG.yt_available && CFG.jq_available) {
-      document.getElementById('card-yt').style.display = '';
-      setText('yt-gw', 'http://' + CFG.spot_ip + ':8080/ipfs/<CID>');
+    // ── Navigation ──
+    function showTab(id, btn) {
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      btn.classList.add('active');
+      if (id === 'tab-node') setTimeout(initChart, 200);
     }
 
-    // Footer
-    setHref('ft-g1',  CFG.links.g1fablab);
-    setHref('ft-up',  CFG.links.uplanet);
-    setHref('ft-src', CFG.links.source);
-    setText('ft-ver', CFG.version || '');
-
-    // Clock (état initial depuis config)
-    clockMode = CFG.clock_mode || 'bells';
-    updateClockUI();
-
-  } catch(e) {
-    setText('hero-sub', 'Connexion au nœud…');
-  }
-}
-
-// ── 2. Rafraîchissement statut (toutes les 30s) ────────────────
-async function loadStatus() {
-  try {
-    const r = await fetch('/api.sh?action=status');
-    const d = await r.json();
-
-    // Badge DJ
-    const badge = document.getElementById('dj-badge');
-    const dot   = document.getElementById('dj-dot');
-    const txt   = document.getElementById('dj-txt');
-    if (d.dj_active) {
-      badge.className = 'dj-badge dj-live';
-      dot.style.display = '';
-      txt.textContent = '🎵 DJ en direct';
-    } else {
-      badge.className = 'dj-badge dj-idle';
-      dot.style.display = 'none';
-      txt.textContent = 'Pas de diffusion en cours';
+    function toast(msg, ok = true) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.style.borderColor = ok ? 'var(--accent)' : 'var(--red)';
+      t.style.display = 'block';
+      setTimeout(() => t.style.display = 'none', 3000);
     }
 
-    // Picoport (peut changer si service relancé)
-    setText('cfg-picoport', d.picoport_active ? '✓ Actif' : '✗ Inactif');
-
-    // Clock mode (peut avoir été changé depuis une autre session)
-    if (d.clock_mode && d.clock_mode !== clockMode) {
-      clockMode = d.clock_mode;
-      updateClockUI();
+    // ── API Audio Fix ──
+    async function fixAudio() {
+        toast("🚀 Relance audio...");
+        try {
+            await fetch('/api.sh?action=audio_fix');
+            setTimeout(() => toast("✅ Bluetooth reconnecté"), 2000);
+        } catch(e) { toast("❌ Erreur", false); }
     }
-  } catch(e) { /* silencieux */ }
-}
 
-// ── 3. Autorisation Internet ───────────────────────────────────
-async function doAuth() {
-  const btn = document.getElementById('btn-auth');
-  const msg = document.getElementById('auth-msg');
-  btn.disabled = true;
-  btn.textContent = 'Ouverture…';
-  try {
-    const r = await fetch('/api.sh?action=auth', { method: 'POST' });
-    const d = await r.json();
-    if (d.status === 'authorized') {
-      btn.textContent = '✓ Accès ouvert (15 min)';
-      btn.style.background = 'var(--teal)';
-      msg.style.display = '';
-      msg.textContent = 'Accès internet ouvert pour 15 min. Bonne navigation !';
-      toast('✅ Accès Internet ouvert — 15 min');
-    } else {
-      btn.disabled = false;
-      btn.textContent = 'Ouvrir l\'accès Internet →';
-      toast('Erreur : ' + (d.error || 'inconnue'), false);
+    // ── Chargement Config ──
+    async function loadConfig() {
+      try {
+        const r = await fetch('/api.sh?action=config');
+        CFG = await r.json();
+
+        document.getElementById('cfg-ssid').textContent = CFG.spot_name;
+        document.getElementById('cfg-stream').textContent = `${CFG.spot_ip}:${CFG.snapcast_port}`;
+        document.getElementById('cfg-picoport').textContent = CFG.picoport_enabled ? 'Actif' : 'Inactif';
+        document.getElementById('lnk-snap-android').href = CFG.links.snapdroid_fdroid;
+        document.getElementById('lnk-zelkova').href = CFG.links.zelkova_release;
+        document.getElementById('ft-ver').textContent = CFG.version;
+        document.getElementById('ft-src').href = CFG.links.source;
+        
+        clockMode = CFG.clock_mode || 'bells';
+        updateClockUI();
+      } catch(e) { console.error("Config load failed"); }
     }
-  } catch(e) {
-    btn.disabled = false;
-    btn.textContent = 'Ouvrir l\'accès Internet →';
-    toast('Erreur réseau', false);
-  }
-}
 
-// ── 4. Toggle clocher ──────────────────────────────────────────
-function updateClockUI() {
-  const lbl = document.getElementById('clock-lbl');
-  const btn = document.getElementById('btn-clock');
-  if (!lbl || !btn) return;
-  if (clockMode === 'bells') {
-    lbl.textContent = '🔔 Activées';
-    btn.textContent = 'Désactiver les cloches';
-  } else {
-    lbl.textContent = '🔇 Silencieuses';
-    btn.textContent = 'Activer les cloches';
-  }
-}
+    // ── Statut & Énergie ──
+    async function loadStatus() {
+      try {
+        const r = await fetch('/api.sh?action=status');
+        const d = await r.json();
 
-async function toggleClock() {
-  const next = clockMode === 'bells' ? 'silent' : 'bells';
-  try {
-    const r = await fetch('/api.sh?action=clock', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: 'mode=' + next
-    });
-    const d = await r.json();
-    if (d.status === 'ok') {
-      clockMode = d.clock_mode;
-      updateClockUI();
-      toast(clockMode === 'bells' ? '🔔 Cloches activées' : '🔇 Cloches désactivées');
+        // Badges
+        const dj = document.getElementById('dj-badge');
+        dj.textContent = d.dj_active ? '🎵 LIVE' : 'Silence';
+        dj.className = d.dj_active ? 'badge-mini live' : 'badge-mini';
+
+        document.getElementById('batt-badge').textContent = `Batterie ${d.batt_pct}%`;
+        document.getElementById('batt-volt').textContent = `${d.batt_volt} V`;
+
+        // Mise à jour graphique
+        const now = new Date().toLocaleTimeString();
+        chartData.labels.push(now);
+        chartData.series[0].push(d.batt_volt);
+        if (chartData.labels.length > 15) { chartData.labels.shift(); chartData.series[0].shift(); }
+        if (chart) chart.update(chartData);
+
+      } catch(e) {}
     }
-  } catch(e) { toast('Erreur réseau', false); }
-}
 
-// ── 5. Copie YouTube ───────────────────────────────────────────
-async function doYtCopy() {
-  const url = document.getElementById('yt-url').value.trim();
-  const res = document.getElementById('yt-result');
-  const btn = document.getElementById('btn-yt');
-  if (!url) { toast('URL ou recherche requise', false); return; }
+    function initChart() {
+      if (chart) return;
+      chart = new Chartist.Line('#energy-chart', chartData, {
+        low: 3.2, high: 4.2, showArea: true, fullWidth: true,
+        axisX: { showGrid: false, showLabel: false }
+      });
+    }
 
-  btn.disabled = true;
-  res.style.display = 'none';
+    // ── Internet Auth ──
+    async function doAuth() {
+      const btn = document.getElementById('btn-auth');
+      btn.disabled = true; btn.textContent = 'Ouverture...';
+      try {
+        const r = await fetch('/api.sh?action=auth', { method: 'POST' });
+        const d = await r.json();
+        if (d.status === 'authorized') {
+          toast("🌐 Accès ouvert (15 min)");
+          document.getElementById('auth-msg').style.display = 'block';
+          document.getElementById('auth-msg').textContent = "Accès Internet OK pour 15 min.";
+        }
+      } catch(e) { toast("Erreur réseau", false); btn.disabled = false; }
+    }
 
-  // SCÉNARIO 1 : L'utilisateur a un MULTIPASS (Cypherpunk / Swarm UPlanet)
-  if (window.nostr) {
-    btn.textContent = 'Signature MULTIPASS en cours…';
-    try {
-      let relayUrl = "ws://" + window.location.hostname + ":9999"; 
-      if (window.location.hostname.includes("ipfs.")) {
-          relayUrl = "wss://" + window.location.hostname.replace("ipfs.", "relay.");
+    // ── Clock ──
+    function updateClockUI() {
+      const lbl = document.getElementById('clock-lbl');
+      const btn = document.getElementById('btn-clock');
+      lbl.textContent = clockMode === 'bells' ? '🔔 Activées' : '🔇 Silencieuses';
+      btn.textContent = clockMode === 'bells' ? 'Mode Silencieux' : 'Activer Cloches';
+    }
+
+    async function toggleClock() {
+      const next = clockMode === 'bells' ? 'silent' : 'bells';
+      try {
+        const r = await fetch('/api.sh?action=clock', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: 'mode=' + next
+        });
+        const d = await r.json();
+        if (d.status === 'ok') { clockMode = d.clock_mode; updateClockUI(); toast("Réglage clocher mis à jour"); }
+      } catch(e) { toast("Erreur", false); }
+    }
+
+    // ── YouTube / Nostr Swarm (Fonction complète restaurée) ──
+    async function doYtCopy() {
+      const url = document.getElementById('yt-url').value.trim();
+      const res = document.getElementById('yt-result');
+      const btn = document.getElementById('btn-yt');
+      if (!url) return;
+
+      btn.disabled = true;
+      res.innerHTML = "Traitement en cours...";
+
+      // CAS 1 : MULTIPASS (Nostr)
+      if (window.nostr) {
+        try {
+          const event = {
+              kind: 1,
+              created_at: Math.floor(Date.now() / 1000),
+              tags:[["expiration", String(Math.floor(Date.now() / 1000) + 3600)],["t", "jukebox"]],
+              content: `#BRO #youtube #mp3 ${url}`
+          };
+          const signedEvent = await window.nostr.signEvent(event);
+          let relayUrl = "ws://" + window.location.hostname + ":9999";
+          const ws = new WebSocket(relayUrl);
+          ws.onopen = () => {
+              ws.send(JSON.stringify(["EVENT", signedEvent]));
+              res.innerHTML = "✅ Transmis à l'essaim ! L'IA traite votre musique.";
+              toast("Demande signée et envoyée");
+              setTimeout(() => ws.close(), 2000);
+          };
+        } catch(e) { res.innerHTML = "Erreur Multipass."; }
+        btn.disabled = false; return;
       }
 
-      const event = {
-          kind: 1,
-          created_at: Math.floor(Date.now() / 1000),
-          tags:[["expiration", String(Math.floor(Date.now() / 1000) + 3600)],["t", "jukebox"]],
-          content: `#BRO #youtube #mp3 ${url}`
-      };
-
-      const signedEvent = await window.nostr.signEvent(event);
-      const ws = new WebSocket(relayUrl);
-
-      ws.onopen = () => {
-          ws.send(JSON.stringify(["EVENT", signedEvent]));
-          res.style.display = '';
-          res.className = '';
-          res.innerHTML = "✔ <b>Transmis au Capitaine !</b><br>L'IA distante de la constellation traite l'audio. Il sera copié dans votre uDRIVE et joué à l'antenne.";
-          toast('✅ Demande envoyée à l\'essaim');
-          document.getElementById('yt-url').value = '';
-          setTimeout(() => ws.close(), 2000);
-          btn.disabled = false;
-          btn.textContent = 'Télécharger et épingler →';
-      };
-      ws.onerror = () => { toast('❌ Impossible de joindre le relai', false); btn.disabled = false; };
-    } catch(e) {
-      toast('Erreur de signature : ' + e.message, false);
+      // CAS 2 : FALLBACK LOCAL (Le Pi Zero travaille)
+      toast("Aucun Multipass. Calcul local lancé...", false);
+      try {
+        const r = await fetch('/api.sh?action=yt_copy', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: 'url=' + encodeURIComponent(url)
+        });
+        const d = await r.json();
+        if (d.status === 'ok') {
+          res.innerHTML = `✓ <b>${d.title}</b> ajouté à la queue locale.`;
+          toast("Musique ajoutée");
+        } else { res.innerHTML = "Erreur locale."; }
+      } catch(e) { res.innerHTML = "Délai dépassé (le Pi travaille encore)."; }
       btn.disabled = false;
-      btn.textContent = 'Télécharger et épingler →';
     }
-    return;
-  }
 
-  // SCÉNARIO 2 : Aucun MULTIPASS. Mode dégradé local (Le Pi Zero travaille)
-  toast('Aucun MULTIPASS détecté. Traitement local forcé...', false);
-  btn.textContent = 'Téléchargement local… (1-3 min)';
-  try {
-    const r = await fetch('/api.sh?action=yt_copy', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: 'url=' + encodeURIComponent(url)
+    // Init
+    loadConfig().then(() => {
+        loadStatus();
+        setInterval(loadStatus, 20000);
     });
-    const d = await r.json();
-    res.style.display = '';
-    if (d.status === 'ok') {
-      res.className = '';
-      res.innerHTML =
-        '✓ <b>' + (d.title || '—') + '</b><br>' +
-        'CID : <a href="' + d.gateway + '" target="_blank">' + d.cid + '</a>' +
-        (d.queued ? '<br>🎵 Ajouté à la queue Jukebox locale' : '');
-      toast('✅ Épinglé sur IPFS Local');
-    } else {
-      res.className = 'err';
-      res.textContent = '✗ ' + (d.error || '?') + (d.hint ? ' — ' + d.hint : '');
-      toast('Erreur : ' + (d.error || '?'), false);
-    }
-  } catch(e) {
-    res.style.display = '';
-    res.className = 'err';
-    res.textContent = '✗ Erreur réseau (requête trop longue ?)';
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Télécharger et épingler →';
-  }
-}
-
-// ── Démarrage ───────────────────────────────────────────────────
-loadConfig().then(() => loadStatus());
-setInterval(loadStatus, 30000);
-</script>
-
+  </script>
 </body>
 </html>

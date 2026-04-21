@@ -17,12 +17,6 @@ setup_bluetooth() {
     done
     log "BlueALSA masqué — PipeWire/WirePlumber gère le Bluetooth"
 
-    # Plugin Bluetooth pour PipeWire/WirePlumber — indispensable pour A2DP.
-    # Sans ce paquet : "Protocol not available" au moment du connect.
-    apt-get install -y libspa-0.2-bluetooth 2>/dev/null \
-        && log "libspa-0.2-bluetooth installé" \
-        || log "libspa-0.2-bluetooth déjà présent"
-
     mkdir -p "$INSTALL_DIR"
 
     install_template bt-autoconnect.service \

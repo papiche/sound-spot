@@ -2,10 +2,11 @@
 setup_captive_portal() {
     hdr "Portail captif (Lighttpd)"
 
-    # Autoriser www-data : ipset (portail captif) + set_clock_mode (toggle horloge)
+    # Autoriser www-data : ipset (portail captif) + set_clock_mode (toggle horloge) + bt_manage.sh
     cat > /etc/sudoers.d/soundspot-www <<'SUDOEOF'
 www-data ALL=(ALL) NOPASSWD: /usr/sbin/ipset
 www-data ALL=(ALL) NOPASSWD: /opt/soundspot/set_clock_mode.sh
+www-data ALL=(ALL) NOPASSWD: /opt/soundspot/bt_manage.sh
 SUDOEOF
     chmod 0440 /etc/sudoers.d/soundspot-www
 
@@ -40,7 +41,6 @@ index-file.names = ( "index.html", "index.sh" )
 
 # Servir les fichiers .json comme JSON (manifest PWA)
 
-
 # Capturer les URL de test Android/Apple
 url.rewrite-once = (
     "^/(generate_204|hotspot-detect.html|ncsi.txt|success.txt).*$" => "/index.sh"
@@ -60,9 +60,16 @@ EOF
     install_template set_clock_mode.sh "$INSTALL_DIR/set_clock_mode.sh"
     chmod +x "$INSTALL_DIR/set_clock_mode.sh"
     log "set_clock_mode.sh déployé"
+
     # Activer explicitement le module CGI dans Debian
     lighttpd-enable-mod cgi 2>/dev/null || true
     systemctl restart lighttpd
     systemctl enable lighttpd
     log "Portail captif Lighttpd configuré"
+
+    # Donner accès à www-data pour le dossier Jukebox dans ~/.zen/tmp
+    usermod -aG ${SOUNDSPOT_USER} www-data
+    local USER_HOME=$(getent passwd "$SOUNDSPOT_USER" | cut -d: -f6)
+    chmod g+x "$USER_HOME" 2>/dev/null || true
+    chmod g+rx "$USER_HOME/.zen" "$USER_HOME/.zen/tmp" 2>/dev/null || true
 }

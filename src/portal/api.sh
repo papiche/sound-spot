@@ -1,15 +1,5 @@
 #!/bin/bash
-# src/portal/api.sh — Routeur API JSON du portail captif SoundSpot
-#
-# Usage CGI : /api.sh?action=<nom>
-#
-# Résolution des modules (dans l'ordre) :
-#   1. api/core/<action>.sh      — fonctions essentielles (status, auth, clock)
-#   2. api/apps/<action>/run.sh  — applications optionnelles (yt_copy, …)
-#
-# Ajouter une app : créer src/portal/api/apps/<nom>/run.sh
-# Elle hérite des exports : SPOT_NAME, SPOT_IP, ICECAST_PORT, INSTALL_DIR, …
-
+# src/portal/api.sh — Routeur API JSON optimisé
 source /opt/soundspot/soundspot.conf 2>/dev/null || true
 
 export SPOT_NAME="${SPOT_NAME:-SoundSpot}"
@@ -26,18 +16,26 @@ echo ""
 
 ACTION=$(echo "$QUERY_STRING" | grep -oP '(?<=action=)[a-zA-Z0-9_]+' | head -1)
 
-PORTAL_API="${INSTALL_DIR}/portal/api"
-CORE="${PORTAL_API}/core/${ACTION}.sh"
-APP="${PORTAL_API}/apps/${ACTION}/run.sh"
-
-if   [ -n "$ACTION" ] && [ -f "$CORE" ]; then bash "$CORE"
-elif [ -n "$ACTION" ] && [ -f "$APP"  ]; then bash "$APP"
-else
-    # Liste dynamique des actions disponibles
-    CORE_LIST=$(ls "${PORTAL_API}/core/"*.sh 2>/dev/null | xargs -r -I{} basename {} .sh | tr '\n' ',' | sed 's/,$//')
-    APP_LIST=$(ls -d "${PORTAL_API}/apps/"*/  2>/dev/null | xargs -r -I{} basename {} | tr '\n' ',' | sed 's/,$//')
-    printf '{"error":"unknown_action","action":"%s","core":[%s],"apps":[%s]}\n' \
-        "${ACTION:-}" \
-        "$(echo "$CORE_LIST" | sed 's/,/","/g; s/^/"/; s/$/"/')" \
-        "$(echo "$APP_LIST"  | sed 's/,/","/g; s/^/"/; s/$/"/')"
-fi
+case "$ACTION" in
+    audio_fix)
+        # Action de secours pour reconnecter le Bluetooth
+        sudo /opt/soundspot/bt_manage.sh connect >/dev/null 2>&1
+        echo '{"status":"ok","message":"Reconnexion Bluetooth lancée"}'
+        ;;
+    status)
+        # On injecte les données batterie si disponibles
+        BATT_PCT=$(cat /tmp/battery_percent 2>/dev/null || echo "0")
+        BATT_VOLT=$(cat /tmp/battery_voltage 2>/dev/null || echo "0")
+        DJ_ACTIVE="false"
+        curl -s -o /dev/null -w "%{http_code}" --max-time 1 "http://127.0.0.1:8111/live" | grep -q "200" && DJ_ACTIVE="true"
+        
+        printf '{"spot_name":"%s","dj_active":%s,"batt_pct":%s,"batt_volt":%s,"picoport_active":true}\n' \
+            "$SPOT_NAME" "$DJ_ACTIVE" "$BATT_PCT" "$BATT_VOLT"
+        ;;
+    *)
+        # Dispatch classique vers les modules existants
+        CORE="${INSTALL_DIR}/portal/api/core/${ACTION}.sh"
+        APP="${INSTALL_DIR}/portal/api/apps/${ACTION}/run.sh"
+        if [ -f "$CORE" ]; then bash "$CORE"; elif [ -f "$APP" ]; then bash "$APP"; else echo '{"error":"not_found"}'; fi
+        ;;
+esac

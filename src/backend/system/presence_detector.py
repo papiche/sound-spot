@@ -18,7 +18,7 @@ Variables d'environnement (depuis /opt/soundspot/soundspot.conf) :
   PRESENCE_SCALE         Haar scaleFactor                           (défaut : 1.3)
   PRESENCE_NEIGHBORS     Haar minNeighbors                          (défaut : 4)
   PRESENCE_MIN_FACE      Taille min visage px (image ÷4)            (défaut : 20)
-  PRESENCE_WELCOME_CMD   Commande à exécuter                        (défaut : /opt/soundspot/play_welcome.sh)
+  PRESENCE_WELCOME_CMD   Commande à exécuter                        (défaut : /opt/soundspot/backend/audio/play_welcome.sh)
 """
 import cv2
 import subprocess
@@ -39,9 +39,7 @@ CAMERA_FPS      = int(os.getenv("PRESENCE_FPS",             "15"))
 SCALE_FACTOR    = float(os.getenv("PRESENCE_SCALE",         "1.3"))
 MIN_NEIGHBORS   = int(os.getenv("PRESENCE_NEIGHBORS",       "4"))
 MIN_FACE_PX     = int(os.getenv("PRESENCE_MIN_FACE",        "20"))  # px sur image downscalée ÷4
-WELCOME_CMD     = os.getenv(
-    "PRESENCE_WELCOME_CMD", "/opt/soundspot/play_welcome.sh"
-)
+WELCOME_CMD = os.getenv("PRESENCE_WELCOME_CMD", "/opt/soundspot/backend/audio/play_welcome.sh")
 HAAR_XML = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
 
 _LOG_LEVEL_STR = os.getenv("LOG_LEVEL", "INFO").upper()

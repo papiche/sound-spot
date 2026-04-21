@@ -9,11 +9,6 @@ setup_presence() {
 
     loginctl enable-linger "${SOUNDSPOT_USER}" 2>/dev/null || true
 
-    # Script de lecture du message d'accueil (copie verbatim — paths hardcodés)
-    install_template play_welcome.sh "$INSTALL_DIR/play_welcome.sh"
-    chmod +x "$INSTALL_DIR/play_welcome.sh"
-    log "play_welcome.sh créé"
-
     # Génère le message d'accueil en synthèse vocale (espeak-ng, voix FR)
     local welcome_text="Salut ! Je suis un nœud musical libre. Je fonctionne à l'énergie solaire. Connectez-vous à mon réseau WiFi avec votre téléphone ou votre ordinateur. Si la musique s'arrête, c'est que ma batterie a besoin de soleil. Prenez soin de moi !"
     espeak-ng -v fr+f3 -s 120 -p 45 "$welcome_text" -w "$INSTALL_DIR/welcome.wav" 2>/dev/null \
