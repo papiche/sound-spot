@@ -13,7 +13,7 @@ EnvironmentFile=/opt/soundspot/soundspot.conf
 ExecStartPre=/bin/sleep 5
 ExecStart=/opt/soundspot/backend/system/bt-connect.sh
 Restart=always
-RestartSec=360
+RestartSec=60
 
 [Install]
 WantedBy=multi-user.target

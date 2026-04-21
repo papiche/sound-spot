@@ -1,0 +1,16 @@
+[Unit]
+Description=SoundSpot — Golem Distribué (Œil & Oreilles)
+After=network-online.target
+
+[Service]
+Type=simple
+User=pi
+# On s'assure que le tunnel Ollama est monté avant par le script
+ExecStartPre=-/bin/bash -c '/home/pi/.local/bin/astrosystemctl connect ollama'
+ExecStart=/usr/bin/python3 /opt/soundspot/mon-oeil.py
+Restart=always
+RestartSec=15
+SyslogIdentifier=mon-oeil
+
+[Install]
+WantedBy=multi-user.target

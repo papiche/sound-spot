@@ -145,7 +145,7 @@ fi
 
 # ── Fichier de configuration final ──────────────────────────
 hdr "Finalisation"
-install_template soundspot.conf.master "$INSTALL_DIR/soundspot.conf" \
+install_template soundspot.conf.master.env "$INSTALL_DIR/soundspot.conf" \
     '${SPOT_NAME} ${SPOT_IP} ${WIFI_SSID} ${WIFI_CHANNEL} ${BT_MAC} ${BT_MACS} ${SNAPCAST_PORT} ${PRESENCE_COOLDOWN} ${INSTALL_DIR} ${IFACE_AP} ${IFACE_WAN} ${LOG_LEVEL} ${SOUNDSPOT_LOG}'
 
 # S'assurer que le log est accessible

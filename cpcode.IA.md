@@ -27,11 +27,11 @@ Dites-lui :
 Pour rendre l'IA encore plus efficace, vous pourriez ajouter deux petites fonctions à votre script d'extraction :
 
 1.  **Le groupe `--context` (Minimaliste) :**
-    Créez un groupe qui n'extrait que `soundspot.conf.master`, `CLAUDE.md` et l'arborescence des fichiers (`tree`). 
+    Créez un groupe qui n'extrait que `soundspot.conf.master.env`, `CLAUDE.md` et l'arborescence des fichiers (`tree`). 
     Cela permet de donner la "carte" du projet à l'IA sans consommer de tokens inutilement.
 
 2.  **L'inclusion automatique de la config :**
-    Peu importe le groupe choisi (sauf `--all`), forcez toujours l'ajout de `src/config/network/soundspot.conf.master`. 
+    Peu importe le groupe choisi (sauf `--all`), forcez toujours l'ajout de `src/config/network/soundspot.conf.master.env`. 
     *Raison :* Presque tous vos scripts sourcent ce fichier. Sans lui, l'IA ne connaît pas les variables `$SPOT_IP`, `$ICECAST_PORT`, etc., 
     et peut halluciner des valeurs.
 

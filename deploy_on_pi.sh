@@ -400,7 +400,7 @@ read -r CONFIRM
 # ════════════════════════════════════════════════════════════════
 log "Mise à jour et dépendances minimales..."
 apt-get update -qq
-apt-get install -y -q gettext-base iw bluetooth
+apt-get install -y -q gettext-base iw bluetooth python3-sounddevice python3-numpy python3-requests
 
 # ── Fuseau horaire (critique pour l'heure solaire annoncée) ────
 CURRENT_TZ=$(timedatectl show --property=Timezone --value 2>/dev/null \

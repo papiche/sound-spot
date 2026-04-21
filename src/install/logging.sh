@@ -31,7 +31,7 @@ setup_logging() {
     fi
 
     # 4. logrotate — rotation quotidienne, 7 jours, compression
-    install_template soundspot-logrotate /etc/logrotate.d/sound-spot
+    install_template soundspot-logrotate.env /etc/logrotate.d/sound-spot
     log "logrotate configuré (daily, 7j, compress)"
 
     log "Logs centralisés OK — niveau : ${LOG_LEVEL:-INFO}"

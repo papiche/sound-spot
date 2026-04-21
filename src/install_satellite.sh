@@ -53,7 +53,7 @@ setup_snapclient satellite
 
 # ── Fichier de configuration central ─────────────────────────
 hdr "Fichier de configuration central"
-install_template soundspot.conf.satellite "$INSTALL_DIR/soundspot.conf" \
+install_template soundspot.conf.satellite.env "$INSTALL_DIR/soundspot.conf" \
     '${MASTER_HOST} ${SNAPCAST_PORT} ${BT_MAC} ${BT_MACS} ${INSTALL_DIR}'
 chmod 600 "$INSTALL_DIR/soundspot.conf"
 

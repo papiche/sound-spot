@@ -91,8 +91,21 @@ while true; do
     MOATS=$(date +%s)
     myIP=$(hostname -I | awk '{print $1}')
     
-    # Génération du JSON de la balise Picoport
-    cat > "$JSON_FILE" <<EOF
+    # Le dossier d'identité scanné par l'essaim Astroport
+    NODE_DIR="$HOME/.zen/tmp/${IPFSNODEID}"
+    mkdir -p "$NODE_DIR"
+
+    # 🚨 CRITIQUE : Le marqueur de survie cherché par is_astroport_node
+    echo "${MOATS}" > "$NODE_DIR/_MySwarm.moats"
+
+    # Export des identités publiques pour le radar
+    G1PUB=$(python3 "$ASTRO_TOOLS/keygen" -t duniter "$SECRET1${UPLANETNAME}" "$SECRET2${UPLANETNAME}" 2>/dev/null)
+    echo "$G1PUB" > "$NODE_DIR/G1PUB"
+    echo "$(hostname)" > "$NODE_DIR/name"
+    echo "🌿 Light" > "$NODE_DIR/power"
+
+    # Génération de la balise
+    cat > "$NODE_DIR/12345.json" <<EOF
 {
     "version": "picoport-12345-v2",
     "created": "$MOATS",
@@ -105,36 +118,33 @@ while true; do
     "g1station": "/ipns/$IPFSNODEID",
     "g1swarm": "/ipns/$CHAN",
     "type": "soundspot",
-    "services": {
-        "audio": "active",
-        "p2p_relay": "tunneled"
-    }
+    "services": { "audio": "active" }
 }
 EOF
 
-    # Préparation de la réponse HTTP brute pour socat
+    # Service HTTP brut via Socat pour rétrocompatibilité
     cat > "$HTTP_RES" <<EOF
 HTTP/1.1 200 OK
 Content-Type: application/json
 Access-Control-Allow-Origin: *
 Connection: close
 
-$(cat $JSON_FILE)
+$(cat "$NODE_DIR/12345.json")
 EOF
 
-    # Lancement du serveur HTTP socat si pas déjà actif
     if ! pgrep -f "socat TCP4-LISTEN:12345" > /dev/null; then
         socat TCP4-LISTEN:12345,reuseaddr,fork SYSTEM:"cat $HTTP_RES" &
     fi
 
-    # Publication de notre identité IPNS en tâche de fond
-    (ipfs name publish --lifetime=24h --ttl=1h /ipfs/$(ipfs add -Q $JSON_FILE) >/dev/null 2>&1 &)
+    # 🚨 PUBLICATION : On publie le contenu du dossier (comme _12345.sh)
+    MYCACHE=$(ipfs --timeout 180s add -rwq "$NODE_DIR"/* | tail -n 1)
+    if [[ -n "$MYCACHE" ]]; then
+        (ipfs name publish --lifetime=24h --ttl=1h /ipfs/${MYCACHE} >/dev/null 2>&1 &)
+    fi
 
-    # Maintenance du cache swarm : on télécharge les voisins détectés
+    # Rafraîchissement du Swarm local
     PEERS=$(ipfs swarm peers | grep -oP 'p2p/\K.*' | head -n 5)
     for p in $PEERS; do
-        # On télécharge le répertoire complet (contient 12345.json + x_*.sh)
-        # On utilise --timeout pour ne pas bloquer si un voisin est lent
         TMP_SWARM="/tmp/swarm_$p"
         if ipfs --timeout 20s get -o "$TMP_SWARM" "/ipns/$p/" >/dev/null 2>&1; then
             mkdir -p ~/.zen/tmp/swarm/
@@ -143,6 +153,5 @@ EOF
         fi
     done
 
-    # Pause de 5 minutes avant le prochain cycle
     sleep 300
 done
