@@ -4,11 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#080810">
-  <meta name="description" content="SoundSpot PicoPort — Nœud coopératif audio UPlanet ẐEN">
+  <meta name="description" content="SoundSpot PicoPort — Souveraineté Collective UPlanet">
   <link rel="manifest" href="/manifest.json">
-  <title>SoundSpot — Portail</title>
+  <title>SoundSpot — Portail Souverain</title>
   
-  <!-- Chartist.js pour le monitoring énergie -->
   <link rel="stylesheet" href="chartist.min.css">
   <script src="chartist.min.js"></script>
 
@@ -23,94 +22,60 @@
       --mono: ui-monospace,"Cascadia Code","Source Code Pro",Menlo,Monaco,Consolas,monospace;
     }
     *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
-    body {
-      background: var(--black); color: var(--text); font-family: var(--font);
-      display: flex; flex-direction: column; align-items: center;
-      padding: 0 0 80px; /* Espace pour la nav bar */
-    }
+    body { background: var(--black); color: var(--text); font-family: var(--font); padding: 0 0 80px; display: flex; flex-direction: column; align-items: center; line-height: 1.4; }
 
-    /* ── Hero & Status ── */
-    .hero {
-      width: 100%; background: var(--dark); border-bottom: 1px solid var(--border);
-      display: flex; flex-direction: column; align-items: center;
-      padding: 24px 20px; text-align: center;
-    }
-    .hero-logo { font-size: 1.8rem; font-weight: 900; color: #fff; }
+    /* ── Hero ── */
+    .hero { width: 100%; background: var(--dark); border-bottom: 1px solid var(--border); padding: 20px; text-align: center; }
+    .hero-logo { font-size: 1.6rem; font-weight: 900; color: #fff; text-transform: uppercase; letter-spacing: 1px; }
     .hero-logo span { color: var(--accent); }
-    .status-bar { display: flex; gap: 8px; margin-top: 12px; }
-    .badge-mini { 
-        padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; 
-        border: 1px solid var(--border); background: rgba(255,255,255,0.03);
-    }
+    .status-bar { display: flex; justify-content: center; gap: 8px; margin-top: 10px; }
+    .badge-mini { padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 700; border: 1px solid var(--border); background: rgba(255,255,255,0.03); }
     .badge-mini.live { color: var(--dj); border-color: var(--dj); }
     .badge-mini.batt { color: var(--accent); border-color: var(--accent); }
 
-    /* ── Navigation par Onglets ── */
-    .nav-tabs {
-      position: fixed; bottom: 0; width: 100%; height: 65px;
-      background: var(--panel); border-top: 1px solid var(--border);
-      display: flex; justify-content: space-around; align-items: center; z-index: 1000;
-    }
-    .tab-btn {
-      flex: 1; border: none; background: none; color: var(--muted);
-      display: flex; flex-direction: column; align-items: center; font-size: 10px;
-      cursor: pointer; transition: 0.2s;
-    }
-    .tab-btn.active { color: var(--accent); }
-    .tab-btn svg { width: 24px; height: 24px; margin-bottom: 4px; }
+    /* ── Navigation ── */
+    .nav-tabs { position: fixed; bottom: 0; width: 100%; height: 65px; background: var(--panel); border-top: 1px solid var(--border); display: flex; z-index: 1000; }
+    .tab-btn { flex: 1; border: none; background: none; color: var(--muted); display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 9px; cursor: pointer; }
+    .tab-btn.active { color: var(--accent); background: rgba(127, 255, 110, 0.05); }
+    .tab-btn svg { width: 20px; height: 20px; margin-bottom: 4px; }
 
     /* ── Contenu ── */
-    .tab-content { display: none; width: 100%; max-width: 540px; padding: 20px 16px; animation: fadeIn 0.3s; }
+    .tab-content { display: none; width: 100%; max-width: 600px; padding: 16px; animation: fadeIn 0.3s; }
     .tab-content.active { display: block; }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-    .card {
-      background: var(--panel); border: 1px solid var(--border);
-      border-radius: 4px; padding: 20px; margin-bottom: 12px; position: relative;
-    }
-    h2 { font-size: 1.1rem; margin-bottom: 10px; color: #fff; display: flex; align-items: center; gap: 8px; }
-    p { font-size: 0.9rem; color: #9090b0; line-height: 1.5; margin-bottom: 12px; }
-    .hi { color: #fff; font-weight: 700; }
+    .card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 18px; margin-bottom: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+    h2 { font-size: 1.1rem; margin-bottom: 12px; color: #fff; display: flex; align-items: center; gap: 10px; }
+    h3 { font-size: 0.9rem; color: var(--teal); margin: 15px 0 8px; }
+    p { font-size: 0.88rem; color: #b0b0d0; margin-bottom: 12px; }
+    .hi { color: var(--accent); font-weight: bold; }
+    
+    /* ── Details / Accordéons ── */
+    details { background: var(--deep); border-radius: 6px; margin-bottom: 8px; border: 1px solid var(--border); }
+    summary { padding: 12px; cursor: pointer; font-weight: 700; font-size: 0.85rem; color: var(--teal); list-style: none; outline: none; }
+    .details-content { padding: 10px; font-size: 0.82rem; border-top: 1px solid rgba(255,255,255,0.05); }
+
+    /* ── Astro Grid ── */
+    .astro-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; }
+    .astro-box { background: var(--deep); padding: 12px; border-radius: 6px; border: 1px solid var(--border); text-align: center; }
+    .astro-box span { display: block; font-size: 1.5rem; margin-bottom: 5px; }
+    .astro-box label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; }
 
     /* ── Inputs & Buttons ── */
-    .btn {
-      display: block; width: 100%; padding: 14px; text-align: center;
-      font-weight: 700; font-size: 14px; text-transform: uppercase;
-      border: none; border-radius: 3px; cursor: pointer; transition: 0.2s;
-      background: var(--accent); color: var(--black); text-decoration: none;
-    }
-    .btn:active { transform: scale(0.98); }
+    .yt-input { width: 100%; padding: 12px; background: var(--deep); border: 1px solid var(--border); border-radius: 4px; color: #fff; font-family: var(--mono); margin-bottom: 10px; }
+    .btn { display: block; width: 100%; padding: 12px; text-align: center; font-weight: 700; font-size: 12px; text-transform: uppercase; border-radius: 4px; text-decoration: none; border: none; cursor: pointer; margin-bottom: 8px; }
+    .btn-main { background: var(--accent); color: var(--black); }
     .btn-outline { background: transparent; border: 1px solid var(--accent); color: var(--accent); }
-    .btn-gold { background: var(--gold); }
-    .btn-sm { padding: 8px; font-size: 12px; }
-    
-    .yt-input {
-      width: 100%; padding: 12px; background: var(--deep); border: 1px solid var(--border);
-      border-radius: 3px; color: #fff; font-family: var(--mono); margin-bottom: 10px;
-    }
+    .btn-gold { background: var(--gold); color: var(--black); }
+    .btn-sm { padding: 6px 10px; font-size: 10px; display: inline-block; width: auto; }
 
-    /* ── Chartist Custom ── */
-    .ct-chart { height: 180px; margin-top: 10px; }
-    .ct-series-a .ct-line { stroke: var(--accent); stroke-width: 3px; }
-    .ct-series-a .ct-area { fill: var(--accent); fill-opacity: 0.1; }
-    .volt-display { font-family: var(--mono); font-size: 2rem; font-weight: bold; color: var(--accent); text-align: center; display: block; }
-
-    /* ── UI Elements ── */
-    .ibox { background: var(--deep); padding: 12px; border-radius: 3px; margin: 10px 0; font-size: 0.85rem; }
+    .ibox { background: var(--deep); padding: 10px; border-radius: 4px; margin: 10px 0; font-family: var(--mono); font-size: 0.8rem; }
     .irow { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
-    .irow:last-child { border-bottom: none; }
-    .lbl { color: var(--muted); }
-    .val { font-family: var(--mono); color: var(--teal); }
+    .lbl { color: var(--muted); } .val { color: var(--teal); }
 
-    #toast {
-      position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
-      background: var(--panel); border: 1px solid var(--accent); color: var(--accent);
-      padding: 10px 20px; border-radius: 20px; font-weight: bold; display: none; z-index: 2000;
-    }
-    
-    #pwa-banner { background: var(--deep); border: 1px solid var(--teal); padding: 12px; margin-bottom: 10px; border-radius: 4px; display: none; }
-    .skel { background: #222; height: 14px; border-radius: 2px; animation: pulse 1.5s infinite; }
-    @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
+    .volt-display { font-family: var(--mono); font-size: 2.2rem; font-weight: 800; color: var(--accent); text-align: center; display: block; }
+    .ct-chart { height: 160px; margin-top: 10px; }
+    #toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: var(--panel); border: 1px solid var(--accent); color: var(--accent); padding: 10px 20px; border-radius: 20px; font-weight: bold; display: none; z-index: 2000; }
   </style>
 </head>
 <body>
@@ -119,279 +84,253 @@
 
   <div class="hero">
     <div class="hero-logo">Sound<span>Spot</span></div>
-    <div id="hero-sub" class="status-bar">
-      <div id="dj-badge" class="badge-mini">Chargement...</div>
-      <div id="batt-badge" class="badge-mini batt">Batterie --%</div>
+    <div class="status-bar">
+      <div id="dj-badge" class="badge-mini">...</div>
+      <div id="batt-badge" class="badge-mini batt">-- V</div>
     </div>
   </div>
 
-  <!-- ════ ONGLET 1 : DIRECT ════ -->
-  <div id="tab-live" class="tab-content active">
+  <!-- ════ ONGLET 1 : RADIO & SERVICES ════ -->
+  <div id="tab-radio" class="tab-content active">
     <div class="card">
-      <h2>📻 Écouter en Direct</h2>
-      <p>Son synchronisé sans latence. Branchez vos enceintes ou écouteurs.</p>
+      <h2>📻 Radio Collective</h2>
+      <p>Flux synchronisé via la constellation UPlanet.</p>
       <div class="ibox">
         <div class="irow"><span class="lbl">WiFi</span><span class="val" id="cfg-ssid">...</span></div>
-        <div class="irow"><span class="lbl">Serveur</span><span class="val" id="cfg-stream">...</span></div>
+        <div class="irow"><span class="lbl">Serveur</span><span class="val" id="cfg-ip">...</span></div>
       </div>
-      <a id="lnk-snap-android" href="#" class="btn">Installer Snapclient</a>
-      <button onclick="fixAudio()" class="btn btn-outline" style="margin-top:10px;">🛠 Libérer le Son (Fix)</button>
-    </div>
-
-    <div class="card">
-      <h2>⏰ Clocher Numérique</h2>
-      <p>Annonces vocales et coups de cloche toutes les 15 min.</p>
-      <div class="irow"><span class="lbl">Mode actuel</span><span class="val" id="clock-lbl">...</span></div>
-      <button onclick="toggleClock()" id="btn-clock" class="btn btn-outline btn-sm">Changer</button>
-    </div>
-  </div>
-
-  <!-- ════ ONGLET 2 : JUKEBOX ════ -->
-  <div id="tab-juke" class="tab-content">
-    <div class="card">
-      <h2>📥 Jukebox Swarm</h2>
-      <p>Partagez un lien YouTube. Si vous avez un <span class="hi">MULTIPASS</span>, l'IA de l'essaim traite la demande instantanément.</p>
-      <input type="text" id="yt-url" class="yt-input" placeholder="Lien YouTube ou Recherche...">
-      <button id="btn-yt" onclick="doYtCopy()" class="btn">Envoyer à l'antenne</button>
-      <div id="yt-result" style="margin-top:10px; font-size:0.8rem;"></div>
+      <a id="lnk-snap" href="#" target="_blank" class="btn btn-main">Installer Snapclient</a>
+      <button onclick="fixAudio()" class="btn btn-outline">🛠 Relancer l'Audio (Fix)</button>
     </div>
     
     <div class="card">
-        <h2>🪪 Identité Ẑelkova</h2>
-        <p>Le MULTIPASS est votre clé pour le réseau UPlanet.</p>
-        <a id="lnk-zelkova" href="#" class="btn btn-gold btn-sm">Obtenir mon MULTIPASS</a>
+      <h2>⏰ Clocher Numérique</h2>
+      <div class="irow"><span class="lbl">Mode actuel</span><span class="val" id="clock-lbl">...</span></div>
+      <button onclick="toggleClock()" id="btn-clock" class="btn btn-outline btn-sm">Changer</button>
+    </div>
+
+    <div class="card">
+      <h2>🌐 Constellation Astroport</h2>
+      <p>Système unifié pour connecter les stations Picoport.</p>
+      <a href="http://astroport.one" target="_blank" class="btn btn-gold">Accéder à Astroport.ONE</a>
     </div>
   </div>
 
-  <!-- ════ ONGLET 3 : ÉNERGIE ════ -->
-  <div id="tab-node" class="tab-content">
+  <!-- ════ ONGLET 2 : LIBERTÉ & OUTILS ════ -->
+  <div id="tab-liberte" class="tab-content">
+    <div class="card">
+      <h2>✊ Libérer nos Données</h2>
+      <p class="hi">"Nos données valent de l'or, récupérons nos pépites."</p>
+      
+      <details>
+        <summary>👁️ 📷 Oeil & Stockage (Nextcloud)</summary>
+        <div class="details-content">
+          <p>Sortez du Cloud propriétaire vers votre espace souverain.</p>
+          <a href="https://f-droid.org/fr/packages/com.nextcloud.client/" target="_blank" class="btn btn-main btn-sm">App Nextcloud</a>
+          <a href="https://pad.p2p.legal/s/Smartphone2NextCloud#" target="_blank" class="btn btn-outline btn-sm">Guide Pas à Pas</a>
+        </div>
+      </details>
+
+      <details>
+        <summary>🤖💾 Cerveau & Mémoire (Outils Libres)</summary>
+        <div class="details-content">
+          <ul>
+            <li><b>VLC :</b> Lecture universelle. <a href="https://f-droid.org/fr/packages/org.videolan.vlc/" target="_blank">Lien</a></li>
+            <li><b>Kodi + VStream :</b> Cinéma à domicile. <a href="https://f-droid.org/fr/packages/org.xbmc.kodi/" target="_blank">Lien</a> / <a href="https://kodi-vstream.github.io/docs/installation/" target="_blank">Installation</a></li>
+            <li><b>Maps :</b> <a href="https://f-droid.org/fr/packages/app.organicmaps/" target="_blank">Organic Maps (Offline)</a></li>
+          </ul>
+        </div>
+      </details>
+
+      <details>
+        <summary>🔬 Nature & Sciences</summary>
+        <div class="details-content">
+          <ul>
+            <li><b>Plantnet :</b> Identifiez la flore. <a href="https://plantnet.org/" target="_blank">Lien</a></li>
+            <li><b>Phyphox :</b> Capteurs physiques. <a href="https://f-droid.org/fr/packages/de.rwth_aachen.phyphox/" target="_blank">Lien</a></li>
+          </ul>
+        </div>
+      </details>
+      
+      <div style="margin-top:15px; border-top: 1px solid var(--border); padding-top:15px;">
+        <p>Vérifiez si votre smartphone est flashable :</p>
+        <a href="https://doc.e.foundation/devices" target="_blank" class="btn btn-outline btn-sm">Vérifier sur e.foundation</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ ONGLET 3 : SOUVERAINETÉ COLLECTIVE ════ -->
+  <div id="tab-constellation" class="tab-content">
+    <div class="card">
+      <h2>🐲 Délégation DRAGON</h2>
+      <p>Coopérative numérique UPlanet : Algorithmes AGPL clairs pour l'économie circulaire.</p>
+      
+      <div class="astro-grid">
+        <div class="astro-box"><span>👄👂</span><label>Bouche & Oreilles</label></div>
+        <div class="astro-box"><span>👁 📷</span><label>Oeil & Stockage</label></div>
+        <div class="astro-box"><span>🤖💾</span><label>Cerveau & Mémoire</label></div>
+        <div class="astro-box"><span>🔋🌞</span><label>Énergie</label></div>
+      </div>
+
+      <div class="ibox">
+        <div class="irow"><span class="lbl">Souveraineté</span><span class="val">Collective</span></div>
+        <div class="irow"><span class="lbl">Vision</span><span class="val"><a href="https://ipfs.copylaradio.com/ipns/copylaradio.com/Unation.html" target="_blank">Unation</a></span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>📥 Jukebox Collectif</h2>
+      <p>Envoyez une musique à l'essaim. Le <span class="hi">MULTIPASS</span> traite la demande en priorité.</p>
+      <input type="text" id="yt-url" class="yt-input" placeholder="Lien YouTube...">
+      <button onclick="doYtCopy()" class="btn btn-main">Diffuser sur le réseau</button>
+      <div id="yt-result" style="margin-top:5px; font-size:0.8rem;"></div>
+    </div>
+
+    <details>
+        <summary>🪙 Économie ẐEN & Ğ1</summary>
+        <div class="details-content">
+          <a href="https://github.com/papiche/Astroport.ONE/blob/master/docs/ZEN.ECONOMY.v3.md" target="_blank" class="btn btn-gold btn-sm">Zen Economy v3</a>
+          <a href="https://zen.copylaradio.com/" target="_blank" class="btn btn-outline btn-sm">TrocZen</a>
+          <a href="https://opencollective.com/monnaie-libre" target="_blank" class="btn btn-main btn-sm">Soutenir la Ğ1</a>
+        </div>
+    </details>
+
+    <details>
+        <summary>🔍 QQOQCCP (Le Projet)</summary>
+        <div class="details-content">
+            <p><b>Qui :</b> Les membres G1FabLab. <b>Quoi :</b> Nœuds PicoPort. <b>Pourquoi :</b> Souveraineté collective. <b>Comment :</b> Énergie solaire & logiciel libre.</p>
+        </div>
+    </details>
+  </div>
+
+  <!-- ════ ONGLET 4 : ÉNERGIE ════ -->
+  <div id="tab-solaire" class="tab-content">
     <div class="card">
       <h2>🔋 État Solaire</h2>
       <span id="batt-volt" class="volt-display">--.- V</span>
-      <div class="ct-chart" id="energy-chart"></div>
-      <p style="text-align:center; margin-top:10px; font-size:0.7rem;">Tension batterie sur 10 minutes</p>
+      <div id="energy-chart" class="ct-chart"></div>
     </div>
-
     <div class="card">
       <h2>🌐 Accès Internet</h2>
-      <p>Ouvrir l'accès pour <span class="hi">15 minutes</span>. Privilégiez le stream local pour économiser la batterie.</p>
-      <button id="btn-auth" onclick="doAuth()" class="btn btn-teal">Ouvrir l'accès</button>
-      <p id="auth-msg" style="margin-top:10px; display:none; color:var(--accent); font-size:0.8rem;"></p>
+      <button id="btn-auth" onclick="doAuth()" class="btn btn-main">Ouvrir l'accès (15 min)</button>
     </div>
   </div>
 
-  <!-- ════ ONGLET 4 : INFOS ════ -->
-  <div id="tab-info" class="tab-content">
-    <div class="card">
-        <h2>🏗️ Bien Commun Numérique</h2>
-        <p>Ce nœud est autonome, alimenté par le soleil et géré par la coopérative <span class="hi">G1FabLab</span>.</p>
-        <div class="ibox">
-            <div class="irow"><span class="lbl">Logiciel</span><span class="val">AGPL-3.0</span></div>
-            <div class="irow"><span class="lbl">Picoport</span><span class="val" id="cfg-picoport">...</span></div>
-            <div class="irow"><span class="lbl">Version</span><span class="val" id="ft-ver">...</span></div>
-        </div>
-        <div style="display:flex; gap:5px;">
-            <a id="ft-src" href="#" class="btn btn-outline btn-sm">Code Source</a>
-            <a href="/docs.sh" class="btn btn-outline btn-sm">Docs</a>
-        </div>
-    </div>
-  </div>
-
-  <!-- ════ BARRE DE NAVIGATION ════ -->
+  <!-- ════ BARRE NAVIGATION ════ -->
   <nav class="nav-tabs">
-    <button class="tab-btn active" onclick="showTab('tab-live', this)">
+    <button class="tab-btn active" onclick="showTab('tab-radio', this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9M19.1 4.9c3.9 3.9 3.9 10.3 0 14.2M8.3 15.7c-2.1-2.1-2.1-5.5 0-7.6M15.7 8.3c2.1 2.1 2.1 5.5 0 7.6M12 12v.01"></path></svg>
-      Direct
+      Radio
     </button>
-    <button class="tab-btn" onclick="showTab('tab-juke', this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
-      Jukebox
+    <button class="tab-btn" onclick="showTab('tab-liberte', this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+      Liberté
     </button>
-    <button class="tab-btn" onclick="showTab('tab-node', this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
-      Solaire
+    <button class="tab-btn" onclick="showTab('tab-constellation', this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path><path d="M2 12h20"></path></svg>
+      UPlanet
     </button>
-    <button class="tab-btn" onclick="showTab('tab-info', this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-      Infos
+    <button class="tab-btn" onclick="showTab('tab-solaire', this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line></svg>
+      Énergie
     </button>
   </nav>
 
   <script>
     'use strict';
+    let CFG = {}, clockMode = 'bells', chart, chartData = { labels: [], series: [[]] };
 
-    let CFG = {};
-    let clockMode = 'bells';
-    let chart;
-    let chartData = { labels: [], series: [[]] };
-
-    // ── Navigation ──
+    // Initialisation & Navigation
     function showTab(id, btn) {
       document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       document.getElementById(id).classList.add('active');
       btn.classList.add('active');
-      if (id === 'tab-node') setTimeout(initChart, 200);
+      if (id === 'tab-solaire') setTimeout(initChart, 200);
     }
 
     function toast(msg, ok = true) {
       const t = document.getElementById('toast');
-      t.textContent = msg;
-      t.style.borderColor = ok ? 'var(--accent)' : 'var(--red)';
-      t.style.display = 'block';
-      setTimeout(() => t.style.display = 'none', 3000);
+      t.textContent = msg; t.style.borderColor = ok ? 'var(--accent)' : 'var(--red)';
+      t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 3000);
     }
 
-    // ── API Audio Fix ──
-    async function fixAudio() {
-        toast("🚀 Relance audio...");
-        try {
-            await fetch('/api.sh?action=audio_fix');
-            setTimeout(() => toast("✅ Bluetooth reconnecté"), 2000);
-        } catch(e) { toast("❌ Erreur", false); }
-    }
-
-    // ── Chargement Config ──
+    // API: Config dynamique
     async function loadConfig() {
       try {
         const r = await fetch('/api.sh?action=config');
         CFG = await r.json();
-
         document.getElementById('cfg-ssid').textContent = CFG.spot_name;
-        document.getElementById('cfg-stream').textContent = `${CFG.spot_ip}:${CFG.snapcast_port}`;
-        document.getElementById('cfg-picoport').textContent = CFG.picoport_enabled ? 'Actif' : 'Inactif';
-        document.getElementById('lnk-snap-android').href = CFG.links.snapdroid_fdroid;
-        document.getElementById('lnk-zelkova').href = CFG.links.zelkova_release;
-        document.getElementById('ft-ver').textContent = CFG.version;
-        document.getElementById('ft-src').href = CFG.links.source;
-        
+        document.getElementById('cfg-ip').textContent = CFG.spot_ip;
+        document.getElementById('lnk-snap').href = CFG.links.snapdroid_fdroid;
         clockMode = CFG.clock_mode || 'bells';
         updateClockUI();
-      } catch(e) { console.error("Config load failed"); }
+      } catch(e) { console.error("Config failed"); }
     }
 
-    // ── Statut & Énergie ──
+    // API: Status & Énergie
     async function loadStatus() {
       try {
         const r = await fetch('/api.sh?action=status');
         const d = await r.json();
-
-        // Badges
         const dj = document.getElementById('dj-badge');
         dj.textContent = d.dj_active ? '🎵 LIVE' : 'Silence';
         dj.className = d.dj_active ? 'badge-mini live' : 'badge-mini';
-
-        document.getElementById('batt-badge').textContent = `Batterie ${d.batt_pct}%`;
-        document.getElementById('batt-volt').textContent = `${d.batt_volt} V`;
-
-        // Mise à jour graphique
-        const now = new Date().toLocaleTimeString();
-        chartData.labels.push(now);
-        chartData.series[0].push(d.batt_volt);
-        if (chartData.labels.length > 15) { chartData.labels.shift(); chartData.series[0].shift(); }
-        if (chart) chart.update(chartData);
-
+        document.getElementById('batt-badge').textContent = d.batt_volt + ' V';
+        document.getElementById('batt-volt').textContent = d.batt_volt + ' V';
+        if (chart) {
+          chartData.labels.push(new Date().toLocaleTimeString());
+          chartData.series[0].push(d.batt_volt);
+          if (chartData.labels.length > 12) { chartData.labels.shift(); chartData.series[0].shift(); }
+          chart.update(chartData);
+        }
       } catch(e) {}
     }
 
     function initChart() {
       if (chart) return;
-      chart = new Chartist.Line('#energy-chart', chartData, {
-        low: 3.2, high: 4.2, showArea: true, fullWidth: true,
-        axisX: { showGrid: false, showLabel: false }
-      });
+      chart = new Chartist.Line('#energy-chart', chartData, { low: 3.2, high: 4.2, showArea: true, fullWidth: true, axisX: { showGrid: false, showLabel: false } });
     }
 
-    // ── Internet Auth ──
+    // API: YouTube Jukebox
+    async function doYtCopy() {
+        const url = document.getElementById('yt-url').value;
+        const res = document.getElementById('yt-result');
+        if(!url) return;
+        res.innerHTML = "Traitement essaim...";
+        try {
+            const r = await fetch('/api.sh?action=yt_copy', { method: 'POST', body: 'url=' + encodeURIComponent(url) });
+            const d = await r.json();
+            if(d.status === 'ok') { toast("✅ Ajouté"); res.innerHTML = "Musique à l'antenne !"; }
+            else { res.innerHTML = "Erreur locale."; }
+        } catch(e) { toast("Demande envoyée", true); }
+    }
+
+    // API: Internet Auth
     async function doAuth() {
-      const btn = document.getElementById('btn-auth');
-      btn.disabled = true; btn.textContent = 'Ouverture...';
-      try {
-        const r = await fetch('/api.sh?action=auth', { method: 'POST' });
-        const d = await r.json();
-        if (d.status === 'authorized') {
-          toast("🌐 Accès ouvert (15 min)");
-          document.getElementById('auth-msg').style.display = 'block';
-          document.getElementById('auth-msg').textContent = "Accès Internet OK pour 15 min.";
-        }
-      } catch(e) { toast("Erreur réseau", false); btn.disabled = false; }
+      try { await fetch('/api.sh?action=auth', { method: 'POST' }); toast("🌐 Accès ouvert (15 min)"); } catch(e) { toast("Erreur réseau", false); }
     }
 
-    // ── Clock ──
+    // API: Clock control
     function updateClockUI() {
-      const lbl = document.getElementById('clock-lbl');
-      const btn = document.getElementById('btn-clock');
-      lbl.textContent = clockMode === 'bells' ? '🔔 Activées' : '🔇 Silencieuses';
-      btn.textContent = clockMode === 'bells' ? 'Mode Silencieux' : 'Activer Cloches';
+      document.getElementById('clock-lbl').textContent = clockMode === 'bells' ? '🔔 Activées' : '🔇 Silencieuses';
+      document.getElementById('btn-clock').textContent = clockMode === 'bells' ? 'Désactiver' : 'Activer';
     }
 
     async function toggleClock() {
       const next = clockMode === 'bells' ? 'silent' : 'bells';
       try {
-        const r = await fetch('/api.sh?action=clock', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: 'mode=' + next
-        });
-        const d = await r.json();
-        if (d.status === 'ok') { clockMode = d.clock_mode; updateClockUI(); toast("Réglage clocher mis à jour"); }
+        await fetch('/api.sh?action=clock', { method: 'POST', body: 'mode=' + next });
+        clockMode = next; updateClockUI(); toast("Clocher mis à jour");
       } catch(e) { toast("Erreur", false); }
     }
 
-    // ── YouTube / Nostr Swarm (Fonction complète restaurée) ──
-    async function doYtCopy() {
-      const url = document.getElementById('yt-url').value.trim();
-      const res = document.getElementById('yt-result');
-      const btn = document.getElementById('btn-yt');
-      if (!url) return;
-
-      btn.disabled = true;
-      res.innerHTML = "Traitement en cours...";
-
-      // CAS 1 : MULTIPASS (Nostr)
-      if (window.nostr) {
-        try {
-          const event = {
-              kind: 1,
-              created_at: Math.floor(Date.now() / 1000),
-              tags:[["expiration", String(Math.floor(Date.now() / 1000) + 3600)],["t", "jukebox"]],
-              content: `#BRO #youtube #mp3 ${url}`
-          };
-          const signedEvent = await window.nostr.signEvent(event);
-          let relayUrl = "ws://" + window.location.hostname + ":9999";
-          const ws = new WebSocket(relayUrl);
-          ws.onopen = () => {
-              ws.send(JSON.stringify(["EVENT", signedEvent]));
-              res.innerHTML = "✅ Transmis à l'essaim ! L'IA traite votre musique.";
-              toast("Demande signée et envoyée");
-              setTimeout(() => ws.close(), 2000);
-          };
-        } catch(e) { res.innerHTML = "Erreur Multipass."; }
-        btn.disabled = false; return;
-      }
-
-      // CAS 2 : FALLBACK LOCAL (Le Pi Zero travaille)
-      toast("Aucun Multipass. Calcul local lancé...", false);
-      try {
-        const r = await fetch('/api.sh?action=yt_copy', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: 'url=' + encodeURIComponent(url)
-        });
-        const d = await r.json();
-        if (d.status === 'ok') {
-          res.innerHTML = `✓ <b>${d.title}</b> ajouté à la queue locale.`;
-          toast("Musique ajoutée");
-        } else { res.innerHTML = "Erreur locale."; }
-      } catch(e) { res.innerHTML = "Délai dépassé (le Pi travaille encore)."; }
-      btn.disabled = false;
+    async function fixAudio() {
+      toast("🚀 Relance audio...");
+      try { await fetch('/api.sh?action=audio_fix'); toast("✅ Service reconnecté"); } catch(e) { toast("Erreur", false); }
     }
 
-    // Init
-    loadConfig().then(() => {
-        loadStatus();
-        setInterval(loadStatus, 20000);
-    });
+    loadConfig().then(() => { loadStatus(); setInterval(loadStatus, 15000); });
   </script>
 </body>
 </html>
