@@ -12,7 +12,7 @@ $START_MARKER
 
 # ── Diagnostic & Surveillance ─────────────────────────────────────────────
 # Correction de l'alias check pour pointer vers le workspace si absent de /opt
-alias check='[ -f /opt/soundspot/check.sh ] && sudo bash /opt/soundspot/check.sh || sudo bash \$HOME/.zen/workspace/sound-spot/check.sh'
+alias check='bash /opt/soundspot/check.sh'
 alias svc='systemctl status soundspot-* bt-autoconnect picoport 2>/dev/null | grep -E "●|Active:"'
 alias pico-log='tail -f ~/.zen/log/picoport_20h12.log'
 alias pico-svc='journalctl -u picoport.service -f'

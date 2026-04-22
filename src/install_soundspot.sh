@@ -56,7 +56,7 @@ echo "icecast2 icecast2/icecast-setup boolean false" | debconf-set-selections
 
 apt_retry update -qq
 apt_retry install -y --no-install-recommends \
-    hostapd dnsmasq lighttpd ipset mpg123 \
+    hostapd dnsmasq lighttpd ipset mpg123 lsof \
     icecast2 rpicam-apps \
     bluez bluez-alsa-utils libspa-0.2-bluetooth \
     pipewire pipewire-alsa pipewire-pulse wireplumber \

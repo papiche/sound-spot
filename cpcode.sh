@@ -1,49 +1,35 @@
 #!/bin/bash
 # ═════════════════════════════════════════════════════════════════════════════
-#  cpcode.sh — Extracteur de contexte pour IA (SoundSpot Edition)
+#  cpcode.sh — Extracteur de contexte autonome (SoundSpot Edition)
 # ═════════════════════════════════════════════════════════════════════════════
-# ── Convention de nommage src/config/ ─────────────────────────────────────
-# Les nouveaux fichiers sont automatiquement routés vers le bon groupe selon :
-#
-#   portal_*.sh           → --frontend   (CGI web : portail captif)
-#   *.service             → --config     (unités systemd)
-#   *.conf                → --config     (fichiers de configuration)
-#   soundspot.conf.*      → --config     (config centrale master/satellite)
-#   soundspot-*logrotate* → --config     (configs logrotate sans extension std)
-#   *.sh  (hors portal_*) → --backend    (scripts runtime audio/système)
-#   *.py                  → --backend    (daemons Python)
-#
-# Pour ajouter un nouveau groupe ou modifier le routage, éditez uniquement les
-# fonctions _templates_match / _templates_except et les blocs case ci-dessous.
-# ─────────────────────────────────────────────────────────────────────────────
+#  Génère des blocs de code thématiques pour aider l'IA à comprendre
+#  l'architecture de SoundSpot. Zéro dépendance, 100% autonome.
+# ═════════════════════════════════════════════════════════════════════════════
 
+# On retire le '-u' qui fait planter l'évaluation des tableaux vides en Bash
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SRC="$SCRIPT_DIR/src"
-# Chemin vers l'outil cpcode original d'Astroport
-CPCODE="$(realpath "$SCRIPT_DIR/../Astroport.ONE/cpcode" 2>/dev/null || echo "/usr/local/bin/cpcode")"
-
-if [ ! -x "$CPCODE" ]; then
-    echo "Erreur : L'outil 'cpcode' est introuvable."
-    echo "Assurez-vous qu'Astroport.ONE est cloné à côté de sound-spot."
-    exit 1
-fi
+cd "$SCRIPT_DIR"
 
 # ── Aide ───────────────────────────────────────────────────────────────────
 show_help() {
     cat <<'EOF'
-Usage : ./cpcode.sh GROUP1 [GROUP2 ...] [--json] [--maxfilesize N]
+Usage : ./cpcode.sh GROUP1 [GROUP2 ...] [options...]
 
-Groupes disponibles :
-  --install    Scripts de déploiement, modules d'install et templates initiaux.
-  --backend    Logique métier : audio (annonces), system (BT, réseau), video (jukebox).
-  --frontend   Interface web (HTML/JS) et scripts CGI du portail.
-  --apps       Développement de modules API (core/ + apps/).
-  --picoport   Nœud P2P : IPFS, Nostr, Duniter, Swarm Sync.
-  --config     Toutes les unités systemd et fichiers de conf réseau.
-  --dev        Outils de debug, benchmarks et documentation.
-  --all        Extraction totale du projet.
+Groupes disponibles (segmentation logique) :
+  --install    Scripts de déploiement (maître/satellite) et environnement
+  --backend    Logique métier : audio (pipewire/icecast), système (BT), cam/vidéo
+  --frontend   Interface web (html, css, js) et routeur API core (api.sh)
+  --apps       Modules API additionnels (dossier apps)
+  --picoport   Nœud P2P : IPFS, Swarm Sync, UPassport
+  --config     Unités systemd et fichiers de conf (.conf, .service)
+  --dev        Outils de debug, tests, benchmarks et documentation
+  --all        Extraction complète de tout le code du projet
+
+Options :
+  --json          Sortie au format JSON (pour outillage avancé)
+  --maxfilesize N Limite la taille des fichiers extraits en octets (ex: 51200)
 
 Exemples :
   ./cpcode.sh --backend
@@ -52,145 +38,205 @@ EOF
     exit 0
 }
 
-# ── Parsing ────────────────────────────────────────────────────────────────
 GROUPS=()
-CPCODE_ARGS=()
+JSON_MODE=false
+MAX_FILE_SIZE=0
+
+# ── Parsing des arguments ──────────────────────────────────────────────────
 for arg in "$@"; do
     case "$arg" in
-        --install|--backend|--frontend|--apps|--picoport|--config|--dev|--all) GROUPS+=("$arg") ;;
+        --install|--backend|--frontend|--apps|--picoport|--config|--dev|--all) 
+            GROUPS+=("$arg") ;;
+        --json) JSON_MODE=true ;;
+        --maxfilesize) MAX_FILE_SIZE="$2"; shift ;;
+        --maxfilesize=*) MAX_FILE_SIZE="${arg#*=}" ;;
         --help|-h) show_help ;;
-        *) CPCODE_ARGS+=("$arg") ;;
     esac
 done
 
 [ ${#GROUPS[@]} -eq 0 ] && show_help
 
-# ── Dossier temporaire ────────────────────────────────────────────────────
-WORK_DIR=$(mktemp -d /tmp/ss_ctx_XXXX)
-trap 'rm -rf "$WORK_DIR"' EXIT
+# ── Tableau de déduplication ───────────────────────────────────────────────
+declare -A FILES_LIST
 
-# ── Helpers de copie ──────────────────────────────────────────────────────
-# _add "chemin/vers/fichier_ou_glob"
-_add() {
-    for pat in "$@"; do
-        echo "Recherche de fichiers pour le motif : $pat"
-        if [[ "$pat" == *"*"* ]]; then
-            dirname=$(dirname "$pat")
-            basename=$(basename "$pat")
-            echo "  Recherche dans : $SCRIPT_DIR/$dirname avec le motif : $basename"
-            find "$SCRIPT_DIR/$dirname" -maxdepth 1 -type f -name "$basename" | while read -r f; do
-                echo "  Trouvé : $f"
-                rel="${f#"$SCRIPT_DIR/"}"
-                dest="$WORK_DIR/$rel"
-                echo "  Copie de $f vers $dest"
-                mkdir -p "$(dirname "$dest")"
-                cp "$f" "$dest"
-            done
-        else
-            if [ -f "$SCRIPT_DIR/$pat" ]; then
-                echo "  Trouvé : $SCRIPT_DIR/$pat"
-                rel="${pat}"
-                dest="$WORK_DIR/$rel"
-                echo "  Copie de $SCRIPT_DIR/$pat vers $dest"
-                mkdir -p "$(dirname "$dest")"
-                cp "$SCRIPT_DIR/$pat" "$dest"
-            else
-                echo "  Avertissement : $SCRIPT_DIR/$pat introuvable."
+# Fonction pour ajouter intelligemment des fichiers ou des dossiers
+add_target() {
+    local target="$1"
+    
+    # Si le globbing échoue (ex: *.md qui ne trouve rien), le texte littéral arrive ici
+    [ ! -e "$target" ] && return 0
+
+    # Si c'est un dossier, on cherche récursivement les fichiers texte
+    if [ -d "$target" ]; then
+        while IFS= read -r f; do
+            # Exclusion des dossiers cachés (ex: .git) et fichiers binaires/audio
+            if [[ ! "$f" =~ /\.[^/]+$ ]] && [[ ! "$f" =~ \.(wav|png|jpg|mp3|zip|gz|tar|pyc)$ ]]; then
+                # Vérification rapide si c'est bien du texte
+                if grep -Iq . "$f" 2>/dev/null; then
+                    FILES_LIST["$f"]=1
+                fi
             fi
+        done < <(find "$target" -type f 2>/dev/null)
+        
+    # Si c'est un fichier direct
+    elif [ -f "$target" ]; then
+        if grep -Iq . "$target" 2>/dev/null; then
+            FILES_LIST["$target"]=1
         fi
-    done
-}
-
-_add_dir() {
-    local dir="$1"
-    if [ -d "$SCRIPT_DIR/$dir" ]; then
-        echo "Copie du dossier : $SCRIPT_DIR/$dir"
-        cp -r "$SCRIPT_DIR/$dir" "$WORK_DIR/"
-    else
-        echo "Avertissement : Le dossier $SCRIPT_DIR/$dir n'existe pas."
     fi
 }
 
-# ── Dispatching ────────────────────────────────────────────────────────────
-EXTS="sh py html js json md conf service" # Extensions par défaut
-
+# ── Routage des Groupes ────────────────────────────────────────────────────
 for GROUP in "${GROUPS[@]}"; do
     case "$GROUP" in
         --install)
-            echo "Cible : Installation & Déploiement"
-            _add "deploy_on_pi.sh" "dj_mixxx_setup.sh" "setup_uninstall.sh" "check.sh"
-            _add "src/install_*.sh"
-            _add_dir "src/install"
-            EXTS="$EXTS md"
+            echo "Cible : Installation & Déploiement" >&2
+            add_target "deploy_on_pi.sh"
+            add_target "dj_mixxx_setup.sh"
+            add_target "setup_uninstall.sh"
+            add_target "check.sh"
+            add_target "cpcode.sh"
+            for f in src/install_*.sh; do add_target "$f"; done
+            add_target "src/install"
             ;;
-
         --backend)
-            echo "Cible : Backend (Audio, Video, System)"
-            _add "src/backend/log.sh" "src/backend/bt_update.sh"
-            _add_dir "src/backend"
-            _add_dir "monitor"
-            _add "src/config/services/soundspot-idle.service"
-            _add "src/config/services/soundspot-decoder.service"
-            EXTS="$EXTS service"
+            echo "Cible : Backend (Audio, Video, System)" >&2
+            add_target "src/backend"
+            add_target "monitor"
+            add_target "src/bt_manage.sh"
+            add_target "src/bt_update.sh"
+            add_target "src/log.sh"
+            add_target "code_reload.sh"
             ;;
-
         --frontend)
-            echo "Cible : Frontend (Portail Captif)"
-            _add "src/portal/*.sh" "src/portal/*.html" "src/portal/*.js" "src/portal/*.json"
-            _add_dir "src/portal/api/core"
-            EXTS="$EXTS html js json"
+            echo "Cible : Frontend (Portail Captif)" >&2
+            for f in src/portal/*.html src/portal/*.js src/portal/*.sh src/portal/*.css; do add_target "$f"; done
+            add_target "src/portal/api/core"
             ;;
-
         --apps)
-            echo "Cible : API & Apps"
-            _add "src/portal/api.sh"
-            _add_dir "src/portal/api/apps"
-            _add_dir "src/portal/api/core"
-            EXTS="$EXTS json"
+            echo "Cible : API & Apps" >&2
+            add_target "src/portal/api.sh"
+            add_target "src/portal/api/apps"
             ;;
-
         --picoport)
-            echo "Cible : Picoport & Swarm"
-            _add_dir "src/picoport"
-            _add "src/config/services/picoport.service"
-            _add "src/config/services/soundspot-swarm-sync.service"
-            EXTS="$EXTS service"
+            echo "Cible : Picoport & Swarm" >&2
+            add_target "src/picoport"
             ;;
-
         --config)
-            echo "Cible : Configurations & Systemd"
-            _add_dir "src/config"
-            _add "src/wpa_supplicant.conf"
-            EXTS="$EXTS conf xml"
+            echo "Cible : Configurations & Systemd" >&2
+            add_target "src/config"
+            add_target "src/templates"
+            add_target "src/wpa_supplicant.conf"
             ;;
-
         --dev)
-            echo "Cible : Développement & Docs"
-            _add "*.md" "CLAUDE.md"
-            _add_dir "src/dev"
-            _add_dir "test"
-            EXTS="$EXTS md json"
+            echo "Cible : Développement & Docs" >&2
+            add_target "src/dev"
+            add_target "test"
+            for f in *.md; do add_target "$f"; done
             ;;
-
         --all)
-            echo "Cible : Projet Complet"
-            _add_dir "src"
-            _add_dir "monitor"
-            _add_dir "test"
-            _add "*.sh" "*.md"
+            echo "Cible : Projet Complet" >&2
+            add_target "src"
+            add_target "monitor"
+            add_target "test"
+            for f in *.sh *.md *.html *.js *.py *.conf; do add_target "$f"; done
             ;;
     esac
 done
 
-# ── Exécution ──────────────────────────────────────────────────────────────
-echo "Extraction des fichiers dans $WORK_DIR..."
-cd "$WORK_DIR"
-echo "SCRIPT_DIR est défini à : $SCRIPT_DIR"
-# Afficher le contenu du dossier temporaire pour débogage
-echo "Contenu de $WORK_DIR :"
-find . -type f | sort
+if [ ${#FILES_LIST[@]} -eq 0 ]; then
+    echo "Erreur : Aucun fichier trouvé pour les groupes spécifiés." >&2
+    exit 1
+fi
 
-# On transforme la liste d'extensions pour cpcode (ex: "sh py" -> "sh py")
-# Note: cpcode attend les extensions comme arguments séparés avant les options
-echo "Extensions passées à cpcode : $EXTS"
-exec "$CPCODE" $EXTS "${CPCODE_ARGS[@]}" .
+# ── Génération de la Sortie ────────────────────────────────────────────────
+MOATS=$(date -u +"%Y%m%d%H%M%S%4N")
+FINAL_OUT="/tmp/ss_context_${MOATS}.txt"
+[ "$JSON_MODE" = true ] && FINAL_OUT="/tmp/ss_context_${MOATS}.json"
+
+> "$FINAL_OUT"
+JSON_COMMA=""
+
+if $JSON_MODE; then echo "{" >> "$FINAL_OUT"; echo '  "files": [' >> "$FINAL_OUT"; fi
+
+# Tri alphabétique des fichiers pour un rendu constant
+IFS=$'\n' SORTED_FILES=($(sort <<<"${!FILES_LIST[*]}"))
+unset IFS
+
+for FILE in "${SORTED_FILES[@]}"; do
+    FILENAME=$(basename "$FILE")
+    EXT="${FILENAME##*.}"
+    
+    # Langage Markdown adapté selon l'extension
+    case "$EXT" in
+        py) md_lang="python" ;;
+        html) md_lang="html" ;;
+        js) md_lang="javascript" ;;
+        css) md_lang="css" ;;
+        json) md_lang="json" ;;
+        md) md_lang="markdown" ;;
+        service|conf|env) md_lang="ini" ;;
+        *) md_lang="bash" ;; # par défaut
+    esac
+
+    # Gestion de la taille max
+    if [ "$MAX_FILE_SIZE" -gt 0 ]; then
+        FILE_BYTES=$(wc -c < "$FILE")
+        CONTENT=$(head -c "$MAX_FILE_SIZE" "$FILE")
+        if [ "$FILE_BYTES" -gt "$MAX_FILE_SIZE" ]; then
+            CONTENT+=$'\n'"[... TRONQUÉ : ${FILE_BYTES} octets → max ${MAX_FILE_SIZE} ...]"
+        fi
+    else
+        CONTENT=$(cat "$FILE")
+    fi
+
+    if $JSON_MODE; then
+        CONTENT_JSON=$(python3 -c "import json,sys; print(json.dumps(sys.stdin.read()))" <<< "$CONTENT")
+        echo "${JSON_COMMA}    {" >> "$FINAL_OUT"
+        echo "      \"path\": \"$FILE\"," >> "$FINAL_OUT"
+        echo "      \"filename\": \"$FILENAME\"," >> "$FINAL_OUT"
+        echo "      \"content\": $CONTENT_JSON" >> "$FINAL_OUT"
+        echo "    }" >> "$FINAL_OUT"
+        JSON_COMMA=","
+    else
+        {
+            echo "Chemin : $FILE"
+            echo "Titre : $FILENAME"
+            echo ""
+            echo "\`\`\`$md_lang"
+            echo "$CONTENT"
+            echo "\`\`\`"
+            echo ""
+        } >> "$FINAL_OUT"
+    fi
+done
+
+if $JSON_MODE; then echo '  ]' >> "$FINAL_OUT"; echo "}" >> "$FINAL_OUT"; fi
+
+# ── Copie dans le presse-papiers et Affichage ──────────────────────────────
+COPIED=false
+if ! $JSON_MODE; then
+    if [ -n "${DISPLAY:-}" ] && command -v xclip &>/dev/null; then
+        cat "$FINAL_OUT" | xclip -selection clipboard 2>/dev/null && COPIED=true
+    elif [ -n "${WAYLAND_DISPLAY:-}" ] && command -v wl-copy &>/dev/null; then
+        cat "$FINAL_OUT" | wl-copy 2>/dev/null && COPIED=true
+    elif command -v pbcopy &>/dev/null; then
+        cat "$FINAL_OUT" | pbcopy 2>/dev/null && COPIED=true
+    fi
+    
+    TOTAL_CHARS=$(wc -c < "$FINAL_OUT" 2>/dev/null || echo 0)
+    TOTAL_TOKENS=$(( TOTAL_CHARS / 4 ))
+    
+    if [ "$COPIED" = true ]; then
+        echo -e "\n✅ Contenu extrait (${#FILES_LIST[@]} fichiers) et copié dans le presse-papiers !" >&2
+    else
+        echo -e "\n⚠️ Extraction terminée (${#FILES_LIST[@]} fichiers), mais copie dans le presse-papiers impossible." >&2
+    fi
+    
+    echo "=== Fichier final : ${TOTAL_CHARS} chars (~${TOTAL_TOKENS} tokens) ===" >&2
+    echo "Résultat écrit dans : $FINAL_OUT"
+else
+    # Mode JSON : on crache sur Stdout pour permettre l'usage par des scripts tiers
+    cat "$FINAL_OUT"
+    echo "Résultat écrit dans : $FINAL_OUT" >&2
+fi
