@@ -12,7 +12,7 @@ EnvironmentFile=/opt/soundspot/soundspot.conf
 # On laisse un peu de temps au boot
 ExecStartPre=/bin/sleep 5
 ExecStart=/opt/soundspot/backend/system/bt-connect.sh
-Restart=always
+Restart=on-failure
 RestartSec=60
 
 [Install]
