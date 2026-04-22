@@ -1,3 +1,4 @@
+#!/bin/bash
 hdr "Monitoring de la Batterie (INA219)"
 
 # Création d'un environnement virtuel propre pour éviter --break-system-packages
