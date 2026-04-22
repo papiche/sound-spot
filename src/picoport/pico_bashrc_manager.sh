@@ -6,7 +6,6 @@ START_MARKER="# >>> PICOPORT ALIASES START >>>"
 END_MARKER="# <<< PICOPORT ALIASES END <<<"
 
 # Contenu du bloc PicoPort
-# Contenu du bloc PicoPort
 read -r -d '' PICO_BLOCK << EOF
 $START_MARKER
 
@@ -17,6 +16,8 @@ alias svc='systemctl status soundspot-* bt-autoconnect picoport 2>/dev/null | gr
 alias pico-log='tail -f ~/.zen/log/picoport_20h12.log'
 alias pico-svc='journalctl -u picoport.service -f'
 alias 12345='cat ~/.zen/tmp/\$(ipfs id -f="<id>" 2>/dev/null)/12345.json 2>/dev/null | jq'
+alias pico-low='~/.zen/Astroport.ONE/tools/cron_VRFY.sh LOW'
+alias pico-on='~/.zen/Astroport.ONE/tools/cron_VRFY.sh ON'
 
 # ── Audio & Bluetooth ─────────────────────────────────────────────────────
 alias sound='wpctl status'
@@ -40,23 +41,16 @@ pico-welcome() {
     echo "  ░▀▀▀░▀▀▀░▀▀▀░▀░▀░▀░▀░▀░▀░▀░▀"
     echo -e "\e[0m"
     echo -e "\e[1mBienvenue sur ton SoundSpot Picoport !\e[0m"
-    echo -e "Version : \e[32m$(git -C $HOME/.zen/workspace/sound-spot rev-parse --short HEAD 2>/dev/null || echo 'live')\e[0m"
+    echo -e "Version : \e[32m\$(git -C \$HOME/.zen/workspace/sound-spot rev-parse --short HEAD 2>/dev/null || echo 'live')\e[0m"
     echo ""
-    echo -e "\e[33m[Diagnostic]\e[0m"
-    echo -e "  check         : Diagnostic complet réseau/audio"
-    echo -e "  pico-status   : État rapide (Temp, IPFS, BT)"
-    echo -e "  swarm-nodes   : Voir les voisins de l'essaim"
-    echo ""
-    echo -e "\e[33m[Audio]\e[0m"
-    echo -e "  sound-test    : Vérifier si l'enceinte chante"
-    echo -e "  bt-fix        : Relancer la connexion Bluetooth"
-    echo ""
-    echo -e "\e[33m[Maintenance]\e[0m"
-    echo -e "  pico-update   : \e[5m⚠️\e[0m Mettre à jour le code et redéployer"
-    echo -e "  conf          : Modifier la configuration (SSID, MAC, etc.)"
-    echo ""
-    echo -e "\e[35m[IA Swarm]\e[0m"
-    echo -e "  ai ollama     : Se connecter au cerveau du Swarm"
+    echo -e "\e[33m─── Commandes & Alias disponibles ────────────────────────────────────\e[0m"
+    echo -e "  \e[36m[Diag/Logs]\e[0m  check, svc, pico-status, pico-log, pico-svc, 12345"
+    echo -e "  \e[36m[Énergie]  \e[0m  pico-on, pico-low, pico-power"
+    echo -e "  \e[36m[Audio/BT] \e[0m  sound, vol, sound-test, sound-fix, bt-fix"
+    echo -e "  \e[36m[Clocher]  \e[0m  clock-bells, clock-silent"
+    echo -e "  \e[36m[IA/Swarm] \e[0m  swarm-nodes, ai, asys, asys-list, asys-swarm"
+    echo -e "  \e[36m[Admin/Dev]\e[0m  conf, cd-pico, pico-update, ss-status, ss-reload"
+    echo -e "\e[33m──────────────────────────────────────────────────────────────────────\e[0m"
     echo ""
 }
 

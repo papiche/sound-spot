@@ -107,7 +107,7 @@ cd "$SOUNDSPOT_REPO" && git pull --ff-only 2>/dev/null || true
 
 # 2. Recalibration heure solaire
 echo "▶ Recalibration solaire..."
-"$SOUNDSPOT_REPO/src/picoport/picoport_cron_control.sh" RECALIBRATE 2>/dev/null || true
+"$HOME/.zen/Astroport.ONE/tools/cron_VRFY.sh" RECALIBRATE
 
 # 3. Signal de vie Nostr (kind 1)
 BATT="N/A"
