@@ -49,7 +49,9 @@ declare -A MSGS
     MSGS[07]="Ce n'est pas « Ici Londres » pendant la Seconde Guerre Mondiale. C'est « ALLO ici les DEV » pour mettre fin à la troisième. Construisons un réseau libre."
     MSGS[08]="Dans le cinquième Élément, l'humanité subit un futur dystopique. Ici, avec votre MULTIPASS, vous devenez co-bâtisseur du monde libre. Entrez, et amenez vos amis."
     MSGS[09]="La chaîne de confiance numérique est enfin raccourcie : Utilisateur, Capitaine, Armateur. Ce modèle est généralisable à toutes nos relations. Reprenez le contrôle."
-    
+    MSGS[10]="Avis aux hackers et développeurs. Ce réseau est open-source et fonctionne sur IPFS et Nostr. Connectez-vous au portail captif pour voir le code source et aider à financer ce bien commun via Open Collective."
+    MSGS[11]="Vous auditez ce réseau ? Bienvenue. Nous cherchons des pairs pour renforcer notre essaim cryptographique. Tapez l'adresse IP de cette passerelle dans votre navigateur pour rejoindre la Toile de Confiance."
+
     for id in "${!MSGS[@]}"; do
         local txt_file="$wav_dir/message_${id}.txt"
         local wav_file="$wav_dir/message_${id}.wav"

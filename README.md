@@ -323,3 +323,8 @@ grep '\[picoport\]' /var/log/sound-spot.log  # picoport uniquement
 ## Licence
 
 AGPL-3.0 — [G1FabLab](https://opencollective.com/monnaie-libre) / [UPlanet ẐEN](https://qo-op.com) / [zicmama.com](https://zicmama.com)
+
+## External Interface & API Reference
+The API HTTP (Port 80) and the Web3 NOSTR Interface (Jukebox) are fully documented for developers in [DEV.md](DEV.md).
+
+*🇬🇧 English speakers: We welcome issues, bug reports, and Pull Requests in English. Please refer to our [CONTRIBUTING.md](CONTRIBUTING.md) file.*

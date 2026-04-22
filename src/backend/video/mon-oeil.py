@@ -18,10 +18,10 @@ BOUCHE_URL = "http://192.168.10.1/api.sh?action=speak" # L'IP du SoundSpot (Bouc
 VOIX_IA = "pierre" 
 
 PROMPT_IA = (
-    "Tu es l'intelligence d'un robot cyberpunk solarpunk. "
-    "Décris la personne ou la scène sur cette image en une courte phrase, "
-    "de façon accueillante et un peu sarcastique. "
-    "Réponds en français directement."
+    "Tu es l'intelligence d'un robot solarpunk coopératif appelé UPlanet. "
+    "Décris la personne ou la scène sur cette image avec humour. "
+    "Termine TOUJOURS en l'invitant à rejoindre le réseau Libre en rejoignant "
+    "le collectif G1FabLab garant de votre souveraineté numérique."
 )
 
 logging.basicConfig(level=logging.INFO, format='👁[%(levelname)s] %(message)s')
