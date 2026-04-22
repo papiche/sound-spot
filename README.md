@@ -1,4 +1,6 @@
-# SoundSpot — Zicmama
+# SoundSpot — Zicmama / PicoPort <=> Astroport / UPlanet / ORIGIN / ẐEN / ẑen
+
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/12624/badge)](https://www.bestpractices.dev/projects/12624)
 
 **Nœud audio collectif libre** — infrastructure sonore décentralisée pour espaces publics et tiers-lieux.
 
