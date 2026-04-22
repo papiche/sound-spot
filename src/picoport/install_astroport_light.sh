@@ -77,17 +77,7 @@ echo "LAT=$LAT; LON=$LON" > ~/.zen/GPS
 
 # --- Bonus 
 echo "installation yt-dlp"
-bash $HOME/.zen/Astroport.ONE/install/youtube-dl.sh 
-
-## Pour que www-data puisse le lancer (déplacement dans /usr/local/bin)
-if [[ -f ~/.local/bin/yt-dlp ]]; then
-    rm -f /usr/local/bin/yt-dlp
-    sudo cp ~/.local/bin/yt-dlp /usr/local/bin/
-    sudo chmod +x /usr/local/bin/yt-dlp
-    rm -f ~/.local/bin/yt-dlp
-    ln -s /usr/local/bin/yt-dlp ~/.local/bin/yt-dlp
-fi
-
+bash $HOME/.zen/Astroport.ONE/install/youtube-dl.sh  
 ## ${SOUNDSPOT_USER} mises à jour yt-dlp -U
 sudo chown "${SOUNDSPOT_USER}:${SOUNDSPOT_USER}" /usr/local/bin/yt-dlp
 
