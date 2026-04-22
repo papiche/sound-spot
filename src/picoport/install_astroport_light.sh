@@ -81,7 +81,8 @@ bash $HOME/.zen/Astroport.ONE/install/youtube-dl.sh
 
 ## Pour que www-data puisse le lancer (déplacement dans /usr/local/bin)
 if [[ -f ~/.local/bin/yt-dlp ]]; then
-    sudo cp ~/.local/bin/yt-dlp /usr/local/bin/yt-dlp
+    rm -f /usr/local/bin/yt-dlp
+    sudo cp ~/.local/bin/yt-dlp /usr/local/bin/
     sudo chmod +x /usr/local/bin/yt-dlp
     rm -f ~/.local/bin/yt-dlp
     ln -s /usr/local/bin/yt-dlp ~/.local/bin/yt-dlp
