@@ -5,13 +5,14 @@ After=network.target
 [Service]
 Type=oneshot
 EnvironmentFile=/opt/soundspot/soundspot.conf
-# Si c'est uap0, on crée l'interface virtuelle
-ExecStartPre=/bin/bash -c 'if [ "${IFACE_AP}" = "uap0" ]; then /sbin/iw dev wlan0 interface add uap0 type __ap; /usr/bin/python3 -c "import subprocess; p=open(\"/sys/class/net/wlan0/address\").read().strip().split(\":\"); p[0]=format((int(p[0],16)|2)&254,\"02x\"); subprocess.run([\"ip\",\"link\",\"set\",\"dev\",\"uap0\",\"address\",\":\".join(p)])"; fi'
+# On ajoute || true pour forcer le code retour à 0 même si uap0 existe déjà
+ExecStartPre=/bin/bash -c 'if [ "${IFACE_AP}" = "uap0" ]; then /sbin/iw dev wlan0 interface add uap0 type __ap 2>/dev/null || true; /usr/bin/python3 -c "import subprocess; p=open(\"/sys/class/net/wlan0/address\").read().strip().split(\":\"); p[0]=format((int(p[0],16)|2)&254,\"02x\"); subprocess.run([\"ip\",\"link\",\"set\",\"dev\",\"uap0\",\"address\",\":\".join(p)])" || true; fi'
 # Monter l'interface
 ExecStart=/sbin/ip link set dev ${IFACE_AP} up
-# Assigner l'IP (Corrige le bug de dnsmasq au passage !)
+# Assigner l'IP
 ExecStartPost=/sbin/ip addr replace ${SPOT_IP}/24 dev ${IFACE_AP}
-ExecStop=/bin/bash -c 'if [ "${IFACE_AP}" = "uap0" ]; then /sbin/iw dev uap0 del; else /sbin/ip link set dev ${IFACE_AP} down; fi'
+# Au stop, on ajoute || true pour que Systemd ne plante pas si l'interface est déjà supprimée
+ExecStop=/bin/bash -c 'if [ "${IFACE_AP}" = "uap0" ]; then /sbin/iw dev uap0 del 2>/dev/null || true; else /sbin/ip link set dev ${IFACE_AP} down 2>/dev/null || true; fi'
 RemainAfterExit=yes
 Restart=on-failure
 RestartSec=5

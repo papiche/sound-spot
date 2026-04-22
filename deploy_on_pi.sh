@@ -198,44 +198,57 @@ if [ "$SOUNDSPOT_MODE" != "2" ]; then
         export WIFI_CHANNEL="$UPSTREAM_CHAN"
         warn "Mode Monocarte : AP forcée sur le canal ${WIFI_CHANNEL} (doit suivre wlan0)."
     else
-        log "Mode Dual-WiFi : Recherche du canal le plus calme..."
+        log "Mode Dual-WiFi : Recherche du canal le plus calme (Nbe réseaux + RSSI)..."
         
-        # Scan sécurisé
-        SCAN_RAW=$(sudo iw wlan0 scan dump 2>/dev/null | grep "primary channel" | awk '{print $4}' || true)
-        if [ -z "$SCAN_RAW" ]; then
-            SCAN_RAW=$(sudo iw wlan0 scan 2>/dev/null | grep "primary channel" | awk '{print $4}' || echo "")
-        fi
+        SCAN_DATA=$(sudo iw dev wlan0 scan 2>/dev/null || echo "")
         
-        # Comptage rigoureux (on force une seule ligne en sortie)
-        # -w dans grep évite que "1" match "11"
-        C1=$(echo "$SCAN_RAW" | grep -w "1" | wc -l)
-        C6=$(echo "$SCAN_RAW" | grep -w "6" | wc -l)
-        C11=$(echo "$SCAN_RAW" | grep -w "11" | wc -l)
+        declare -A CH_COUNT=([1]=0 [6]=0 [11]=0)
+        declare -A CH_PENALTY=([1]=0 [6]=0 [11]=0)
+
+        CURRENT_SIG=0
+
+        # Machine à états pour parser correctement chaque bloc "BSS"
+        while IFS= read -r line; do
+            if [[ "$line" =~ ^BSS\ [0-9a-fA-F:]+ ]]; then
+                # Nouvelle box détectée, on réinitialise le signal
+                CURRENT_SIG=0
+            elif [[ "$line" =~ signal:\ -([0-9]+) ]]; then
+                # Capture la valeur absolue du signal (ex: 70 pour -70 dBm)
+                CURRENT_SIG="${BASH_REMATCH[1]}"
+            elif [[ "$line" =~ primary\ channel:\ ([0-9]+) ]] || [[ "$line" =~ DS\ Parameter\ set:\ channel\ ([0-9]+) ]]; then
+                CHAN="${BASH_REMATCH[1]}"
+                if [[ "$CHAN" =~ ^(1|6|11)$ ]] && [ "$CURRENT_SIG" -gt 0 ]; then
+                    CH_COUNT[$CHAN]=$(( CH_COUNT[$CHAN] + 1 ))
+                    # Un signal très fort (-30) donne une grosse pénalité (70). 
+                    # Un signal faible (-90) donne une petite pénalité (10).
+                    PENALTY=$(( 100 - CURRENT_SIG ))
+                    [ "$PENALTY" -lt 0 ] && PENALTY=0
+                    CH_PENALTY[$CHAN]=$(( CH_PENALTY[$CHAN] + PENALTY ))
+                    CURRENT_SIG=0 # Reset pour éviter de compter en double
+                fi
+            fi
+        done <<< "$SCAN_DATA"
         
-        log "Encombrement : CH1:${C1} | CH6:${C6} | CH11:${C11}"
-        
-        # Choix du meilleur canal
+        # Le canal par défaut exclut de base le canal utilisé par la connexion Internet
         BEST_CHAN=1
         [ "$UPSTREAM_CHAN" == "1" ] && BEST_CHAN=6
-        
-        MIN_RESEAUX=999
+        MIN_SCORE=999999
+
         for CH in 1 6 11; do
             if [ "$CH" != "$UPSTREAM_CHAN" ]; then
-                # On récupère le compteur correspondant au canal testé
-                COUNT=$(echo "$SCAN_RAW" | grep -cw "$CH" | head -n 1 || echo 0)
-                # On s'assure que COUNT est un entier pur pour le test [ ]
-                COUNT=$(echo "$COUNT" | tr -d '[:space:]')
+                # Score = (Nombre de réseaux * 1000) + Somme des pénalités RSSI
+                SCORE=$(( CH_COUNT[$CH] * 1000 + CH_PENALTY[$CH] ))
+                log "  CH${CH} : ${CH_COUNT[$CH]} réseau(x), Pénalité RSSI=${CH_PENALTY[$CH]}, Score=${SCORE}"
                 
-                if [ "$COUNT" -lt "$MIN_RESEAUX" ]; then
-                    MIN_RESEAUX=$COUNT
+                if [ "$SCORE" -lt "$MIN_SCORE" ]; then
+                    MIN_SCORE=$SCORE
                     BEST_CHAN=$CH
                 fi
             fi
         done
         
         export WIFI_CHANNEL="$BEST_CHAN"
-        # Utilisation de 'log' car 'ok' n'est pas défini dans ce script
-        log "${G}✓${N} Choix automatique : ${W}Canal ${WIFI_CHANNEL}${N} (${MIN_RESEAUX} voisins)"
+        log "${G}✓${N} Choix automatique : ${W}Canal ${WIFI_CHANNEL}${N} (Score minimal: ${MIN_SCORE})"
         
         ask "Utiliser ce canal ou saisir manuellement [${WIFI_CHANNEL}] : "
         read -r INPUT_CHAN
