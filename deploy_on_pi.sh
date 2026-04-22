@@ -208,9 +208,9 @@ if [ "$SOUNDSPOT_MODE" != "2" ]; then
         
         # Comptage rigoureux (on force une seule ligne en sortie)
         # -w dans grep évite que "1" match "11"
-        C1=$(echo "$SCAN_RAW" | grep -cw "1" | head -n 1 || echo 0)
-        C6=$(echo "$SCAN_RAW" | grep -cw "6" | head -n 1 || echo 0)
-        C11=$(echo "$SCAN_RAW" | grep -cw "11" | head -n 1 || echo 0)
+        C1=$(echo "$SCAN_RAW" | grep -w "1" | wc -l)
+        C6=$(echo "$SCAN_RAW" | grep -w "6" | wc -l)
+        C11=$(echo "$SCAN_RAW" | grep -w "11" | wc -l)
         
         log "Encombrement : CH1:${C1} | CH6:${C6} | CH11:${C11}"
         

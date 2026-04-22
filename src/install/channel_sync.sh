@@ -13,15 +13,12 @@ setup_channel_sync() {
 
     systemctl daemon-reload
 
-    if [ "$IFACE_AP" != "uap0" ]; then
-        log "Mode Dual-WiFi : Indépendance des canaux activée."
-        log "Hostapd utilisera le canal dédié ${WIFI_CHANNEL} au lieu de suivre wlan0."
-        return 0
-    fi
-
+    # Le service s'installe dans TOUS les cas (Mono ou Dual WiFi)
+    # L'intelligence du choix du canal est gérée par le script lui-même
     install_template soundspot-channel-sync.service \
         /etc/systemd/system/soundspot-channel-sync.service \
         '${INSTALL_DIR}'
+    
     systemctl enable soundspot-channel-sync
-    log "Service soundspot-channel-sync activé"
+    log "Service soundspot-channel-sync activé (Auto-optimisation au boot)"
 }

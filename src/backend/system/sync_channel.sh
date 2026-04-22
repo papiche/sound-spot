@@ -1,31 +1,65 @@
 #!/bin/bash
-# sync_channel.sh — Met à jour le canal hostapd pour qu'il corresponde
-# au canal réel du réseau amont (lu depuis wlan0 connecté).
+# sync_channel.sh — Met à jour le canal hostapd au démarrage.
+# En Mono-WiFi (uap0) : copie le canal de wlan0.
+# En Dual-WiFi (wlan1) : scanne et choisit le meilleur canal (1, 6, 11).
 
 source /opt/soundspot/soundspot.conf 2>/dev/null || true
+IFACE_AP="${IFACE_AP:-uap0}"
+IFACE_WAN="${IFACE_WAN:-wlan0}"
 
 log() { echo "[sync_channel] $*"; }
 
 # Attendre que wlan0 soit associé au réseau amont (max 60 s)
 for i in $(seq 1 30); do
-    iwgetid wlan0 --raw 2>/dev/null | grep -q . && break
+    iwgetid "$IFACE_WAN" --raw 2>/dev/null | grep -q . && break
     sleep 2
 done
 
-# Lire le canal courant de wlan0 (= canal effectif du réseau amont)
-CHANNEL=$(iw dev wlan0 info 2>/dev/null | awk '/channel/{print $2; exit}')
+# Lire le canal courant du réseau amont
+UPSTREAM_CHAN=$(iw dev "$IFACE_WAN" info 2>/dev/null | awk '/channel/{print $2; exit}')
+UPSTREAM_CHAN=$(echo "$UPSTREAM_CHAN" | tr -d '[:space:]')
 
-if [ -z "$CHANNEL" ]; then
-    log "Canal non détecté — hostapd.conf inchangé"
+if [ -z "$UPSTREAM_CHAN" ]; then
+    log "Canal réseau amont non détecté — hostapd.conf inchangé"
     exit 0
+fi
+
+BEST_CHAN="$UPSTREAM_CHAN"
+
+if [ "$IFACE_AP" != "uap0" ]; then
+    log "Mode Dual-WiFi : Recherche du meilleur canal au démarrage..."
+    
+    # Scan des réseaux existants
+    SCAN_RAW=$(iw "$IFACE_WAN" scan dump 2>/dev/null | grep "primary channel" | awk '{print $4}' || true)
+    if [ -z "$SCAN_RAW" ]; then
+        SCAN_RAW=$(iw "$IFACE_WAN" scan 2>/dev/null | grep "primary channel" | awk '{print $4}' || true)
+    fi
+    
+    BEST_CHAN=1
+    [ "$UPSTREAM_CHAN" == "1" ] && BEST_CHAN=6
+    
+    MIN_RESEAUX=999
+    for CH in 1 6 11; do
+        if [ "$CH" != "$UPSTREAM_CHAN" ]; then
+            # Utilisation de wc -l pour éviter les bugs d'affichage multi-lignes
+            COUNT=$(echo "$SCAN_RAW" | grep -w "$CH" | wc -l)
+            if [ "$COUNT" -lt "$MIN_RESEAUX" ]; then
+                MIN_RESEAUX=$COUNT
+                BEST_CHAN=$CH
+            fi
+        fi
+    done
+    log "Meilleur canal dégagé trouvé : CH${BEST_CHAN} (Réseau amont sur CH${UPSTREAM_CHAN})"
+else
+    log "Mode Mono-WiFi : Canal AP forcé sur CH${BEST_CHAN} pour suivre ${IFACE_WAN}"
 fi
 
 CURRENT=$(grep "^channel=" /etc/hostapd/hostapd.conf 2>/dev/null | cut -d= -f2)
 
-if [ "$CHANNEL" = "$CURRENT" ]; then
-    log "Canal ${CHANNEL} déjà correct — aucun changement"
+if [ "$BEST_CHAN" = "$CURRENT" ]; then
+    log "Canal ${BEST_CHAN} déjà correct — aucun changement"
     exit 0
 fi
 
-log "Canal ${WIFI_SSID:-réseau amont} : ${CURRENT:-?} → ${CHANNEL} — mise à jour hostapd.conf"
-sed -i "s/^channel=.*/channel=${CHANNEL}/" /etc/hostapd/hostapd.conf
+log "Mise à jour hostapd.conf : ${CURRENT:-?} → ${BEST_CHAN}"
+sed -i "s/^channel=.*/channel=${BEST_CHAN}/" /etc/hostapd/hostapd.conf
