@@ -23,16 +23,30 @@ if [ ! -d "$SWARM_DIR" ]; then
 fi
 
 # ── Parser les nœuds du swarm ─────────────────────────────────
+# Les fichiers name/power/ip n'existent pas dans le format Astroport.ONE/Picoport.
+# La source de vérité est 12345.json (publié par chaque nœud sur /ipns/$IPFSNODEID).
 NODES_JSON="["
 for NODE_DIR in "$SWARM_DIR"/*/; do
     [ -d "$NODE_DIR" ] || continue
     PEER=$(basename "$NODE_DIR")
+    JSON="${NODE_DIR}12345.json"
 
-    # Lire les fichiers d'état si disponibles
-    NAME=$(cat "${NODE_DIR}name" 2>/dev/null || echo "$PEER")
-    POWER=$(cat "${NODE_DIR}power" 2>/dev/null || echo "unknown")
-    BATTERY=$(cat "${NODE_DIR}battery" 2>/dev/null || echo "0")
-    IP=$(cat "${NODE_DIR}ip" 2>/dev/null || echo "")
+    # Lire depuis 12345.json si disponible, sinon fichiers legacy (picoport custom)
+    if [ -s "$JSON" ] && jq . "$JSON" >/dev/null 2>&1; then
+        NAME=$(jq -r '.node_info.hostname // .hostname // ""' "$JSON" 2>/dev/null)
+        [ -z "$NAME" ] && NAME="$PEER"
+        PS=$(jq -r '.capacities.power_score // 0' "$JSON" 2>/dev/null)
+        if   [ "${PS:-0}" -gt 40 ] 2>/dev/null; then POWER="🔥 Brain"
+        elif [ "${PS:-0}" -gt 10 ] 2>/dev/null; then POWER="⚡ Std"
+        else                                          POWER="🌿 Light"; fi
+        IP=$(jq -r '.myIP // .myip // ""' "$JSON" 2>/dev/null)
+    else
+        NAME=$(cat "${NODE_DIR}name"    2>/dev/null || echo "$PEER")
+        POWER=$(cat "${NODE_DIR}power"  2>/dev/null || echo "unknown")
+        IP=$(cat "${NODE_DIR}ip"        2>/dev/null || echo "")
+    fi
+    # battery : fichier dédié (picoport INA219) ou absent (nœuds sans batterie)
+    BATTERY=$(cat "${NODE_DIR}battery" 2>/dev/null || echo "")
     LAST_SEEN=$(stat -c%Y "${NODE_DIR}" 2>/dev/null || echo 0)
     AGO=$(( $(date +%s) - LAST_SEEN ))
 

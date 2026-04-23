@@ -12,6 +12,15 @@ SWARM_DIR="$TMP_DIR/swarm"
 # Services à exposer (Nom:PortLocal)
 MY_SERVICES="icecast:8111 snapcast:1704 upassport:54321 ssh:22"
 
+# ── heartbox_analysis.sh (Astroport.ONE light install) ──────────────────────
+# Fournit capacities.power_score, capacities.crypto_score, provider_ready…
+# Cohérent avec astrosystemctl list-remote et le format 12345.json du swarm.
+HB_SCRIPT=""
+for _hb in "$HOME/.zen/Astroport.ONE/tools/heartbox_analysis.sh" \
+           "$HOME/.zen/workspace/sound-spot/src/picoport/../../../Astroport.ONE/tools/heartbox_analysis.sh"; do
+    [[ -x "$_hb" ]] && HB_SCRIPT="$_hb" && break
+done
+
 mkdir -p "$MY_NODE_DIR" "$SWARM_DIR"
 
 # --- CHARGEMENT DES LOGS ---
@@ -144,17 +153,41 @@ while true; do
 
     # Mise à jour du 12345.json (ajoute les services détectés)
     DRAGON_LIST=$(ls "$MY_NODE_DIR"/x_*.sh 2>/dev/null | xargs -I{} basename {} .sh | sed 's/^x_//' | paste -sd',' -)
-    
+
+    # ── Capacités via heartbox_analysis.sh (format unifié swarm) ────────────────
+    # Si heartbox_analysis.sh est disponible (Astroport.ONE light install),
+    # on l'utilise pour générer le bloc capacities avec power_score et crypto_score.
+    HB_CACHE="$MY_NODE_DIR/heartbox_analysis.json"
+    CAPACITIES='{"power_score":0,"crypto_score":0,"provider_ready":false,"storage_ready":false}'
+
+    if [[ -n "$HB_SCRIPT" ]]; then
+        # Rafraîchir si absent ou > 900 s (TTL heartbox = 300 s, on tolère 3 cycles picoport)
+        if [[ ! -s "$HB_CACHE" ]] || \
+           [[ $(( $(date +%s) - $(stat -c%Y "$HB_CACHE" 2>/dev/null || echo 0) )) -gt 900 ]]; then
+            bash "$HB_SCRIPT" update >/dev/null 2>&1
+        fi
+        if [[ -s "$HB_CACHE" ]]; then
+            _CAPS=$(jq '.capacities // empty' "$HB_CACHE" 2>/dev/null)
+            [[ -n "$_CAPS" ]] && CAPACITIES="$_CAPS"
+        fi
+    fi
+
     cat > "$MY_NODE_DIR/12345.json" << EOF
 {
     "version": "picoport-0.5-dragon",
     "created": $MOATS,
-    "hostname": "$(hostname)",
-    "ipfsnodeid": "$IPFSNODEID",
-    "type": "soundspot",
-    "captain": "",
+    "node_info": {
+        "id":       "$IPFSNODEID",
+        "hostname": "$(hostname)",
+        "type":     "soundspot",
+        "captain":  ""
+    },
+    "hostname":      "$(hostname)",
+    "ipfsnodeid":    "$IPFSNODEID",
+    "captain":       "",
     "dragon_services": "$DRAGON_LIST",
-    "streaming": { "icecast": true, "snapcast": true }
+    "streaming":     { "icecast": true, "snapcast": true },
+    "capacities":    $CAPACITIES
 }
 EOF
 
