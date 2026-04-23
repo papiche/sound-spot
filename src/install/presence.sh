@@ -39,12 +39,12 @@ setup_presence() {
     raspi-config nonint do_i2c 0 2>/dev/null || true
     log "Bus I2C activé (requis pour INA219)"
 
-    if[ -f "$INSTALL_DIR/battery_monitor.py" ]; then
+    if [ -f "$INSTALL_DIR/battery_monitor.py" ]; then
         local USER_HOME=$(getent passwd "$SOUNDSPOT_USER" | cut -d: -f6)
         local ASTRO_VENV="$USER_HOME/.astro"
 
         # Utilisation du Venv Picoport commun (créé si absent)
-        if[ ! -x "$ASTRO_VENV/bin/python3" ]; then
+        if [ ! -x "$ASTRO_VENV/bin/python3" ]; then
             log "Création du venv Python unifié ($ASTRO_VENV)..."
             apt-get install -y -q python3-venv python3-dev
             sudo -u "$SOUNDSPOT_USER" python3 -m venv "$ASTRO_VENV"
