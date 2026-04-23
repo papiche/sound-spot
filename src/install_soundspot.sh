@@ -101,6 +101,11 @@ setup_logging        # Logs centralisés
 setup_networking     # AP + IPSet + Firewall
 setup_captive_portal # Lighttpd
 setup_icecast        # Flux DJ
+# ── install HAT (mic + speakers) ───────────────────────
+if [ "$USE_RESPEAKER" = "true" ]; then
+    source "$SCRIPT_DIR/install/respeaker.sh"
+    setup_respeaker
+fi
 setup_pipewire       # Audio engine
 setup_bluetooth      # BT Autoconnect
 setup_snapserver     # Serveur synchro

@@ -19,6 +19,7 @@ source "$SCRIPT_DIR/install/bluetooth.sh"
 source "$SCRIPT_DIR/install/pipewire.sh"
 source "$SCRIPT_DIR/install/snapclient.sh"
 
+
 # ── Variables configurables ─────────────────────────────────
 MASTER_HOST="${MASTER_HOST:-soundspot.local}"  # hostname/IP du maître sur qo-op
 SNAPCAST_PORT="${SNAPCAST_PORT:-1704}"
@@ -48,6 +49,11 @@ mkdir -p "$INSTALL_DIR"
 
 # ── Configuration ─────────────────────────────────────────────
 setup_bluetooth
+# ── install HAT (mic + speakers) ───────────────────────
+if [ "$USE_RESPEAKER" = "true" ]; then
+    source "$SCRIPT_DIR/install/respeaker.sh"
+    setup_respeaker
+fi
 setup_pipewire
 setup_snapclient satellite
 

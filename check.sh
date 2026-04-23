@@ -130,6 +130,16 @@ check_svc bluealsa              "bluealsa"   masked
 check_svc bluealsa-aplay        "bluealsa-aplay" masked
 check_svc opennds               "opennds"    masked
 
+
+hdr "Matériel ReSpeaker"
+if aplay -l | grep -q "seeed-2mic-voicecard"; then
+    ok "HAT ReSpeaker détecté par ALSA"
+else
+    if [ "${PICOPORT_RESPEAKER:-false}" = "true" ]; then
+        fail "HAT ReSpeaker configuré mais NON DÉTECTÉ par le système"
+    fi
+fi
+
 # ── 2. Réseau ───────────────────────────────────────────────────
 hdr "Réseau"
 

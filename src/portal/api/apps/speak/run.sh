@@ -17,6 +17,12 @@ if [ -n "$TEXT" ]; then
 
         # Mode MULTIPASS / Orpheus IA Responder
         if [[ "$VOICE" == "pierre" || "$VOICE" == "amelie" ]]; then
+            # Test rapide : le port est-il déjà ouvert ?
+            if ! nc -z localhost 5005; then
+                ASTRO_SCRIPT="$HOME/.local/bin/astrosystemctl"
+                $ASTRO_SCRIPT connect orpheus >/dev/null 2>&1
+            fi
+
             ORPHEUS_SCRIPT="$HOME/.zen/Astroport.ONE/tools/orpheus.me.sh"
             
             if [[ -x "$ORPHEUS_SCRIPT" ]]; then

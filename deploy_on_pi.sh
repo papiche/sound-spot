@@ -36,6 +36,7 @@ fi
 export SOUNDSPOT_USER="${SUDO_USER:-pi}"
 export SOUNDSPOT_UID=$(id -u "${SOUNDSPOT_USER}" 2>/dev/null || echo "1000")
 log "Utilisateur audio : ${W}${SOUNDSPOT_USER}${N} (UID ${SOUNDSPOT_UID})"
+sudo usermod -aG audio ${SOUNDSPOT_USER}
 
 if [[ $SCRIPT_DIR != "/home/$SOUNDSPOT_USER/.zen/workspace/sound-spot" ]]; then
     echo "... PLEASE RESPECT ~/.zen CODE LOCATION ... 
@@ -255,6 +256,16 @@ if [ "$SOUNDSPOT_MODE" != "2" ]; then
         export WIFI_CHANNEL="${INPUT_CHAN:-$WIFI_CHANNEL}"
     fi
 fi
+
+# ════════════════════════════════════════════════════════════════
+#  EXTRA HATS _____ ReSpeaker ---- add your audio HAT here !!
+# ════════════════════════════════════════════════════════════════
+
+hdr "Hardware Audio (HAT)"
+ask "Utilisez-vous un ReSpeaker 2-Mics HAT (Jack + Micro) ? [o/N] : "
+read -r INPUT_RESPEAKER
+export USE_RESPEAKER="false"
+[[ "${INPUT_RESPEAKER,,}" == "o" ]] && export USE_RESPEAKER="true"
 
 # ════════════════════════════════════════════════════════════════
 #  5. Enceinte Bluetooth
