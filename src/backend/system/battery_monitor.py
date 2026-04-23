@@ -163,8 +163,20 @@ def main():
     while True:
         try:
             voltage = ina.voltage()
+            current = ina.current()
+            power   = ina.power()
             pct     = voltage_to_percent(voltage)
-            log.info("Batterie : %.2f V — %d %%", voltage, pct)
+            
+            log.info("Batterie : %.2f V — %.1f mA — %.1f mW — %d %%", voltage, current, power, pct)
+
+            # Écriture dans les fichiers /tmp pour le portail web
+            try:
+                with open("/tmp/battery_voltage", "w") as f: f.write(f"{voltage:.2f}")
+                with open("/tmp/battery_percent", "w") as f: f.write(str(pct))
+                with open("/tmp/battery_current", "w") as f: f.write(f"{current:.1f}")
+                with open("/tmp/battery_power", "w") as f: f.write(f"{power:.1f}")
+            except Exception as exc:
+                log.error("Erreur d'écriture des stats dans /tmp : %s", exc)
 
             if pct <= LOW_THRESHOLD and not low_state:
                 log.warning("Batterie critique (%d %%) → alerte vocale", pct)
@@ -172,7 +184,6 @@ def main():
                 low_state = True
 
             elif pct > LOW_THRESHOLD + 5 and low_state:
-                # Marge de +5 % pour éviter le flapping autour du seuil
                 log.info("Batterie rétablie (%d %%) → message normal", pct)
                 restore_normal_wav()
                 low_state = False

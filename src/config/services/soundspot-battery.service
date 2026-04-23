@@ -6,8 +6,8 @@ After=soundspot-presence.service
 Type=simple
 EnvironmentFile=${INSTALL_DIR}/soundspot.conf
 Environment="XDG_RUNTIME_DIR=/run/user/${SOUNDSPOT_UID}"
-ExecStart=${INSTALL_DIR}/venv/bin/python3 ${INSTALL_DIR}/backend/system/battery_monitor.py
-# Restart=on-failure : si le capteur INA219 est absent (sys.exit 0), pas de relance
+# On pointe directement vers le venv ~/.astro
+ExecStart=/home/${SOUNDSPOT_USER}/.astro/bin/python3 ${INSTALL_DIR}/backend/system/battery_monitor.py
 Restart=on-failure
 RestartSec=60
 User=${SOUNDSPOT_USER}

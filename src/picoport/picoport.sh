@@ -106,9 +106,9 @@ EOF
     done
 }
 
-# --- DÉCOUVERTE DU SWARM (Balises complètes) ---
+# --- DÉCOUVERTE DU SWARM (Balises complètes) shuf limit 5 ---
 discover_neighbors() {
-    PEERS=$(ipfs swarm peers | grep -oP 'p2p/\K.*' | sort -u | head -n 5)
+    PEERS=$(ipfs swarm peers | grep -oP 'p2p/\K.*' | sort -u | shuf | head -n 5)
     for peer in $PEERS; do
         if [ "$peer" != "$IPFSNODEID" ]; then
             if [ ! -d "$SWARM_DIR/$peer" ] ||[ "$(find "$SWARM_DIR/$peer" -maxdepth 0 -mmin +60)" ]; then
@@ -152,6 +152,7 @@ while true; do
     "hostname": "$(hostname)",
     "ipfsnodeid": "$IPFSNODEID",
     "type": "soundspot",
+    "captain": "",
     "dragon_services": "$DRAGON_LIST",
     "streaming": { "icecast": true, "snapcast": true }
 }

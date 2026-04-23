@@ -206,8 +206,13 @@
   <!-- ════ ONGLET 4 : ÉNERGIE ════ -->
   <div id="tab-solaire" class="tab-content">
     <div class="card">
-      <h2>🔋 État Solaire</h2>
-      <span id="batt-volt" class="volt-display">--.- V</span>
+      <h2>🔋 Télémétrie Solaire (INA219)</h2>
+      <div class="astro-grid">
+        <div class="astro-box"><span id="batt-volt" class="volt-display">-- V</span><label>Tension</label></div>
+        <div class="astro-box"><span id="batt-cur" class="volt-display">-- mA</span><label>Courant</label></div>
+        <div class="astro-box"><span id="batt-pow" class="volt-display">-- mW</span><label>Puissance</label></div>
+        <div class="astro-box"><span id="batt-pct" class="volt-display">-- %</span><label>Charge</label></div>
+      </div>
       <div id="energy-chart" class="ct-chart"></div>
     </div>
     <div class="card">
@@ -287,11 +292,15 @@
         const dj = document.getElementById('dj-badge');
         dj.textContent = d.dj_active ? '🎵 LIVE' : 'Silence';
         dj.className = d.dj_active ? 'badge-mini live' : 'badge-mini';
-        document.getElementById('batt-badge').textContent = d.batt_volt + ' V';
-        document.getElementById('batt-volt').textContent = d.batt_volt + ' V';
+        document.getElementById('batt-badge').textContent = d.batt_pct + ' %';
+        document.getElementById('batt-volt').textContent  = d.batt_volt + ' V';
+        document.getElementById('batt-cur').textContent   = d.batt_cur + ' mA';
+        document.getElementById('batt-pow').textContent   = d.batt_pow + ' mW';
+        document.getElementById('batt-pct').textContent   = d.batt_pct + ' %';
+        
         if (chart) {
           chartData.labels.push(new Date().toLocaleTimeString());
-          chartData.series[0].push(d.batt_volt);
+          chartData.series[0].push(d.batt_volt); // Le graphique continue d'afficher la tension
           if (chartData.labels.length > 12) { chartData.labels.shift(); chartData.series[0].shift(); }
           chart.update(chartData);
         }

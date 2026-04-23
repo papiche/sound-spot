@@ -23,14 +23,16 @@ case "$ACTION" in
         echo '{"status":"ok","message":"Reconnexion Bluetooth lancée"}'
         ;;
     status)
-        # On injecte les données batterie si disponibles
         BATT_PCT=$(cat /tmp/battery_percent 2>/dev/null || echo "0")
         BATT_VOLT=$(cat /tmp/battery_voltage 2>/dev/null || echo "0")
+        BATT_CUR=$(cat /tmp/battery_current 2>/dev/null || echo "0")
+        BATT_POW=$(cat /tmp/battery_power 2>/dev/null || echo "0")
+        
         DJ_ACTIVE="false"
         curl -s -o /dev/null -w "%{http_code}" --max-time 1 "http://127.0.0.1:8111/live" | grep -q "200" && DJ_ACTIVE="true"
         
-        printf '{"spot_name":"%s","dj_active":%s,"batt_pct":%s,"batt_volt":%s,"picoport_active":true}\n' \
-            "$SPOT_NAME" "$DJ_ACTIVE" "$BATT_PCT" "$BATT_VOLT"
+        printf '{"spot_name":"%s","dj_active":%s,"batt_pct":%s,"batt_volt":%s,"batt_cur":%s,"batt_pow":%s,"picoport_active":true}\n' \
+            "$SPOT_NAME" "$DJ_ACTIVE" "$BATT_PCT" "$BATT_VOLT" "$BATT_CUR" "$BATT_POW"
         ;;
     *)
         # Dispatch classique vers les modules existants

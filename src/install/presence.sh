@@ -34,31 +34,34 @@ setup_presence() {
         log "→ Recommandé : Pi 4 minimum (charge CPU OpenCV sur Pi Zero 2W)"
     fi
 
-    # ── Monitoring batterie solaire (INA219 — optionnel) ──────
-    hdr "Monitoring batterie (INA219 — optionnel)"
+# ── Monitoring batterie solaire (INA219 — optionnel) ──────
+    hdr "Monitoring batterie (INA219 — unifié dans ~/.astro)"
     raspi-config nonint do_i2c 0 2>/dev/null || true
     log "Bus I2C activé (requis pour INA219)"
 
-    if [ -f "$INSTALL_DIR/battery_monitor.py" ]; then
-        # Venv Python isolé pour pi-ina219 (non disponible via apt)
-        if [ ! -x "$INSTALL_DIR/venv/bin/python3" ]; then
-            log "Création du venv Python pour battery_monitor..."
-            apt-get install -y -q python3-venv
-            python3 -m venv "$INSTALL_DIR/venv"
-            "$INSTALL_DIR/venv/bin/pip" install --quiet pi-ina219 2>/dev/null \
-                && log "pi-ina219 installé dans le venv ✓" \
-                || warn "pi-ina219 indisponible — monitoring désactivé si INA219 absent"
-        else
-            log "Venv existant réutilisé ✓"
+    if[ -f "$INSTALL_DIR/battery_monitor.py" ]; then
+        local USER_HOME=$(getent passwd "$SOUNDSPOT_USER" | cut -d: -f6)
+        local ASTRO_VENV="$USER_HOME/.astro"
+
+        # Utilisation du Venv Picoport commun (créé si absent)
+        if[ ! -x "$ASTRO_VENV/bin/python3" ]; then
+            log "Création du venv Python unifié ($ASTRO_VENV)..."
+            apt-get install -y -q python3-venv python3-dev
+            sudo -u "$SOUNDSPOT_USER" python3 -m venv "$ASTRO_VENV"
         fi
+
+        log "Installation de pi-ina219 dans le venv..."
+        sudo -u "$SOUNDSPOT_USER" "$ASTRO_VENV/bin/pip" install --quiet pi-ina219 2>/dev/null \
+            && log "pi-ina219 installé ✓" \
+            || warn "pi-ina219 indisponible"
 
         install_template soundspot-battery.service \
             /etc/systemd/system/soundspot-battery.service \
             '${INSTALL_DIR} ${SOUNDSPOT_USER}'
         systemctl enable soundspot-battery
-        log "Service soundspot-battery activé (quitte proprement si INA219 absent)"
+        log "Service soundspot-battery activé"
     else
         warn "battery_monitor.py absent — monitoring batterie non installé"
-        warn "(Copier battery_monitor.py puis relancer setup_presence)"
     fi
-}
+    
+    }
