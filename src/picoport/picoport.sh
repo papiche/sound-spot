@@ -27,37 +27,79 @@ else
     ss_warn() { echo -e "\e[33m[WARN]\e[0m [\$_SS_SERVICE] \$*"; }
 fi
 
-# --- FONCTION DRAGON : GÉNÉRATION DES SCRIPTS CLIENTS x_*.sh ---
+# --- CONFIGURATION DES PORTS ALTERNATIFS (Logique DRAGON) ---
+# Calcule un offset unique (0-499) pour cette station pour éviter les collisions entre voisins
+NODE_OFFSET=$(( $(echo -n "$IPFSNODEID" | cksum | awk '{print $1}') % 500 ))
+ALT_BASE=31300 ## TODO: could be related to "Zone In Place"
+
 generate_dragon_scripts() {
-    ss_debug "DRAGON: Détection des services locaux..."
+    ss_debug "DRAGON: Détection et génération des scripts intelligents..."
     
     for entry in $MY_SERVICES; do
         SVC_NAME="${entry%%:*}"
-        LPORT="${entry##*:}"
+        NATIVE_PORT="${entry##*:}"
         PROTO="/x/$SVC_NAME-$IPFSNODEID"
         
-        # 1. Vérifier si le service tourne localement
-        if ss -tln | grep -q ":$LPORT "; then
+        # Calcul du port alternatif unique pour ce service sur cette station
+        local SLUG_ID=$(echo -n "$SVC_NAME" | cksum | awk '{print $1}')
+        local ALT_PORT=$(( ALT_BASE + NODE_OFFSET + (SLUG_ID % 100) ))
+
+        # 1. Vérifier si le service tourne localement (Service NATIF)
+        if ss -tln | grep -q ":$NATIVE_PORT "; then
+            
             # 2. Ouvrir l'écoute P2P si pas déjà fait
             if ! ipfs p2p ls | grep -q "$PROTO"; then
-                ipfs p2p listen "$PROTO" "/ip4/127.0.0.1/tcp/$LPORT"
-                ss_info "DRAGON: Service exposé -> $PROTO"
+                ipfs p2p listen "$PROTO" "/ip4/127.0.0.1/tcp/$NATIVE_PORT"
+                ss_info "DRAGON: Service exposé -> $PROTO (Port: $NATIVE_PORT)"
             fi
             
-            # 3. Générer le script x_service.sh pour le Swarm
-            # Ce script sera téléchargé par les voisins pour se connecter à TOI
+            # 3. Génération du script client x_*.sh avec gestion de conflit
             cat > "$MY_NODE_DIR/x_$SVC_NAME.sh" << EOF
 #!/bin/bash
-# Client tunnel pour $SVC_NAME @ $HOSTNAME
+### Fichier : x_$SVC_NAME.sh
 NODE_ID="$IPFSNODEID"
 PROTO="$PROTO"
-LPORT="$LPORT"
+NATIVE_PORT="$NATIVE_PORT"
+ALT_PORT="$ALT_PORT"
+
+# --- Logique de choix du port (Anti-conflit) ---
+if [[ "\${NATIVE_PORT}" -lt 1024 ]]; then
+    # Ports réservés root : on bascule direct sur l'alternatif
+    LPORT="\${ALT_PORT}"
+elif ss -tln 2>/dev/null | grep -qE ":\${NATIVE_PORT} "; then
+    # Si le port est déjà pris, on vérifie si c'est déjà par un tunnel identique
+    if ipfs p2p ls 2>/dev/null | grep "\${PROTO}" | grep -q "tcp/\${NATIVE_PORT}"; then
+        LPORT="\${NATIVE_PORT}"
+    else
+        LPORT="\${ALT_PORT}"
+    fi
+else
+    LPORT="\${NATIVE_PORT}"
+fi
+
+export LPORT=\$LPORT
+
 if [[ "\${1,,}" == "off" || "\${1,,}" == "stop" ]]; then
+    echo "Fermeture du tunnel \$PROTO..."
     ipfs p2p close -p "\$PROTO"
     exit 0
 fi
-echo "Établissement du tunnel vers $SVC_NAME..."
+
+# Vérification de présence du nœud
+if ! ipfs --timeout=5s ping -n 2 "/p2p/\$NODE_ID" > /dev/null; then
+    echo "ERREUR: La station \$NODE_ID est injoignable (Timeout)."
+    exit 1
+fi
+
+echo "Établissement du tunnel \$SVC_NAME..."
+echo "Accès local sur : http://127.0.0.1:\$LPORT"
+
+# Bind sur localhost + adresses IP locales pour le réseau SoundSpot
 ipfs p2p forward "\$PROTO" "/ip4/127.0.0.1/tcp/\$LPORT" "/p2p/\$NODE_ID"
+
+for IP in \$(hostname -I); do
+    ipfs p2p forward "\$PROTO" "/ip4/\$IP/tcp/\$LPORT" "/p2p/\$NODE_ID" 2>/dev/null || true
+done
 EOF
             chmod +x "$MY_NODE_DIR/x_$SVC_NAME.sh"
         fi

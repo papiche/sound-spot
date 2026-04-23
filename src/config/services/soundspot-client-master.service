@@ -11,7 +11,7 @@ Environment="XDG_RUNTIME_DIR=/run/user/${SOUNDSPOT_UID}"
 Environment="PULSE_SERVER=unix:/run/user/${SOUNDSPOT_UID}/pulse/native"
 ExecStartPre=${INSTALL_DIR}/backend/system/wait-pw-socket.sh
 ExecStartPre=${INSTALL_DIR}/backend/system/wait-bt-sink.sh
-ExecStart=/usr/bin/snapclient --logfilter warn -h 127.0.0.1 -p ${SNAPCAST_PORT} --player pulse:server=unix:/run/user/${SOUNDSPOT_UID}/pulse/native
+ExecStart=/usr/bin/snapclient --logfilter error -h 127.0.0.1 -p ${SNAPCAST_PORT} --player pulse:server=unix:/run/user/${SOUNDSPOT_UID}/pulse/native
 ExecStartPost=/bin/sleep 5
 ExecStartPost=${INSTALL_DIR}/backend/audio/play_welcome.sh
 Restart=always
