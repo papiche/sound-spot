@@ -31,12 +31,16 @@ _SS_SERVICE="idle"
     ss_error() { :; }; ss_debug() { :; }
 }
 
+TTS_SH="$INSTALL_DIR/backend/audio/tts.sh"
+
 # Re-lire la configuration à chaque cycle (changements du portail pris en compte à chaud)
 reload_conf() {
     [ -f "$CONF" ] && source "$CONF"
     ICECAST_PORT="${ICECAST_PORT:-8111}"
     IDLE_ANNOUNCE_INTERVAL="${IDLE_ANNOUNCE_INTERVAL:-900}"
     CLOCK_MODE="${CLOCK_MODE:-bells}"
+    ORPHEUS_VOICE="${ORPHEUS_VOICE:-pierre}"
+    ORPHEUS_PORT="${ORPHEUS_PORT:-5005}"
 }
 
 ss_info "démarrage clocher — mode=${CLOCK_MODE:-bells} intervalle=${IDLE_ANNOUNCE_INTERVAL:-900}s"
@@ -47,12 +51,18 @@ play_wav() {
 }
 
 # ── Synthèse vocale TTS → WAV temporaire → lecture ───────────────
+# Utilise Orpheus (pierre/amelie) si Picoport est connecté à UPlanet,
+# sinon espeak-ng en fallback. Le changement de voix est l'indicateur
+# auditif que le nœud est bien relié à sa constellation.
 say() {
-    local tmp
-    tmp=$(mktemp /tmp/soundspot_say_XXXX.wav)
-    espeak-ng -v fr+f3 -s 115 -p 40 "$*" -w "$tmp" 2>/dev/null
-    play_wav "$tmp"
-    rm -f "$tmp"
+    local wav_paths
+    # tts.sh peut retourner 2 lignes : intro constellation + message
+    wav_paths=$(bash "$TTS_SH" "$*" "${ORPHEUS_VOICE:-pierre}" 2>/dev/null)
+    while IFS= read -r wav; do
+        [ -f "$wav" ] || continue
+        play_wav "$wav"
+        rm -f "$wav"
+    done <<< "$wav_paths"
 }
 
 # ── Jouer un message numéroté depuis wav/ ────────────────────────
@@ -63,9 +73,20 @@ play_message_file() {
     local wav="$WAV_DIR/message_${id}.wav"
     local txt="$WAV_DIR/message_${id}.txt"
 
-    # Régénérer le .wav si absent ou .txt plus récent
+    # Régénérer le .wav (espeak) si absent ou .txt plus récent
     if [ -f "$txt" ] && { [ ! -f "$wav" ] || [ "$txt" -nt "$wav" ]; }; then
         espeak-ng -v fr+f3 -s 115 -p 40 "$(cat "$txt")" -w "$wav" 2>/dev/null || true
+    fi
+
+    # Si Picoport actif → lecture live via Orpheus (sans écraser le .wav espeak)
+    if [ -f "$txt" ] && systemctl is-active --quiet picoport.service 2>/dev/null; then
+        local live_wav
+        live_wav=$(bash "$TTS_SH" "$(cat "$txt")" "${ORPHEUS_VOICE:-pierre}" 2>/dev/null | tail -1)
+        if [ -f "$live_wav" ]; then
+            play_wav "$live_wav"
+            rm -f "$live_wav"
+            return
+        fi
     fi
 
     if [ -f "$wav" ]; then
