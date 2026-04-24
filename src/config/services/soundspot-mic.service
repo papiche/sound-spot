@@ -1,0 +1,17 @@
+[Unit]
+Description=SoundSpot — Capture micro USB → Snapcast stream Mic
+After=snapserver.service
+BindsTo=snapserver.service
+
+[Service]
+Type=simple
+EnvironmentFile=${INSTALL_DIR}/soundspot.conf
+ExecStart=${INSTALL_DIR}/backend/audio/mic_capture.sh
+Restart=always
+RestartSec=5
+SyslogIdentifier=soundspot-mic
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

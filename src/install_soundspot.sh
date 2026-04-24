@@ -68,7 +68,15 @@ apt_retry install -y --no-install-recommends \
     python3-markdown python3-websocket \
     espeak-ng jq \
     curl wget ffmpeg \
-    iw wireless-tools socat gettext-base rsyslog
+    iw wireless-tools socat gettext-base rsyslog \
+    zram-tools
+
+# ── Groupe système soundspot (pi + www-data + astro) ────────────
+hdr "Groupe système soundspot"
+groupadd --system soundspot 2>/dev/null || true
+for _u in "${SOUNDSPOT_USER}" www-data astro; do
+    id "$_u" &>/dev/null && usermod -aG soundspot "$_u" && log "$_u ajouté au groupe soundspot" || true
+done
 
 # ── Préparation de l'arborescence /opt/soundspot ─────────────
 hdr "Préparation de l'arborescence"
@@ -115,6 +123,33 @@ setup_presence       # Caméra + Welcome.wav
 setup_idle           # Clocher numérique
 setup_jukebox        # Nostr Jukebox
 
+# ── Services Master spécifiques ──────────────────────────────
+hdr "Services Master (état JSON + micro USB)"
+
+# Démon cache JSON d'état (remplace les forks CGI par requête)
+install_template soundspot-state.service \
+    /etc/systemd/system/soundspot-state.service \
+    '${INSTALL_DIR}'
+systemctl enable soundspot-state
+log "soundspot-state activé (cache JSON status.json)"
+
+# Capture micro USB → stream Snapcast_Mic (activé si détecté)
+install_template soundspot-mic.service \
+    /etc/systemd/system/soundspot-mic.service \
+    '${INSTALL_DIR}'
+if arecord -l 2>/dev/null | grep -qi "USB"; then
+    systemctl enable soundspot-mic
+    log "Micro USB détecté → soundspot-mic activé"
+else
+    log "Micro USB non détecté — soundspot-mic désactivé (activer manuellement si besoin)"
+fi
+
+# Service mon-oeil (Cerveau IA / Golem) — activé sur Master RPi4
+install_template mon-oeil.service \
+    /etc/systemd/system/mon-oeil.service
+systemctl enable mon-oeil
+log "mon-oeil.service activé (IA Golem — tunnel Ollama P2P)"
+
 # ── Installation Picoport ────────────────────────────────────
 if [ "$PICOPORT_ENABLED" = "true" ]; then
     hdr "Installation de Picoport (Astroport.ONE Light)"
@@ -138,6 +173,15 @@ if [ "$PICOPORT_ENABLED" = "true" ]; then
     
     # 5. Lancer l'installation Picoport (IPFS, identité, etc.)
     bash "$INSTALL_DIR/picoport/install_picoport.sh"
+
+    # Limite mémoire Golang IPFS (évite les fuites sur long terme, RPi4 = 4 Go)
+    mkdir -p /etc/systemd/system/ipfs.service.d
+    cat > /etc/systemd/system/ipfs.service.d/gomemlimit.conf <<'GOEOF'
+[Service]
+Environment="GOMEMLIMIT=1GiB"
+GOEOF
+    systemctl daemon-reload
+    log "GOMEMLIMIT=1GiB configuré pour IPFS"
     
     # Intégration UPassport et Swarm Sync (Port 12345)
     log "Intégration UPassport & Swarm Sync..."
@@ -155,7 +199,8 @@ install_template soundspot.conf.master.env "$INSTALL_DIR/soundspot.conf" \
 
 # S'assurer que le log est accessible
 touch "$SOUNDSPOT_LOG"
-chmod 666 "$SOUNDSPOT_LOG"
+chgrp soundspot "$SOUNDSPOT_LOG"
+chmod 664 "$SOUNDSPOT_LOG"
 
 hdr "Installation terminée ✓"
 echo -e "${G}SoundSpot est prêt !${N}"

@@ -1,0 +1,19 @@
+[Unit]
+Description=SoundSpot — Reconnexion Bluetooth réactive (BlueZ D-Bus)
+After=bluetooth.service user@${SOUNDSPOT_UID}.service
+Wants=bluetooth.service
+
+[Service]
+Type=simple
+EnvironmentFile=${INSTALL_DIR}/soundspot.conf
+User=${SOUNDSPOT_USER}
+Environment="XDG_RUNTIME_DIR=/run/user/${SOUNDSPOT_UID}"
+ExecStart=/usr/bin/python3 ${INSTALL_DIR}/backend/system/bt_reactive.py
+Restart=always
+RestartSec=10
+SyslogIdentifier=soundspot-bt-reactive
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

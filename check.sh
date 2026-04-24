@@ -247,10 +247,15 @@ fi
 hdr "Pipeline audio"
 
 # FIFO snapcast
-if [ -p /tmp/snapfifo ]; then
-    ok "FIFO /tmp/snapfifo présente"
+if [ -p /dev/shm/snapfifo ]; then
+    ok "FIFO /dev/shm/snapfifo présente"
 else
-    fail "FIFO /tmp/snapfifo absente — snapserver sans source PCM"
+    fail "FIFO /dev/shm/snapfifo absente — snapserver sans source PCM"
+fi
+if [ -p /dev/shm/snapfifo_mic ]; then
+    ok "FIFO /dev/shm/snapfifo_mic présente (micro USB)"
+else
+    info "FIFO /dev/shm/snapfifo_mic absente (service mic non actif)"
 fi
 
 # Ports
@@ -431,6 +436,81 @@ if [ -n "$RECENT" ]; then
     echo "$RECENT" | sed "s/^/    ${R}/; s/$/${N}/"
 else
     ok "Aucune erreur récente dans journald"
+fi
+
+# ── 10. Golem Health ────────────────────────────────────────────
+hdr "Golem Health"
+
+# Température CPU
+if [ -f /sys/class/thermal/thermal_zone0/temp ]; then
+    CPU_TEMP=$(awk '{printf "%.1f", $1/1000}' /sys/class/thermal/thermal_zone0/temp)
+    if awk "BEGIN{exit !($CPU_TEMP > 80)}"; then
+        fail "Température CPU : ${CPU_TEMP}°C — SURCHAUFFE"
+    elif awk "BEGIN{exit !($CPU_TEMP > 65)}"; then
+        warn "Température CPU : ${CPU_TEMP}°C — chaud"
+    else
+        ok "Température CPU : ${CPU_TEMP}°C"
+    fi
+else
+    info "Température CPU non disponible"
+fi
+
+# Batterie (depuis /dev/shm)
+BATT_PCT=$(cat /dev/shm/battery_percent 2>/dev/null || echo "")
+if [ -n "$BATT_PCT" ]; then
+    BATT_VOLT=$(cat /dev/shm/battery_voltage 2>/dev/null || echo "?")
+    if [ "$BATT_PCT" -le 10 ] 2>/dev/null; then
+        fail "Batterie critique : ${BATT_PCT}% (${BATT_VOLT} V)"
+    elif [ "$BATT_PCT" -le 25 ] 2>/dev/null; then
+        warn "Batterie faible : ${BATT_PCT}% (${BATT_VOLT} V)"
+    else
+        ok "Batterie : ${BATT_PCT}% (${BATT_VOLT} V)"
+    fi
+else
+    info "Capteur batterie absent (INA219 non détecté)"
+fi
+
+# Bouches connectées au Snapserver (liste par IP)
+if port_open "$SNAPCAST_PORT"; then
+    SNAP_JSON=$(curl -s --max-time 3 \
+        "http://127.0.0.1:1780/jsonrpc" \
+        -d '{"id":1,"jsonrpc":"2.0","method":"Server.GetStatus"}' 2>/dev/null)
+    if [ -n "$SNAP_JSON" ]; then
+        MOUTHS=$(echo "$SNAP_JSON" | python3 -c "
+import sys, json
+try:
+    d = json.load(sys.stdin)
+    clients = d['result']['server']['groups'][0]['clients']
+    total = len(clients)
+    connected = [c for c in clients if c['connected']]
+    print(f'{len(connected)}/{total}')
+    for c in connected:
+        print(f'  {c[\"host\"][\"name\"]} ({c[\"host\"][\"ip\"]})')
+except:
+    pass
+" 2>/dev/null)
+        MOUTH_LINE=$(echo "$MOUTHS" | head -1)
+        if [ -n "$MOUTH_LINE" ]; then
+            ok "Bouches Snapcast connectées : ${MOUTH_LINE}"
+            echo "$MOUTHS" | tail -n +2 | while read -r _m; do info "$_m"; done
+        else
+            info "Aucune bouche Snapcast connectée"
+        fi
+    fi
+fi
+
+# Ping satellite via qo-op (si MASTER_HOST connu — utile depuis le master)
+MASTER_HOST_CHECK="${MASTER_HOST:-}"
+if [ -n "$MASTER_HOST_CHECK" ] && [ "$MASTER_HOST_CHECK" != "soundspot.local" ]; then
+    if ping -c1 -W2 "$MASTER_HOST_CHECK" &>/dev/null; then
+        ok "Satellite ${MASTER_HOST_CHECK} joignable (ping OK)"
+        SAT_BATT=$(curl -s --max-time 2 \
+            "http://${MASTER_HOST_CHECK}/api.sh?action=status" 2>/dev/null | \
+            python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('batt_pct','?'))" 2>/dev/null || echo "")
+        [ -n "$SAT_BATT" ] && info "Batterie satellite : ${SAT_BATT}%"
+    else
+        warn "Satellite ${MASTER_HOST_CHECK} injoignable (ping KO)"
+    fi
 fi
 
 # ── Résumé ──────────────────────────────────────────────────────

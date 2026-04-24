@@ -1,0 +1,16 @@
+[Unit]
+Description=SoundSpot — Démon cache JSON d'état (state_daemon)
+After=network.target
+
+[Service]
+Type=simple
+EnvironmentFile=${INSTALL_DIR}/soundspot.conf
+ExecStart=${INSTALL_DIR}/backend/system/state_daemon.sh
+Restart=always
+RestartSec=5
+SyslogIdentifier=soundspot-state
+StandardOutput=null
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

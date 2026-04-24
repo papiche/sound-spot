@@ -29,7 +29,7 @@ last_trigger = 0
 
 def capture_image():
     """Capture une image via la libcamera du RPi 4"""
-    img_path = "/tmp/eye_capture.jpg"
+    img_path = "/dev/shm/eye_capture.jpg"
     logging.info("📸 Capture de l'environnement en cours...")
     try:
         # Résolution basse = inférence Ollama beaucoup plus rapide

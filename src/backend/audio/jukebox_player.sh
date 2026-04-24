@@ -34,15 +34,15 @@ while true; do
     # Si PipeWire ne lit rien (aucun son en cours)
     if ! pgrep -x "pw-play" >/dev/null; then
         # On prend le fichier .job le plus ancien
-        NEXT_JOB=$(ls -1 "$QUEUE_DIR"/*.job 2>/dev/null | sort | head -n 1)
+        NEXT_JOB=$(find "$QUEUE_DIR" -maxdepth 1 -name "*.job" -type f | sort | head -n 1)
         if [ -n "$NEXT_JOB" ]; then
             PLAY_URL=$(cat "$NEXT_JOB")
             rm -f "$NEXT_JOB"
             echo "▶ Lecture à l'antenne : $PLAY_URL"
             # On télécharge temporairement le MP3 depuis la gateway IPFS locale
-            wget -qO /tmp/current_juke.mp3 "$PLAY_URL"
-            pw-play /tmp/current_juke.mp3 2>/dev/null
-            rm -f /tmp/current_juke.mp3
+            wget -qO /dev/shm/current_juke.mp3 "$PLAY_URL"
+            pw-play /dev/shm/current_juke.mp3 2>/dev/null
+            rm -f /dev/shm/current_juke.mp3
         fi
     fi
     sleep 3

@@ -6,7 +6,13 @@
 setup_snapserver() {
     hdr "Snapcast serveur"
 
-    mkfifo /tmp/snapfifo 2>/dev/null || true
+    mkfifo /dev/shm/snapfifo     2>/dev/null || true
+    mkfifo /dev/shm/snapfifo_mic 2>/dev/null || true
+    # Recréation à chaque boot via tmpfiles.d (les FIFOs /dev/shm disparaissent au redémarrage)
+    cat > /etc/tmpfiles.d/soundspot-fifos.conf <<'TMPEOF'
+p /dev/shm/snapfifo     0660 root audio -
+p /dev/shm/snapfifo_mic 0660 root audio -
+TMPEOF
 
     install_template snapserver.conf /etc/snapserver.conf
 

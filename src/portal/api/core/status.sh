@@ -1,5 +1,5 @@
 #!/bin/bash
-# api/status.sh — État du système SoundSpot
+# api/core/status.sh — État du système SoundSpot
 # Appelé par api.sh (hérite des exports : SPOT_NAME, SPOT_IP, ICECAST_PORT, …)
 
 DJ_ACTIVE="false"
@@ -10,11 +10,14 @@ HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 1 \
 PICOPORT_ACTIVE="false"
 systemctl is-active --quiet picoport.service 2>/dev/null && PICOPORT_ACTIVE="true"
 
-# Charge CPU (1 min)
 CPU_LOAD=$(cut -d' ' -f1 /proc/loadavg 2>/dev/null || echo "0")
-
-# Mémoire libre (ko)
 MEM_FREE=$(awk '/MemAvailable/{print $2}' /proc/meminfo 2>/dev/null || echo "0")
+
+# Batterie INA219 — données en /dev/shm (RAM, zéro écriture SD)
+BATT_PCT=$(cat /dev/shm/battery_percent  2>/dev/null || echo "0")
+BATT_VOLT=$(cat /dev/shm/battery_voltage 2>/dev/null || echo "0")
+BATT_CUR=$(cat /dev/shm/battery_current  2>/dev/null || echo "0")
+BATT_POW=$(cat /dev/shm/battery_power    2>/dev/null || echo "0")
 
 cat <<JSON
 {
@@ -26,6 +29,10 @@ cat <<JSON
   "clock_mode": "${CLOCK_MODE}",
   "picoport_active": ${PICOPORT_ACTIVE},
   "cpu_load": "${CPU_LOAD}",
-  "mem_free_kb": ${MEM_FREE}
+  "mem_free_kb": ${MEM_FREE},
+  "batt_pct": ${BATT_PCT},
+  "batt_volt": ${BATT_VOLT},
+  "batt_cur": ${BATT_CUR},
+  "batt_pow": ${BATT_POW}
 }
 JSON
