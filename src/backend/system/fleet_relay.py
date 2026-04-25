@@ -17,7 +17,7 @@ except ImportError:
     print("websockets requis : apt install python3-websockets", file=sys.stderr)
     sys.exit(1)
 
-PORT = int(os.getenv("FLEET_RELAY_PORT", "9999"))
+PORT = int(os.getenv("FLEET_RELAY_PORT", "29999"))
 ALLOWED_PREFIXES = ("192.168.10.", "127.", "::1", "::ffff:127.", "::ffff:192.168.10.")
 
 logging.basicConfig(
