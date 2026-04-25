@@ -6,351 +6,662 @@
   <meta name="theme-color" content="#080810">
   <meta name="description" content="SoundSpot PicoPort — Souveraineté Collective UPlanet">
   <link rel="manifest" href="/manifest.json">
-  <title>SoundSpot — Portail Souverain</title>
-  
+  <title>SoundSpot</title>
   <link rel="stylesheet" href="chartist.min.css">
   <script src="chartist.min.js"></script>
-
   <style>
     :root {
-      --black:  #080810; --dark:   #0f0f1a; --panel:  #161622;
-      --border: #26263a; --deep:   #1c1c2e;
-      --accent: #7fff6e; --teal:   #4ecdc4; --dj:    #ffb347;
-      --sat:    #b47fff; --red:    #ff6b6b; --gold:  #ffd700;
-      --text:   #e0e0f0; --muted:  #6a6a88;
+      --black: #080810; --dark: #0f0f1a; --panel: #161622;
+      --border: #26263a; --deep: #1c1c2e;
+      --accent: #7fff6e; --teal: #4ecdc4; --dj: #ffb347;
+      --sat: #b47fff; --red: #ff6b6b; --gold: #ffd700;
+      --text: #e0e0f0; --muted: #6a6a88;
       --font: system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
       --mono: ui-monospace,"Cascadia Code","Source Code Pro",Menlo,Monaco,Consolas,monospace;
     }
     *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
-    body { background: var(--black); color: var(--text); font-family: var(--font); padding: 0 0 80px; display: flex; flex-direction: column; align-items: center; line-height: 1.4; }
+    body { background:var(--black); color:var(--text); font-family:var(--font); padding:0 0 80px; display:flex; flex-direction:column; align-items:center; line-height:1.4; }
 
     /* ── Hero ── */
-    .hero { width: 100%; background: var(--dark); border-bottom: 1px solid var(--border); padding: 20px; text-align: center; }
-    .hero-logo { font-size: 1.6rem; font-weight: 900; color: #fff; text-transform: uppercase; letter-spacing: 1px; }
-    .hero-logo span { color: var(--accent); }
-    .status-bar { display: flex; justify-content: center; gap: 8px; margin-top: 10px; }
-    .badge-mini { padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 700; border: 1px solid var(--border); background: rgba(255,255,255,0.03); }
-    .badge-mini.live { color: var(--dj); border-color: var(--dj); }
-    .badge-mini.batt { color: var(--accent); border-color: var(--accent); }
+    .hero { width:100%; background:var(--dark); border-bottom:1px solid var(--border); padding:18px 20px 14px; text-align:center; }
+    .hero-logo { font-size:1.6rem; font-weight:900; color:#fff; letter-spacing:1px; }
+    .hero-logo span { color:var(--accent); }
+    .hero-sub { font-family:var(--mono); font-size:10px; letter-spacing:.15em; text-transform:uppercase; color:var(--muted); margin:4px 0 10px; }
+    .status-bar { display:flex; justify-content:center; gap:8px; flex-wrap:wrap; }
+    .badge-mini { padding:4px 10px; border-radius:20px; font-size:10px; font-weight:700; border:1px solid var(--border); background:rgba(255,255,255,.03); color:var(--muted); }
+    .badge-mini.live { color:var(--dj); border-color:var(--dj); background:rgba(255,179,71,.07); }
+    .badge-mini.on   { color:var(--teal); border-color:var(--teal); background:rgba(78,205,196,.07); }
+    .pulse { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--dj); animation:pulse 1.4s infinite; margin-right:4px; vertical-align:middle; }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(1.5)} }
 
     /* ── Navigation ── */
-    .nav-tabs { position: fixed; bottom: 0; width: 100%; height: 65px; background: var(--panel); border-top: 1px solid var(--border); display: flex; z-index: 1000; }
-    .tab-btn { flex: 1; border: none; background: none; color: var(--muted); display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 9px; cursor: pointer; }
-    .tab-btn.active { color: var(--accent); background: rgba(127, 255, 110, 0.05); }
-    .tab-btn svg { width: 20px; height: 20px; margin-bottom: 4px; }
+    .nav-tabs { position:fixed; bottom:0; width:100%; height:65px; background:var(--panel); border-top:1px solid var(--border); display:flex; z-index:1000; }
+    .tab-btn { flex:1; border:none; background:none; color:var(--muted); display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:9px; cursor:pointer; transition:color .2s,background .2s; }
+    .tab-btn.active { color:var(--accent); background:rgba(127,255,110,.05); }
+    .tab-btn svg { width:20px; height:20px; margin-bottom:4px; }
 
     /* ── Contenu ── */
-    .tab-content { display: none; width: 100%; max-width: 600px; padding: 16px; animation: fadeIn 0.3s; }
-    .tab-content.active { display: block; }
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .tab-content { display:none; width:100%; max-width:600px; padding:14px 16px; animation:fadeIn .25s; }
+    .tab-content.active { display:block; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:none} }
 
-    .card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 18px; margin-bottom: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
-    h2 { font-size: 1.1rem; margin-bottom: 12px; color: #fff; display: flex; align-items: center; gap: 10px; }
-    h3 { font-size: 0.9rem; color: var(--teal); margin: 15px 0 8px; }
-    p { font-size: 0.88rem; color: #b0b0d0; margin-bottom: 12px; }
-    .hi { color: var(--accent); font-weight: bold; }
-    
-    /* ── Details / Accordéons ── */
-    details { background: var(--deep); border-radius: 6px; margin-bottom: 8px; border: 1px solid var(--border); }
-    summary { padding: 12px; cursor: pointer; font-weight: 700; font-size: 0.85rem; color: var(--teal); list-style: none; outline: none; }
-    .details-content { padding: 10px; font-size: 0.82rem; border-top: 1px solid rgba(255,255,255,0.05); }
+    /* ── Cartes ── */
+    .card { background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:16px; margin-bottom:12px; }
+    h2 { font-size:1.05rem; margin-bottom:12px; color:#fff; }
+    p  { font-size:.88rem; color:#b0b0d0; margin-bottom:10px; }
+    p:last-child { margin-bottom:0; }
+    .hi { color:var(--accent); font-weight:700; }
+    a  { color:var(--teal); text-decoration:none; }
+    a:hover { color:var(--accent); }
 
-    /* ── Astro Grid ── */
-    .astro-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; }
-    .astro-box { background: var(--deep); padding: 12px; border-radius: 6px; border: 1px solid var(--border); text-align: center; }
-    .astro-box span { display: block; font-size: 1.5rem; margin-bottom: 5px; }
-    .astro-box label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; }
+    /* ── Info-box ── */
+    .ibox { background:var(--deep); padding:10px 12px; border-radius:4px; margin:10px 0; font-family:var(--mono); font-size:.82rem; }
+    .irow { display:flex; justify-content:space-between; align-items:center; padding:5px 0; border-bottom:1px solid rgba(255,255,255,.05); }
+    .irow:last-child { border-bottom:none; }
+    .lbl { color:var(--muted); }
+    .val { color:var(--teal); }
 
-    /* ── Inputs & Buttons ── */
-    .yt-input { width: 100%; padding: 12px; background: var(--deep); border: 1px solid var(--border); border-radius: 4px; color: #fff; font-family: var(--mono); margin-bottom: 10px; }
-    .btn { display: block; width: 100%; padding: 12px; text-align: center; font-weight: 700; font-size: 12px; text-transform: uppercase; border-radius: 4px; text-decoration: none; border: none; cursor: pointer; margin-bottom: 8px; }
-    .btn-main { background: var(--accent); color: var(--black); }
-    .btn-outline { background: transparent; border: 1px solid var(--accent); color: var(--accent); }
-    .btn-gold { background: var(--gold); color: var(--black); }
-    .btn-sm { padding: 6px 10px; font-size: 10px; display: inline-block; width: auto; }
+    /* ── Steps ── */
+    .steps { display:flex; flex-direction:column; gap:8px; margin:10px 0; }
+    .step { display:flex; align-items:flex-start; gap:10px; font-size:.88rem; color:#9090b0; line-height:1.55; }
+    .sn { font-family:var(--mono); font-size:10px; border-radius:2px; padding:2px 6px; white-space:nowrap; margin-top:2px; min-width:26px; text-align:center; flex-shrink:0; }
+    .sn-t  { color:var(--teal); border:1px solid var(--teal); }
+    .sn-g  { color:var(--gold); border:1px solid var(--gold); }
+    .sn-dj { color:var(--dj);   border:1px solid var(--dj); }
+    .sn-s  { color:var(--sat);  border:1px solid var(--sat); }
 
-    .ibox { background: var(--deep); padding: 10px; border-radius: 4px; margin: 10px 0; font-family: var(--mono); font-size: 0.8rem; }
-    .irow { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
-    .lbl { color: var(--muted); } .val { color: var(--teal); }
+    /* ── Accordéons ── */
+    details { background:var(--deep); border-radius:6px; margin-bottom:8px; border:1px solid var(--border); }
+    summary { padding:11px 14px; cursor:pointer; font-weight:700; font-size:.85rem; color:var(--teal); list-style:none; display:flex; justify-content:space-between; align-items:center; }
+    summary::-webkit-details-marker { display:none; }
+    summary::after { content:'▾'; font-size:12px; transition:transform .2s; color:var(--muted); }
+    details[open] summary::after { transform:rotate(-180deg); }
+    .det-body { padding:12px 14px 14px; border-top:1px solid rgba(255,255,255,.05); }
 
-    .volt-display { font-family: var(--mono); font-size: 2.2rem; font-weight: 800; color: var(--accent); text-align: center; display: block; }
-    .ct-chart { height: 160px; margin-top: 10px; }
-    #toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: var(--panel); border: 1px solid var(--accent); color: var(--accent); padding: 10px 20px; border-radius: 20px; font-weight: bold; display: none; z-index: 2000; }
+    /* ── Grille astro ── */
+    .astro-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:12px 0; }
+    .astro-box { background:var(--dark); padding:12px; border-radius:6px; border:1px solid var(--border); text-align:center; }
+    .astro-box span { display:block; font-size:1.4rem; margin-bottom:4px; }
+    .astro-box label { font-size:.7rem; color:var(--muted); text-transform:uppercase; }
+
+    /* ── Boutons ── */
+    .btn { display:block; width:100%; padding:12px; text-align:center; font-weight:700; font-size:12px; text-transform:uppercase; letter-spacing:.05em; border-radius:4px; text-decoration:none; border:none; cursor:pointer; margin-bottom:8px; transition:opacity .15s; }
+    .btn:hover { opacity:.85; }
+    .btn:last-child { margin-bottom:0; }
+    .btn-main    { background:var(--accent); color:var(--black); }
+    .btn-teal    { background:var(--teal);   color:var(--black); }
+    .btn-outline { background:transparent; border:1px solid var(--border); color:var(--muted); }
+    .btn-gold    { background:var(--gold);   color:var(--black); }
+    .btn-dj      { background:var(--dj);     color:#000; }
+    .btn-sat     { background:var(--sat);    color:#000; }
+    .btn-red     { background:#cc0000;       color:#fff; }
+    .btn-sm { padding:7px 12px; font-size:10px; display:inline-block; width:auto; margin-bottom:4px; margin-right:4px; }
+    .row { display:flex; gap:8px; flex-wrap:wrap; }
+    .row .btn { flex:1; }
+
+    /* ── Inputs ── */
+    .yt-input { width:100%; padding:10px 12px; background:var(--deep); border:1px solid var(--border); border-radius:4px; color:#fff; font-family:var(--mono); font-size:.85rem; margin-bottom:8px; outline:none; }
+    .yt-input:focus { border-color:var(--teal); }
+    #yt-result { margin-top:6px; font-size:.82rem; font-family:var(--mono); color:var(--teal); }
+    #yt-result.err { color:var(--red); }
+
+    /* ── Batterie ── */
+    .volt-display { font-family:var(--mono); font-size:1.9rem; font-weight:800; color:var(--accent); text-align:center; display:block; }
+    .ct-chart { height:150px; margin-top:12px; }
+
+    /* ── Toast ── */
+    #toast { position:fixed; bottom:80px; left:50%; transform:translateX(-50%) translateY(16px); background:var(--panel); border:1px solid var(--accent); color:var(--accent); padding:9px 20px; border-radius:20px; font-weight:700; font-size:13px; opacity:0; transition:opacity .3s,transform .3s; z-index:2000; pointer-events:none; white-space:nowrap; }
+    #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+    ul.applist { list-style:none; display:flex; flex-direction:column; gap:8px; }
+    ul.applist li { font-size:.85rem; color:#b0b0d0; }
+    ul.applist b { color:#fff; }
+    code.val { font-family:var(--mono); font-size:.88em; color:var(--teal); }
   </style>
 </head>
 <body>
 
-  <div id="toast"></div>
+<div id="toast"></div>
 
-  <div class="hero">
-    <div class="hero-logo">Sound<span>Spot</span></div>
-    <div class="status-bar">
-      <div id="dj-badge" class="badge-mini">...</div>
-      <div id="batt-badge" class="badge-mini batt">-- V</div>
+<!-- ═══ HERO ═══ -->
+<div class="hero">
+  <div class="hero-logo">Sound<span>Spot</span></div>
+  <div class="hero-sub" id="hero-sub">Nœud coopératif UPlanet</div>
+  <div class="status-bar">
+    <div id="dj-badge" class="badge-mini">…</div>
+    <div id="batt-badge" class="badge-mini" style="display:none">-- %</div>
+    <div id="pico-badge" class="badge-mini" style="display:none">IPFS</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     TAB 1 — RADIO
+════════════════════════════════════════ -->
+<div id="tab-radio" class="tab-content active">
+
+  <div class="card">
+    <h2>🎧 Rejoindre le Stream</h2>
+    <div class="ibox">
+      <div class="irow"><span class="lbl">WiFi</span>         <span class="val" id="cfg-ssid">…</span></div>
+      <div class="irow"><span class="lbl">Serveur</span>      <span class="val" id="cfg-ip">…</span></div>
+      <div class="irow"><span class="lbl">Port Snapcast</span><span class="val" id="cfg-port">…</span></div>
     </div>
+    <div class="steps">
+      <div class="step">
+        <div class="sn sn-t">01</div>
+        <span>Connecté au WiFi <span id="cfg-ssid2" class="hi">…</span> ✓</span>
+      </div>
+      <div class="step">
+        <div class="sn sn-t">02</div>
+        <span>Installer <span class="hi">Snapcast</span> :<br>
+          📱 Android : <a id="lnk-fdroid" href="#">F-Droid</a>
+            · <a id="lnk-play" href="#">Play Store</a><br>
+          🍎 iOS : <a id="lnk-ios" href="#">App Store</a><br>
+          🖥 PC : <code id="lnk-pc" class="val">snapclient -h …</code>
+        </span>
+      </div>
+      <div class="step">
+        <div class="sn sn-t">03</div>
+        <span>Serveur : <code class="val" id="cfg-ip2">…</code>  Port : <code class="val" id="cfg-port2">…</code></span>
+      </div>
+    </div>
+    <button onclick="fixAudio()" class="btn btn-outline" style="margin-top:8px">🛠 Relancer l'Audio</button>
   </div>
 
-  <!-- ════ ONGLET 1 : RADIO & SERVICES ════ -->
-  <div id="tab-radio" class="tab-content active">
-    <div class="card">
-      <h2>📻 Radio Collective</h2>
-      <p>Flux synchronisé via la constellation UPlanet.</p>
+  <div class="card">
+    <h2>🌐 Accès Internet — 15 min</h2>
+    <p>Le stream est disponible <span class="hi">sans limite</span>. L'accès Internet est temporaire (15 min).</p>
+    <button id="btn-auth" onclick="doAuth()" class="btn btn-main">Ouvrir l'accès Internet →</button>
+    <p id="auth-msg" style="display:none;font-size:.82rem;color:var(--teal);margin-top:6px"></p>
+  </div>
+
+  <div class="card">
+    <h2>⏰ Clocher Numérique</h2>
+    <div class="ibox">
+      <div class="irow"><span class="lbl">Bip 429.62 Hz</span>  <span class="val">Toujours actif</span></div>
+      <div class="irow"><span class="lbl">Messages</span>        <span class="val">Toutes les 15 min</span></div>
+      <div class="irow"><span class="lbl">Coups de cloche</span> <span class="val" id="clock-lbl">…</span></div>
+    </div>
+    <button onclick="toggleClock()" id="btn-clock" class="btn btn-outline btn-sm" style="margin-top:6px">…</button>
+    <p style="font-size:.78rem;color:var(--muted);margin-top:6px">Effectif immédiatement, sans redémarrage.</p>
+  </div>
+
+  <details id="det-audio" style="display:none">
+    <summary>🔊 Sortie Audio</summary>
+    <div class="det-body">
+      <p style="font-size:.85rem;color:#b0b0d0;margin-bottom:10px">Sélectionner la sortie PipeWire. Redémarre le service (2–3 s).</p>
+      <div id="audio-sinks-list"><p style="color:var(--muted);font-size:.85rem">Détection…</p></div>
+    </div>
+  </details>
+
+  <details>
+    <summary>🎛 Espace DJ</summary>
+    <div class="det-body">
       <div class="ibox">
-        <div class="irow"><span class="lbl">WiFi</span><span class="val" id="cfg-ssid">...</span></div>
-        <div class="irow"><span class="lbl">Serveur</span><span class="val" id="cfg-ip">...</span></div>
+        <div class="irow"><span class="lbl">Serveur Icecast</span><span class="val" id="dj-icecast">…</span></div>
+        <div class="irow"><span class="lbl">Montage</span>        <span class="val">/live</span></div>
+        <div class="irow"><span class="lbl">Format</span>         <span class="val">Ogg Vorbis</span></div>
+        <div class="irow"><span class="lbl">Login / Mdp</span>    <span class="val">source / (cf. opérateur)</span></div>
       </div>
-      <a id="lnk-snap" href="#" target="_blank" class="btn btn-main">Installer Snapclient</a>
-      <button onclick="fixAudio()" class="btn btn-outline">🛠 Relancer l'Audio (Fix)</button>
-    </div>
-    
-    <div class="card">
-      <h2>⏰ Clocher Numérique</h2>
-      <div class="irow"><span class="lbl">Mode actuel</span><span class="val" id="clock-lbl">...</span></div>
-      <button onclick="toggleClock()" id="btn-clock" class="btn btn-outline btn-sm">Changer</button>
-    </div>
-
-    <div class="card">
-      <h2>🌐 Constellation Astroport</h2>
-      <p>Système unifié pour connecter les stations Picoport.</p>
-      <a href="http://astroport.one" target="_blank" class="btn btn-gold">Accéder à Astroport.ONE</a>
-    </div>
-  </div>
-
-  <!-- ════ ONGLET 2 : LIBERTÉ & OUTILS ════ -->
-  <div id="tab-liberte" class="tab-content">
-    <div class="card">
-      <h2>✊ Libérer nos Données</h2>
-      <p class="hi">"Nos données valent de l'or, récupérons nos pépites."</p>
-      
-      <details>
-        <summary>👁️ 📷 Oeil & Stockage (Nextcloud)</summary>
-        <div class="details-content">
-          <p>Sortez du Cloud propriétaire vers votre espace souverain.</p>
-          <a href="https://f-droid.org/fr/packages/com.nextcloud.client/" target="_blank" class="btn btn-main btn-sm">App Nextcloud</a>
-          <a href="https://pad.p2p.legal/s/Smartphone2NextCloud#" target="_blank" class="btn btn-outline btn-sm">Guide Pas à Pas</a>
+      <div class="steps" style="margin-top:10px">
+        <div class="step"><div class="sn sn-dj">01</div><span>Installer <span class="hi">Mixxx</span> + <code class="val">snapclient</code></span></div>
+        <div class="step"><div class="sn sn-dj">02</div><span>Retour casque : <code class="val" id="dj-snap">snapclient -h …</code></span></div>
+        <div class="step">
+          <div class="sn sn-dj">03</div>
+          <span>Mixxx → Préférences → Live Broadcasting<br>
+            Serveur <code class="val" id="dj-ip">…</code>  Port <code class="val" id="dj-port">…</code>  Montage <code class="val">/live</code></span>
         </div>
-      </details>
-
-      <details>
-        <summary>🤖💾 Cerveau & Mémoire (Outils Libres)</summary>
-        <div class="details-content">
-          <ul>
-            <li><b>VLC :</b> Lecture universelle. <a href="https://f-droid.org/fr/packages/org.videolan.vlc/" target="_blank">Lien</a></li>
-            <li><b>Kodi + VStream :</b> Cinéma à domicile. <a href="https://f-droid.org/fr/packages/org.xbmc.kodi/" target="_blank">Lien</a> / <a href="https://kodi-vstream.github.io/docs/installation/" target="_blank">Installation</a></li>
-            <li><b>Maps :</b> <a href="https://f-droid.org/fr/packages/app.organicmaps/" target="_blank">Organic Maps (Offline)</a></li>
-          </ul>
-        </div>
-      </details>
-
-      <details>
-        <summary>🔬 Nature & Sciences</summary>
-        <div class="details-content">
-          <ul>
-            <li><b>Plantnet :</b> Identifiez la flore. <a href="https://plantnet.org/" target="_blank">Lien</a></li>
-            <li><b>Phyphox :</b> Capteurs physiques. <a href="https://f-droid.org/fr/packages/de.rwth_aachen.phyphox/" target="_blank">Lien</a></li>
-          </ul>
-        </div>
-      </details>
-      
-      <div style="margin-top:15px; border-top: 1px solid var(--border); padding-top:15px;">
-        <p>Vérifiez si votre smartphone est flashable :</p>
-        <a href="https://doc.e.foundation/devices" target="_blank" class="btn btn-outline btn-sm">Vérifier sur e.foundation</a>
+        <div class="step"><div class="sn sn-dj">04</div><span>Cliquer sur l'icône <span class="hi">Antenne</span> → en direct</span></div>
       </div>
+      <p style="font-size:.78rem;color:var(--muted);margin-top:8px">⚠ Latence 1–3 s — beatmatch sur casque Cue, pas sur enceintes.</p>
+      <a href="docs.sh?howto" class="btn btn-dj btn-sm" style="display:block;margin-top:10px">Guide DJ complet →</a>
     </div>
-  </div>
+  </details>
 
-  <!-- ════ ONGLET 3 : SOUVERAINETÉ COLLECTIVE ════ -->
-  <div id="tab-constellation" class="tab-content">
-    <div class="card">
-      <h2>🐲 Délégation DRAGON</h2>
-      <p>Coopérative numérique UPlanet : Algorithmes AGPL clairs pour l'économie circulaire.</p>
-      
-      <div class="astro-grid">
-        <div class="astro-box"><span>👄👂</span><label>Bouche & Oreilles</label></div>
-        <div class="astro-box"><span>👁 📷</span><label>Oeil & Stockage</label></div>
-        <div class="astro-box"><span>🤖💾</span><label>Cerveau & Mémoire</label></div>
-        <div class="astro-box"><span>🔋🌞</span><label>Énergie</label></div>
-      </div>
+</div>
 
-      <div class="ibox">
-        <div class="irow"><span class="lbl">Souveraineté</span><span class="val">Collective</span></div>
-        <div class="irow"><span class="lbl">Vision</span><span class="val"><a href="https://ipfs.copylaradio.com/ipns/copylaradio.com/Unation.html" target="_blank">Unation</a></span></div>
-      </div>
-    </div>
-
-    <div class="card">
-      <h2>📥 Jukebox Collectif</h2>
-      <p>Envoyez une musique à l'essaim. Le <span class="hi">MULTIPASS</span> traite la demande en priorité.</p>
-      <input type="text" id="yt-url" class="yt-input" placeholder="Lien YouTube...">
-      <button onclick="doYtCopy()" class="btn btn-main">Diffuser sur le réseau</button>
-      <div id="yt-result" style="margin-top:5px; font-size:0.8rem;"></div>
-    </div>
+<!-- ═══════════════════════════════════════
+     TAB 2 — LIBERTÉ
+════════════════════════════════════════ -->
+<div id="tab-liberte" class="tab-content">
+  <div class="card">
+    <h2>✊ Libérer nos Données</h2>
+    <p class="hi">"Nos données valent de l'or, récupérons nos pépites."</p>
 
     <details>
-        <summary>🪙 Économie ẐEN & Ğ1</summary>
-        <div class="details-content">
-          <a href="https://github.com/papiche/Astroport.ONE/blob/master/docs/ZEN.ECONOMY.v3.md" target="_blank" class="btn btn-gold btn-sm">Zen Economy v3</a>
-          <a href="https://zen.copylaradio.com/" target="_blank" class="btn btn-outline btn-sm">TrocZen</a>
-          <a href="https://opencollective.com/monnaie-libre" target="_blank" class="btn btn-main btn-sm">Soutenir la Ğ1</a>
-        </div>
+      <summary>👁️ 📷 Oeil &amp; Stockage — Nextcloud</summary>
+      <div class="det-body">
+        <p>Sortez du Cloud propriétaire vers votre espace souverain.</p>
+        <a href="https://f-droid.org/fr/packages/com.nextcloud.client/" target="_blank" class="btn btn-main btn-sm">App Nextcloud (F-Droid)</a>
+        <a href="https://pad.p2p.legal/s/Smartphone2NextCloud#" target="_blank" class="btn btn-outline btn-sm">Guide Pas à Pas</a>
+      </div>
     </details>
 
     <details>
-        <summary>🔍 QQOQCCP (Le Projet)</summary>
-        <div class="details-content">
-            <p><b>Qui :</b> Les membres G1FabLab. <b>Quoi :</b> Nœuds PicoPort. <b>Pourquoi :</b> Souveraineté collective. <b>Comment :</b> Énergie solaire & logiciel libre.</p>
-        </div>
+      <summary>🤖 💾 Cerveau &amp; Mémoire — Outils Libres</summary>
+      <div class="det-body">
+        <ul class="applist">
+          <li><b>VLC</b> — Lecture universelle. <a href="https://f-droid.org/fr/packages/org.videolan.vlc/" target="_blank">F-Droid</a></li>
+          <li><b>Kodi + VStream</b> — Cinéma à domicile. <a href="https://f-droid.org/fr/packages/org.xbmc.kodi/" target="_blank">F-Droid</a> / <a href="https://kodi-vstream.github.io/docs/installation/" target="_blank">VStream</a></li>
+          <li><b>Organic Maps</b> — Cartes hors-ligne. <a href="https://f-droid.org/fr/packages/app.organicmaps/" target="_blank">F-Droid</a></li>
+        </ul>
+      </div>
     </details>
-  </div>
 
-  <!-- ════ ONGLET 4 : ÉNERGIE ════ -->
-  <div id="tab-solaire" class="tab-content">
-    <div class="card">
-      <h2>🔋 Télémétrie Solaire (INA219)</h2>
-      <div class="astro-grid">
-        <div class="astro-box"><span id="batt-volt" class="volt-display">-- V</span><label>Tension</label></div>
-        <div class="astro-box"><span id="batt-cur" class="volt-display">-- mA</span><label>Courant</label></div>
-        <div class="astro-box"><span id="batt-pow" class="volt-display">-- mW</span><label>Puissance</label></div>
-        <div class="astro-box"><span id="batt-pct" class="volt-display">-- %</span><label>Charge</label></div>
+    <details>
+      <summary>🔬 Nature &amp; Sciences</summary>
+      <div class="det-body">
+        <ul class="applist">
+          <li><b>Plantnet</b> — Identifiez la flore. <a href="https://plantnet.org/" target="_blank">plantnet.org</a></li>
+          <li><b>Phyphox</b> — Capteurs physiques. <a href="https://f-droid.org/fr/packages/de.rwth_aachen.phyphox/" target="_blank">F-Droid</a></li>
+        </ul>
       </div>
-      <div id="energy-chart" class="ct-chart"></div>
-    </div>
-    <div class="card">
-      <h2>🌐 Accès Internet</h2>
-      <button id="btn-auth" onclick="doAuth()" class="btn btn-main">Ouvrir l'accès (15 min)</button>
-    </div>
-    <div class="card">
-      <h2>💻 Sous le Capot (Pour les Devs)</h2>
-      <p>Ce nœud fait partie d'une infrastructure résiliente (Astroport.ONE). Vous voulez voir comment IPFS, Duniter v2s et Nostr tournent sur 512Mo de RAM avec l'énergie solaire ?</p>
-      <div class="ibox">
-        <div class="irow"><span class="lbl">Licence</span><span class="val">AGPL-3.0</span></div>
-        <div class="irow"><span class="lbl">Code Source</span><span class="val"><a href="https://github.com/papiche/sound-spot">GitHub</a></span></div>
-        <div class="irow"><span class="lbl">Soutien</span><span class="val"><a href="https://opencollective.com/monnaie-libre">Mécénat OpenCollective</a></span></div>
-      </div>
-      <a href="docs.sh" class="btn btn-outline">Lire la documentation technique locale</a>
+    </details>
+
+    <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:14px">
+      <p>Vérifiez si votre smartphone est re-flashable vers un OS libre :</p>
+      <a href="https://doc.e.foundation/devices" target="_blank" class="btn btn-outline btn-sm">/e/ foundation →</a>
     </div>
   </div>
+</div>
 
+<!-- ═══════════════════════════════════════
+     TAB 3 — UPLANET
+════════════════════════════════════════ -->
+<div id="tab-constellation" class="tab-content">
 
-  <!-- ════ BARRE NAVIGATION ════ -->
-  <nav class="nav-tabs">
-    <button class="tab-btn active" onclick="showTab('tab-radio', this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9M19.1 4.9c3.9 3.9 3.9 10.3 0 14.2M8.3 15.7c-2.1-2.1-2.1-5.5 0-7.6M15.7 8.3c2.1 2.1 2.1 5.5 0 7.6M12 12v.01"></path></svg>
-      Radio
-    </button>
-    <button class="tab-btn" onclick="showTab('tab-liberte', this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-      Liberté
-    </button>
-    <button class="tab-btn" onclick="showTab('tab-constellation', this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path><path d="M2 12h20"></path></svg>
-      UPlanet
-    </button>
-    <button class="tab-btn" onclick="showTab('tab-solaire', this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line></svg>
-      Énergie
-    </button>
-  </nav>
+  <div class="card">
+    <h2>🐲 Délégation DRAGON</h2>
+    <p>Coopérative numérique UPlanet — algorithmes AGPL pour l'économie circulaire.</p>
+    <div class="astro-grid">
+      <div class="astro-box"><span>👄 👂</span><label>Bouche &amp; Oreilles</label></div>
+      <div class="astro-box"><span>👁 📷</span><label>Oeil &amp; Stockage</label></div>
+      <div class="astro-box"><span>🤖 💾</span><label>Cerveau &amp; Mémoire</label></div>
+      <div class="astro-box"><span>🔋 🌞</span><label>Énergie</label></div>
+    </div>
+    <div class="ibox">
+      <div class="irow"><span class="lbl">Souveraineté</span><span class="val">Collective</span></div>
+      <div class="irow"><span class="lbl">Vision</span><span class="val"><a href="https://ipfs.copylaradio.com/ipns/copylaradio.com/Unation.html" target="_blank">Unation →</a></span></div>
+    </div>
+  </div>
 
-  <script>
-    'use strict';
-    let CFG = {}, clockMode = 'bells', chart, chartData = { labels: [], series: [[]] };
+  <div class="card">
+    <h2>🪪 MULTIPASS Ẑelkova</h2>
+    <p>Votre identité coopérative : clé <span class="hi">NOSTR</span>, compte <span class="hi">Ğ1</span>, accès aux services ẐEN.</p>
+    <div class="steps">
+      <div class="step">
+        <div class="sn sn-g">01</div>
+        <span>Installer <span class="hi">Ẑelkova</span> :<br>
+          📱 Android : <a id="lnk-zelkova" href="#" target="_blank">APK GitHub</a></span>
+      </div>
+      <div class="step"><div class="sn sn-g">02</div><span>Créer votre profil → clé NOSTR + identité Ğ1 générés localement.</span></div>
+      <div class="step"><div class="sn sn-g">03</div><span>Lié à la coopérative <a id="lnk-g1fablab" href="#" target="_blank">G1FabLab</a> et au réseau UPlanet ẐEN.</span></div>
+      <div class="step"><div class="sn sn-g">04</div><span>Ce nœud peut émettre des <span class="hi">ZenCards</span> — demandez à l'opérateur.</span></div>
+    </div>
+    <a id="btn-zelkova" href="#" target="_blank" class="btn btn-gold" style="margin-top:6px">Télécharger Ẑelkova →</a>
+  </div>
 
-    // Initialisation & Navigation
-    function showTab(id, btn) {
-      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      document.getElementById(id).classList.add('active');
-      btn.classList.add('active');
-      if (id === 'tab-solaire') setTimeout(initChart, 200);
+  <div class="card" id="card-jukebox" style="display:none">
+    <h2>📥 Jukebox Collectif</h2>
+    <p>Archivez une musique sur ce nœud IPFS. Accessible hors-ligne via la gateway locale.</p>
+    <div class="ibox">
+      <div class="irow"><span class="lbl">Format</span>  <span class="val">MP3 (audio)</span></div>
+      <div class="irow"><span class="lbl">Gateway</span> <span class="val" id="cfg-gateway">http://…:8080/ipfs/&lt;CID&gt;</span></div>
+    </div>
+    <input type="text" id="yt-url" class="yt-input" placeholder="Lien YouTube ou recherche…">
+    <button onclick="doYtCopy()" id="btn-yt" class="btn btn-red">Télécharger &amp; épingler →</button>
+    <div id="yt-result"></div>
+  </div>
+
+  <details>
+    <summary>📡 Ajouter une Enceinte Satellite</summary>
+    <div class="det-body">
+      <div class="steps">
+        <div class="step"><div class="sn sn-s">01</div><span>Flasher un <span class="hi">RPi Zero 2W</span> avec Raspberry Pi OS Lite</span></div>
+        <div class="step"><div class="sn sn-s">02</div><span>Connecter au WiFi <code class="val" id="sat-ssid">…</code> ou <code class="val">qo-op</code></span></div>
+        <div class="step">
+          <div class="sn sn-s">03</div>
+          <span><code class="val">git clone https://github.com/papiche/sound-spot</code><br>
+            <code class="val">sudo bash deploy_on_pi.sh --satellite</code></span>
+        </div>
+        <div class="step"><div class="sn sn-s">04</div><span>Maître : <code class="val" id="sat-ip">…</code> ou <code class="val">soundspot.local</code></span></div>
+      </div>
+    </div>
+  </details>
+
+  <details>
+    <summary>🪙 Économie ẐEN &amp; Ğ1</summary>
+    <div class="det-body">
+      <a href="https://github.com/papiche/Astroport.ONE/blob/master/docs/ZEN.ECONOMY.v3.md" target="_blank" class="btn btn-gold btn-sm">Zen Economy v3</a>
+      <a href="https://zen.copylaradio.com/" target="_blank" class="btn btn-outline btn-sm">TrocZen</a>
+      <a id="lnk-oc" href="#" target="_blank" class="btn btn-main btn-sm">Soutenir G1FabLab</a>
+    </div>
+  </details>
+
+  <details>
+    <summary>🔍 QQOQCCP — Le Projet</summary>
+    <div class="det-body">
+      <p><b style="color:#fff">Qui :</b> Les membres G1FabLab.<br>
+         <b style="color:#fff">Quoi :</b> Nœuds PicoPort WiFi + audio.<br>
+         <b style="color:#fff">Pourquoi :</b> Souveraineté collective.<br>
+         <b style="color:#fff">Comment :</b> Énergie solaire &amp; logiciel libre AGPL.</p>
+      <a href="docs.sh" class="btn btn-outline btn-sm" style="display:block;margin-top:10px">Documentation locale →</a>
+    </div>
+  </details>
+
+</div>
+
+<!-- ═══════════════════════════════════════
+     TAB 4 — ÉNERGIE
+════════════════════════════════════════ -->
+<div id="tab-solaire" class="tab-content">
+
+  <div class="card" id="card-battery" style="display:none">
+    <h2>🔋 Télémétrie Solaire (INA219)</h2>
+    <div class="astro-grid">
+      <div class="astro-box"><span id="batt-volt" class="volt-display">-- V</span><label>Tension</label></div>
+      <div class="astro-box"><span id="batt-cur"  class="volt-display">-- mA</span><label>Courant</label></div>
+      <div class="astro-box"><span id="batt-pow"  class="volt-display">-- mW</span><label>Puissance</label></div>
+      <div class="astro-box"><span id="batt-pct"  class="volt-display">-- %</span><label>Charge</label></div>
+    </div>
+    <div id="energy-chart" class="ct-chart"></div>
+  </div>
+
+  <div class="card">
+    <h2>📊 Nœud</h2>
+    <div class="ibox">
+      <div class="irow"><span class="lbl">Charge CPU</span>   <span class="val" id="sys-cpu">…</span></div>
+      <div class="irow"><span class="lbl">Mémoire libre</span><span class="val" id="sys-mem">…</span></div>
+      <div class="irow"><span class="lbl">Version portail</span><span class="val" id="cfg-version">…</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>💻 Sous le Capot</h2>
+    <p>Infrastructure résiliente : IPFS, Duniter v2s et NOSTR sur 512 Mo de RAM avec énergie solaire.</p>
+    <div class="ibox">
+      <div class="irow"><span class="lbl">Licence</span>    <span class="val">AGPL-3.0</span></div>
+      <div class="irow"><span class="lbl">IPFS</span>       <span class="val" id="pico-status-detail">—</span></div>
+      <div class="irow"><span class="lbl">Code Source</span><span class="val"><a id="lnk-src" href="#" target="_blank">GitHub →</a></span></div>
+      <div class="irow"><span class="lbl">Soutien</span>    <span class="val"><a id="lnk-oc2" href="#" target="_blank">OpenCollective →</a></span></div>
+    </div>
+    <a href="docs.sh" class="btn btn-outline btn-sm" style="display:block;margin-top:10px">Documentation locale →</a>
+  </div>
+
+</div>
+
+<!-- ═══ NAVIGATION ═══ -->
+<nav class="nav-tabs">
+  <button class="tab-btn active" onclick="showTab('tab-radio',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9M19.1 4.9c3.9 3.9 3.9 10.3 0 14.2M8.3 15.7c-2.1-2.1-2.1-5.5 0-7.6M15.7 8.3c2.1 2.1 2.1 5.5 0 7.6M12 12v.01"/>
+    </svg>
+    Radio
+  </button>
+  <button class="tab-btn" onclick="showTab('tab-liberte',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+    </svg>
+    Liberté
+  </button>
+  <button class="tab-btn" onclick="showTab('tab-constellation',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="10"/>
+      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+      <path d="M2 12h20"/>
+    </svg>
+    UPlanet
+  </button>
+  <button class="tab-btn" onclick="showTab('tab-solaire',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="5"/>
+      <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+      <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+    </svg>
+    Énergie
+  </button>
+</nav>
+
+<script>
+'use strict';
+let CFG = {}, clockMode = 'bells', chart, chartData = { labels: [], series: [[]] };
+
+function showTab(id, btn) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+  if (id === 'tab-solaire') setTimeout(initChart, 200);
+}
+
+function toast(msg, ok = true) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.borderColor = ok ? 'var(--accent)' : 'var(--red)';
+  t.style.color = ok ? 'var(--accent)' : 'var(--red)';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function setTxt(ids, val) {
+  ids.forEach(id => { const el = document.getElementById(id); if (el) el.textContent = val; });
+}
+function setHref(id, href) {
+  if (!href) return;
+  const el = document.getElementById(id);
+  if (el) el.href = href;
+}
+
+async function loadConfig() {
+  try {
+    const r = await fetch('/api.sh?action=config');
+    CFG = await r.json();
+    const n  = CFG.spot_name  || '—';
+    const ip = CFG.spot_ip    || '—';
+    const sp = String(CFG.snapcast_port || 1704);
+    const ic = String(CFG.icecast_port  || 8111);
+    const lk = CFG.links || {};
+
+    document.getElementById('hero-sub').textContent = 'Nœud // ' + n;
+    setTxt(['cfg-ssid','cfg-ssid2','sat-ssid'], n);
+    setTxt(['cfg-ip','cfg-ip2','dj-ip','sat-ip'], ip);
+    setTxt(['cfg-port','cfg-port2','dj-port'], sp);
+    setTxt(['lnk-pc'],    'snapclient -h ' + ip);
+    setTxt(['dj-snap'],   'snapclient -h ' + ip);
+    setTxt(['dj-icecast'], ip + ':' + ic);
+    setTxt(['cfg-gateway'], 'http://' + ip + ':8080/ipfs/<CID>');
+    setTxt(['cfg-version'], CFG.version || 'dev');
+
+    setHref('lnk-fdroid',   lk.snapdroid_fdroid);
+    setHref('lnk-play',     lk.snapdroid_play);
+    setHref('lnk-ios',      lk.snapcast_ios);
+    setHref('lnk-zelkova',  lk.zelkova_release);
+    setHref('btn-zelkova',  lk.zelkova_release);
+    setHref('lnk-g1fablab', lk.g1fablab);
+    setHref('lnk-oc',       lk.g1fablab);
+    setHref('lnk-oc2',      lk.g1fablab);
+    setHref('lnk-src',      lk.source);
+
+    if (CFG.picoport_enabled && CFG.yt_available) {
+      document.getElementById('card-jukebox').style.display = '';
     }
 
-    function toast(msg, ok = true) {
-      const t = document.getElementById('toast');
-      t.textContent = msg; t.style.borderColor = ok ? 'var(--accent)' : 'var(--red)';
-      t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 3000);
+    clockMode = CFG.clock_mode || 'bells';
+    updateClockUI();
+  } catch(e) { console.error('Config failed', e); }
+}
+
+async function loadStatus() {
+  try {
+    const r = await fetch('/api.sh?action=status');
+    const d = await r.json();
+
+    const dj = document.getElementById('dj-badge');
+    if (d.dj_active) {
+      dj.innerHTML = '<span class="pulse"></span>DJ LIVE';
+      dj.className = 'badge-mini live';
+    } else {
+      dj.textContent = 'Silence';
+      dj.className = 'badge-mini';
     }
 
-    // API: Config dynamique
-    async function loadConfig() {
-      try {
-        const r = await fetch('/api.sh?action=config');
-        CFG = await r.json();
-        document.getElementById('cfg-ssid').textContent = CFG.spot_name;
-        document.getElementById('cfg-ip').textContent = CFG.spot_ip;
-        document.getElementById('lnk-snap').href = CFG.links.snapdroid_fdroid;
-        clockMode = CFG.clock_mode || 'bells';
-        updateClockUI();
-      } catch(e) { console.error("Config failed"); }
+    if (d.cpu_load) setTxt(['sys-cpu'], d.cpu_load + ' (1 min)');
+    if (d.mem_free_kb) setTxt(['sys-mem'], Math.round(d.mem_free_kb / 1024) + ' Mo libres');
+
+    if (d.picoport_active) {
+      const pb = document.getElementById('pico-badge');
+      pb.style.display = ''; pb.textContent = 'IPFS ✓'; pb.className = 'badge-mini on';
+      setTxt(['pico-status-detail'], 'Actif (picoport.service)');
     }
 
-    // API: Status & Énergie
-    async function loadStatus() {
-      try {
-        const r = await fetch('/status.json?t=' + Date.now());
-        const d = await r.json();
-        const dj = document.getElementById('dj-badge');
-        dj.textContent = d.dj_active ? '🎵 LIVE' : 'Silence';
-        dj.className = d.dj_active ? 'badge-mini live' : 'badge-mini';
-        document.getElementById('batt-badge').textContent = d.batt_pct + ' %';
-        document.getElementById('batt-volt').textContent  = d.batt_volt + ' V';
-        document.getElementById('batt-cur').textContent   = d.batt_cur + ' mA';
-        document.getElementById('batt-pow').textContent   = d.batt_pow + ' mW';
-        document.getElementById('batt-pct').textContent   = d.batt_pct + ' %';
-        
-        if (chart) {
-          chartData.labels.push(new Date().toLocaleTimeString());
-          chartData.series[0].push(d.batt_volt); // Le graphique continue d'afficher la tension
-          if (chartData.labels.length > 12) { chartData.labels.shift(); chartData.series[0].shift(); }
-          chart.update(chartData);
-        }
-      } catch(e) {}
+    if (d.batt_volt && parseFloat(d.batt_volt) > 0) {
+      document.getElementById('batt-badge').style.display = '';
+      document.getElementById('batt-badge').textContent = d.batt_pct + ' %';
+      setTxt(['batt-volt'], d.batt_volt + ' V');
+      setTxt(['batt-cur'],  d.batt_cur  + ' mA');
+      setTxt(['batt-pow'],  d.batt_pow  + ' mW');
+      setTxt(['batt-pct'],  d.batt_pct  + ' %');
+      document.getElementById('card-battery').style.display = '';
+      if (chart) {
+        chartData.labels.push(new Date().toLocaleTimeString());
+        chartData.series[0].push(parseFloat(d.batt_volt));
+        if (chartData.labels.length > 12) { chartData.labels.shift(); chartData.series[0].shift(); }
+        chart.update(chartData);
+      }
     }
 
-    function initChart() {
-      if (chart) return;
-      chart = new Chartist.Line('#energy-chart', chartData, { low: 3.2, high: 4.2, showArea: true, fullWidth: true, axisX: { showGrid: false, showLabel: false } });
+    if (d.clock_mode && d.clock_mode !== clockMode) {
+      clockMode = d.clock_mode;
+      updateClockUI();
     }
+  } catch(e) {}
+}
 
-    // API: YouTube Jukebox
-    async function doYtCopy() {
-        const url = document.getElementById('yt-url').value;
-        const res = document.getElementById('yt-result');
-        if(!url) return;
-        res.innerHTML = "Traitement essaim...";
-        try {
-            const r = await fetch('/api.sh?action=yt_copy', { method: 'POST', body: 'url=' + encodeURIComponent(url) });
-            const d = await r.json();
-            if(d.status === 'ok') { toast("✅ Ajouté"); res.innerHTML = "Musique à l'antenne !"; }
-            else { res.innerHTML = "Erreur locale."; }
-        } catch(e) { toast("Demande envoyée", true); }
+function initChart() {
+  if (chart || typeof Chartist === 'undefined') return;
+  chart = new Chartist.Line('#energy-chart', chartData, {
+    low: 3.2, high: 4.2, showArea: true, fullWidth: true,
+    axisX: { showGrid: false, showLabel: false }
+  });
+}
+
+async function doAuth() {
+  const btn = document.getElementById('btn-auth');
+  const msg = document.getElementById('auth-msg');
+  btn.disabled = true; btn.textContent = 'Ouverture…';
+  try {
+    const r = await fetch('/api.sh?action=auth', { method: 'POST' });
+    const d = await r.json();
+    if (d.status === 'authorized') {
+      btn.textContent = '✓ Accès ouvert (15 min)';
+      btn.style.background = 'var(--teal)';
+      msg.style.display = ''; msg.textContent = 'Accès internet ouvert pour 15 min. Bonne navigation !';
+      toast('✅ Accès Internet ouvert');
+    } else {
+      btn.disabled = false; btn.textContent = "Ouvrir l'accès Internet →";
+      toast('Erreur : ' + (d.error || 'inconnue'), false);
     }
+  } catch(e) {
+    btn.disabled = false; btn.textContent = "Ouvrir l'accès Internet →";
+    toast('Erreur réseau', false);
+  }
+}
 
-    // API: Internet Auth
-    async function doAuth() {
-      try { await fetch('/api.sh?action=auth', { method: 'POST' }); toast("🌐 Accès ouvert (15 min)"); } catch(e) { toast("Erreur réseau", false); }
+function updateClockUI() {
+  const lbl = document.getElementById('clock-lbl');
+  const btn = document.getElementById('btn-clock');
+  if (!lbl || !btn) return;
+  lbl.textContent = clockMode === 'bells' ? '🔔 Activées' : '🔇 Silencieuses';
+  btn.textContent = clockMode === 'bells' ? 'Désactiver les cloches' : 'Activer les cloches';
+}
+
+async function toggleClock() {
+  const next = clockMode === 'bells' ? 'silent' : 'bells';
+  try {
+    const r = await fetch('/api.sh?action=clock', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'mode=' + next
+    });
+    const d = await r.json();
+    if (d.status === 'ok') {
+      clockMode = d.clock_mode || next;
+      updateClockUI();
+      toast(clockMode === 'bells' ? '🔔 Cloches activées' : '🔇 Cloches désactivées');
     }
+  } catch(e) { toast('Erreur réseau', false); }
+}
 
-    // API: Clock control
-    function updateClockUI() {
-      document.getElementById('clock-lbl').textContent = clockMode === 'bells' ? '🔔 Activées' : '🔇 Silencieuses';
-      document.getElementById('btn-clock').textContent = clockMode === 'bells' ? 'Désactiver' : 'Activer';
+async function fixAudio() {
+  toast('🚀 Relance audio…');
+  try { await fetch('/api.sh?action=audio_fix'); toast('✅ Service reconnecté'); }
+  catch(e) { toast('Erreur', false); }
+}
+
+async function loadAudioSinks() {
+  try {
+    const r = await fetch('/api.sh?action=audio_output');
+    const sinks = await r.json();
+    if (!Array.isArray(sinks) || !sinks.length) return;
+    document.getElementById('det-audio').style.display = '';
+    document.getElementById('audio-sinks-list').innerHTML =
+      '<div class="row" style="flex-wrap:wrap;gap:8px">' +
+      sinks.map(s =>
+        `<button class="btn btn-sm ${s.active ? 'btn-teal' : 'btn-outline'}"
+           onclick="setAudioSink('${s.name}')"
+           style="flex:none;min-width:120px">${s.label}${s.active ? ' ✓' : ''}</button>`
+      ).join('') + '</div>';
+  } catch(e) {}
+}
+
+async function setAudioSink(name) {
+  try {
+    const r = await fetch('/api.sh?action=audio_output', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'sink=' + encodeURIComponent(name)
+    });
+    const d = await r.json();
+    if (d.status === 'ok') { toast('🔊 Sortie changée'); setTimeout(loadAudioSinks, 3500); }
+    else toast('Erreur : ' + (d.message || 'inconnue'), false);
+  } catch(e) { toast('Erreur réseau', false); }
+}
+
+async function doYtCopy() {
+  const url = document.getElementById('yt-url').value.trim();
+  const res = document.getElementById('yt-result');
+  const btn = document.getElementById('btn-yt');
+  if (!url) { toast('URL requise', false); return; }
+  btn.disabled = true; btn.textContent = 'En cours…';
+  res.textContent = ''; res.className = '';
+  try {
+    const r = await fetch('/api.sh?action=yt_copy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'url=' + encodeURIComponent(url)
+    });
+    const d = await r.json();
+    if (d.status === 'ok') {
+      toast('✅ Ajouté au jukebox');
+      res.textContent = d.message || 'Musique ajoutée !';
+      document.getElementById('yt-url').value = '';
+    } else {
+      res.className = 'err';
+      res.textContent = 'Erreur : ' + (d.error || 'inconnue');
+      toast('Erreur', false);
     }
+  } catch(e) { toast('Erreur réseau', false); }
+  finally { btn.disabled = false; btn.textContent = 'Télécharger & épingler →'; }
+}
 
-    async function toggleClock() {
-      const next = clockMode === 'bells' ? 'silent' : 'bells';
-      try {
-        await fetch('/api.sh?action=clock', { method: 'POST', body: 'mode=' + next });
-        clockMode = next; updateClockUI(); toast("Clocher mis à jour");
-      } catch(e) { toast("Erreur", false); }
-    }
+loadConfig().then(() => {
+  loadStatus();
+  loadAudioSinks();
+  setInterval(loadStatus, 15000);
+});
+</script>
 
-    async function fixAudio() {
-      toast("🚀 Relance audio...");
-      try { await fetch('/api.sh?action=audio_fix'); toast("✅ Service reconnecté"); } catch(e) { toast("Erreur", false); }
-    }
-
-    loadConfig().then(() => { loadStatus(); setInterval(loadStatus, 15000); });
-  </script>
 </body>
 </html>
