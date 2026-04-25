@@ -6,7 +6,7 @@ START_MARKER="# >>> PICOPORT ALIASES START >>>"
 END_MARKER="# <<< PICOPORT ALIASES END <<<"
 
 # Contenu du bloc PicoPort
-read -r -d '' PICO_BLOCK << EOF
+read -r -d '' PICO_BLOCK << 'EOF'
 $START_MARKER
 
 # ── Diagnostic & Surveillance ─────────────────────────────────────────────
