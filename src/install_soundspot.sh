@@ -102,9 +102,7 @@ cp "$SCRIPT_DIR"/backend/video/*    "$INSTALL_DIR/backend/video/" 2>/dev/null ||
 cp "$SCRIPT_DIR"/backend/system/*   "$INSTALL_DIR/backend/system/" 2>/dev/null || true
 
 # Droits d'exécution
-chmod +x "$INSTALL_DIR"/backend/audio/*.sh
-chmod +x "$INSTALL_DIR"/backend/video/*.sh
-chmod +x "$INSTALL_DIR"/backend/system/*.sh
+find "$INSTALL_DIR/backend" -name "*.sh" -exec chmod +x {} \;
 
 # Copie des manuels
 cp "$SCRIPT_DIR/../README.md" "$INSTALL_DIR/" 2>/dev/null || true
