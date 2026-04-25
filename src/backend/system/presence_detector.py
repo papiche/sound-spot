@@ -40,7 +40,22 @@ SCALE_FACTOR    = float(os.getenv("PRESENCE_SCALE",         "1.3"))
 MIN_NEIGHBORS   = int(os.getenv("PRESENCE_NEIGHBORS",       "4"))
 MIN_FACE_PX     = int(os.getenv("PRESENCE_MIN_FACE",        "20"))  # px sur image downscalée ÷4
 WELCOME_CMD = os.getenv("PRESENCE_WELCOME_CMD", "/opt/soundspot/backend/audio/play_welcome.sh")
-HAAR_XML = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+def _find_haar_xml():
+    if hasattr(cv2, "data") and hasattr(cv2.data, "haarcascades"):
+        return cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+    for _p in [
+        "/usr/share/opencv4/haarcascades",
+        "/usr/share/opencv/haarcascades",
+        "/usr/local/share/opencv4/haarcascades",
+    ]:
+        _f = _p + "/haarcascade_frontalface_default.xml"
+        if os.path.isfile(_f):
+            return _f
+    import glob as _glob
+    _matches = _glob.glob("/usr/**/haarcascade_frontalface_default.xml", recursive=True)
+    return _matches[0] if _matches else "haarcascade_frontalface_default.xml"
+
+HAAR_XML = _find_haar_xml()
 
 _LOG_LEVEL_STR = os.getenv("LOG_LEVEL", "INFO").upper()
 _LOG_LEVEL_MAP = {

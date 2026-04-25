@@ -378,19 +378,16 @@ else
     warn "presence_detector.py inactif ${D}(normal si pas de caméra)${N}"
 fi
 
-if command -v vcgencmd &>/dev/null; then
-    if vcgencmd get_camera 2>/dev/null | grep -q "detected=1"; then
-        ok "Caméra Pi détectée (vcgencmd)"
-    else
-        warn "Caméra Pi non détectée"
-    fi
+# Bookworm : libcamera-hello --list-cameras est la méthode fiable (imx708, etc.)
+if libcamera-hello --list-cameras 2>/dev/null | grep -q "imx\|ov\|sc[0-9]"; then
+    CAM_INFO=$(libcamera-hello --list-cameras 2>/dev/null | grep -E "imx|ov|sc[0-9]" | head -1 | sed 's/^[[:space:]]*//')
+    ok "Caméra libcamera détectée : $CAM_INFO"
+elif ls /dev/video* &>/dev/null 2>&1; then
+    ok "Périphérique(s) vidéo : $(ls /dev/video* | tr '\n' ' ')"
+elif command -v vcgencmd &>/dev/null && vcgencmd get_camera 2>/dev/null | grep -q "detected=1"; then
+    ok "Caméra Pi détectée (vcgencmd)"
 else
-    # Bookworm : libcamera remplace vcgencmd
-    if ls /dev/video* &>/dev/null 2>&1; then
-        ok "Périphérique(s) vidéo : $(ls /dev/video* | tr '\n' ' ')"
-    else
-        info "Aucun périphérique vidéo détecté"
-    fi
+    warn "Caméra Pi non détectée"
 fi
 
 # ── 8. Clients Snapcast connectés ───────────────────────────────
