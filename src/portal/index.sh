@@ -532,11 +532,11 @@ async function loadAudioSinks() {
     if (!Array.isArray(sinks) || !sinks.length) return;
     document.getElementById('card-audio').style.display = '';
     let html = '<div class="row" style="flex-wrap:wrap;gap:8px">';
-    sinks.forEach(s => {
-      const cls = s.active ? 'btn-teal' : 'btn-outline';
-      const chk = s.active ? ' ✓' : '';
-      html += `<button class="btn btn-sm ${cls}" onclick="setAudioSink('${s.name.replace(/'/g,"\\'")}')"\
- style="flex:none;min-width:130px">${s.label}${chk}</button>`;
+    sinks.forEach(function(s) {
+      var cls = s.active ? 'btn-teal' : 'btn-outline';
+      var chk = s.active ? ' \u2713' : '';
+      html += '<button class="btn btn-sm ' + cls + '" onclick="setAudioSink(\'' + s.name + '\')"' +
+              ' style="flex:none;min-width:130px">' + s.label + chk + '</button>';
     });
     html += '</div>';
     el.innerHTML = html;
