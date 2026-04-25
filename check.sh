@@ -128,7 +128,7 @@ check_svc soundspot-channel-sync "soundspot-channel-sync (canal WiFi)"
 check_svc bt-autoconnect        "bt-autoconnect"
 check_svc bluealsa              "bluealsa"   masked
 check_svc bluealsa-aplay        "bluealsa-aplay" masked
-check_svc opennds               "opennds"    masked
+systemctl mask opennds 2>/dev/null || true
 
 
 hdr "Matériel ReSpeaker"
@@ -430,7 +430,8 @@ fi
 # ── 9. Erreurs récentes ─────────────────────────────────────────
 hdr "Journaux (erreurs < 60s)"
 RECENT=$(journalctl --since "60 seconds ago" -p err..emerg \
-    --no-pager -q 2>/dev/null | grep -v "^$" | head -15)
+    --no-pager -q --no-hostname -o short 2>/dev/null \
+    | sed $'s/\e\\[[0-9;]*m//g' | grep -v "^$" | head -15)
 if [ -n "$RECENT" ]; then
     warn "Erreurs récentes dans journald :"
     echo "$RECENT" | sed "s/^/    ${R}/; s/$/${N}/"

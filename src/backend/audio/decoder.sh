@@ -3,7 +3,7 @@
 # le décode en PCM 48 kHz s16le et l'écrit dans le snapfifo.
 # ffmpeg est tolérant aux coupures : il attend et relance automatiquement.
 FIFO="/dev/shm/snapfifo"
-[ -p "$FIFO" ] || mkfifo -m 0622 "$FIFO"
+[ -p "$FIFO" ] || mkfifo -m 0666 "$FIFO"
 
 while true; do
     ffmpeg -hide_banner -loglevel error -fflags nobuffer -flags low_delay -rw_timeout 5000000 \

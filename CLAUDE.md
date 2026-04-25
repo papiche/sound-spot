@@ -64,7 +64,7 @@ There is no build step — this project is pure Bash + Python. ShellCheck can be
 [RPi Satellite]──wlan0 qo-op──→ snapclient → soundspot.local:1704 → BT speaker B
                  (Snapcast over qo-op, NOT over the AP)
 
-[Visitor phone/PC]──WiFi SPOT_NAME──→ opennds splash ──→ snapclient → 192.168.10.1:1704
+[Visitor phone/PC]──WiFi SPOT_NAME──→ lighttpd portail captif ──→ snapclient → 192.168.10.1:1704
 
 [PC / Mixxx DJ]──snapclient──→ 192.168.10.1:1704  (headphone monitor, direct via AP)
                                 ⚠ pipeline latency: 1-3 s (Icecast+ffmpeg+Snapcast)
