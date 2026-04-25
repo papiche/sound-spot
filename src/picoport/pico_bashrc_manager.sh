@@ -22,7 +22,18 @@ alias pico-on='~/.zen/Astroport.ONE/tools/cron_VRFY.sh ON'
 # ── Audio & Bluetooth ─────────────────────────────────────────────────────
 alias sound='wpctl status'
 alias sound-fix='systemctl --user restart pipewire pipewire-pulse wireplumber'
-vol() { if [ $# -eq 0 ]; then wpctl get-volume @DEFAULT_AUDIO_SINK@; else wpctl set-volume @DEFAULT_AUDIO_SINK@ "$1"; wpctl get-volume @DEFAULT_AUDIO_SINK@; fi; }
+vol() {
+    if [ -z "$1" ]; then
+        wpctl get-volume @DEFAULT_AUDIO_SINK@
+    else
+        # wpctl utilise des valeurs de 0.0 à 1.0 (ou >1.0 pour booster)
+        # On convertit si l'utilisateur entre un entier (ex: 80 -> 0.8)
+        local VAL=$1
+        [[ "$VAL" -gt 1 ]] && VAL=$(echo "scale=2; $VAL / 100" | bc)
+        wpctl set-volume @DEFAULT_AUDIO_SINK@ "$VAL"
+        echo "Volume réglé à $VAL"
+    fi
+}
 alias sound-test='pw-play /usr/share/sounds/alsa/Front_Center.wav'
 alias bt-fix='sudo systemctl restart bt-autoconnect && journalctl -u bt-autoconnect -f'
 

@@ -54,10 +54,12 @@ sudo systemctl daemon-reload
 # Ajout des services UPlanet pour le reload (picoport, upassport...)
 SERVICES="soundspot-idle soundspot-decoder soundspot-presence soundspot-battery soundspot-jukebox soundspot-channel-sync bt-autoconnect picoport upassport soundspot-swarm-sync"
 
+log "Redémarrage progressif des services..."
 for svc in $SERVICES; do
     if systemctl is-enabled --quiet "$svc" 2>/dev/null; then
         sudo systemctl restart "$svc"
         echo -e "  ${G}✓${N} $svc"
+        sleep 2 # Laisser le CPU respirer entre chaque service
     fi
 done
 
