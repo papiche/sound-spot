@@ -74,6 +74,8 @@ cat <<HTMLEOF
   .card-sat::before   { background: linear-gradient(90deg,var(--sat),var(--teal)); }
   .card-yt::before    { background: linear-gradient(90deg,#ff0000,#cc0000); }
   .card-clock::before { background: linear-gradient(90deg,#555,#333); }
+  .card-audio::before { background: linear-gradient(90deg,#006e7e,#003f4a); }
+  .badge-audio { color:#00d4e8; border:1px solid rgba(0,212,232,.3); background:rgba(0,212,232,.05); }
 
   /* ── Typographie intra-carte ── */
   .badge {
@@ -338,6 +340,20 @@ cat <<HTMLEOF
   </details>
 </div>
 
+<!-- ═══ CARTE 9 : SORTIE AUDIO (accordéon) ═══ -->
+<div class="card card-audio" id="card-audio" style="display:none">
+  <details>
+    <summary><span><div class="badge badge-audio" style="margin:0">🔊 Sortie Audio</div></span></summary>
+    <div class="detail-body">
+      <h2>Choisir la sortie sonore</h2>
+      <p>Sélectionner vers quelle sortie le son est envoyé. Le service audio redémarre automatiquement (2–3 s).</p>
+      <div id="audio-sinks-list" style="margin-top:10px">
+        <p style="color:var(--muted);font-size:.85rem">Détection des sorties…</p>
+      </div>
+    </div>
+  </details>
+</div>
+
 </div><!-- /cards -->
 
 <div class="footer">
@@ -507,8 +523,46 @@ async function doYtCopy() {
   }
 }
 
+// ── Sortie audio ────────────────────────────────────────────
+async function loadAudioSinks() {
+  try {
+    const r = await fetch('/api.sh?action=audio_output');
+    const sinks = await r.json();
+    const el = document.getElementById('audio-sinks-list');
+    if (!Array.isArray(sinks) || !sinks.length) return;
+    document.getElementById('card-audio').style.display = '';
+    let html = '<div class="row" style="flex-wrap:wrap;gap:8px">';
+    sinks.forEach(s => {
+      const cls = s.active ? 'btn-teal' : 'btn-outline';
+      const chk = s.active ? ' ✓' : '';
+      html += `<button class="btn btn-sm ${cls}" onclick="setAudioSink('${s.name.replace(/'/g,"\\'")}')"\
+ style="flex:none;min-width:130px">${s.label}${chk}</button>`;
+    });
+    html += '</div>';
+    el.innerHTML = html;
+  } catch(e) {}
+}
+
+async function setAudioSink(sinkName) {
+  try {
+    const r = await fetch('/api.sh?action=audio_output', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: 'sink=' + encodeURIComponent(sinkName)
+    });
+    const d = await r.json();
+    if (d.status === 'ok') {
+      toast('🔊 Sortie changée');
+      setTimeout(loadAudioSinks, 3500); // laisser soundspot-client redémarrer
+    } else {
+      toast('Erreur : ' + (d.message || 'inconnue'), false);
+    }
+  } catch(e) { toast('Erreur réseau', false); }
+}
+
 // ── Init ────────────────────────────────────────────────────
 loadStatus();
+loadAudioSinks();
 setInterval(loadStatus, 30000); // rafraîchir toutes les 30s
 </script>
 

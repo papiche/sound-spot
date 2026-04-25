@@ -301,20 +301,41 @@ SPEAKER_PATTERN="${SPEAKER_PATTERN}|soundlink|flip|charge|pulse|pill|roam|clip|b
 SPEAKER_PATTERN="${SPEAKER_PATTERN}|wonder|mega|party|bass|stereo|mini|go|loud|beats"
 # ---------------------------
 
+# Cache persistant des appareils découverts lors des scans (survit aux récursions)
+BT_DISC_CACHE="/tmp/soundspot_bt_found"
+
 ask_bt_selection() {
-    local BT_RAW=$(bluetoothctl devices 2>/dev/null || true)
+    # Fusionner le cache BlueZ courant + appareils accumulés lors des scans précédents
+    declare -A _BT_SEEN
+    local BT_RAW="" _line _mac _name
+    while IFS= read -r _line; do
+        _mac=$(echo "$_line" | awk '{print $2}')
+        [[ "$_mac" =~ ^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$ ]] || continue
+        _BT_SEEN[$_mac]=1
+        BT_RAW="${BT_RAW}${BT_RAW:+$'\n'}$_line"
+    done <<< "$(bluetoothctl devices 2>/dev/null || true)"
+    if [ -f "$BT_DISC_CACHE" ]; then
+        while IFS= read -r _line; do
+            _mac=$(echo "$_line" | awk '{print $2}')
+            [[ "$_mac" =~ ^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$ ]] || continue
+            [ "${_BT_SEEN[$_mac]+x}" ] && continue
+            _BT_SEEN[$_mac]=1
+            BT_RAW="${BT_RAW}${BT_RAW:+$'\n'}$_line"
+        done < "$BT_DISC_CACHE"
+    fi
+
     declare -A BT_MAP
     local IDX=1
-    
+
     echo -e "Appareils Bluetooth connus (déjà couplés/scannés) :\n"
-    
+
     if [ -n "$BT_RAW" ]; then
-        while IFS= read -r line; do
-            MAC=$(echo "$line" | awk '{print $2}')
-            NAME=$(echo "$line" | cut -d' ' -f3-)
+        while IFS= read -r _line; do
+            MAC=$(echo "$_line" | awk '{print $2}')
+            NAME=$(echo "$_line" | cut -d' ' -f3-)
             [[ "$MAC" =~ ^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$ ]] || continue
             BT_MAP[$IDX]="${MAC}|${NAME}"
-            
+
             STATUS=""
             if bluetoothctl info "$MAC" 2>/dev/null | grep -q "Connected: yes"; then
                 STATUS=" ${G}[Connecté]${N}"
@@ -332,16 +353,16 @@ ask_bt_selection() {
     else
         echo "  (Aucun appareil en mémoire)"
     fi
-    
+
     echo ""
     echo -e "  ${C}[S]${N} Lancer un scan pour trouver une nouvelle enceinte (15s)"
     echo -e "  ${C}[M]${N} Saisie manuelle de l'adresse MAC"
     echo -e "  ${C}[0]${N} Ignorer / Plus tard"
     echo ""
-    
+
     ask "Votre choix : "
     read -r CHOICE
-    
+
     if [[ "${CHOICE,,}" == "s" ]]; then
         log "Allumez vos enceintes en mode appairage maintenant..."
         rfkill unblock bluetooth 2>/dev/null || true
@@ -362,7 +383,15 @@ ask_bt_selection() {
         done
         wait "$SCAN_PID" 2>/dev/null || true
         echo -e "\n"
-        # On relance le menu, qui affichera la liste mise à jour !
+        # Accumuler les nouveaux appareils détectés dans le cache persistant
+        while IFS= read -r _line; do
+            if [[ "$_line" =~ \[NEW\]\ Device\ ([0-9A-Fa-f:]{17})\ (.+) ]]; then
+                _mac="${BASH_REMATCH[1]}"; _name="${BASH_REMATCH[2]}"
+                grep -qF "$_mac" "$BT_DISC_CACHE" 2>/dev/null \
+                    || echo "Device $_mac $_name" >> "$BT_DISC_CACHE"
+            fi
+        done < /tmp/bt_scan.log
+        # Relancer le menu — la liste inclut maintenant les appareils accumulés
         ask_bt_selection
     elif [[ "${CHOICE,,}" == "m" ]]; then
         ask "Adresse MAC (ex: F4:4E:FC:E9:C6:15) : "

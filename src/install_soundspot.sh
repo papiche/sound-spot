@@ -78,6 +78,12 @@ for _u in "${SOUNDSPOT_USER}" www-data astro; do
     id "$_u" &>/dev/null && usermod -aG soundspot "$_u" && log "$_u ajouté au groupe soundspot" || true
 done
 
+# ── Sudoers portail : www-data peut appeler set_audio_output.sh en root ─
+echo "www-data ALL=(root) NOPASSWD: ${INSTALL_DIR}/backend/system/set_audio_output.sh" \
+    > /etc/sudoers.d/soundspot-audio
+chmod 440 /etc/sudoers.d/soundspot-audio
+log "sudoers soundspot-audio configuré"
+
 # ── Préparation de l'arborescence /opt/soundspot ─────────────
 hdr "Préparation de l'arborescence"
 mkdir -p "$INSTALL_DIR/backend/audio"
