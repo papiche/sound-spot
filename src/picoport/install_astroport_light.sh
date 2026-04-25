@@ -53,11 +53,20 @@ _PYPACKAGES=(
     "monero:monero"          "bitcoin:bitcoin"
     "scrypt:scrypt"
 )
+_TOTAL=${#_PYPACKAGES[@]}; _IDX=0
 for _entry in "${_PYPACKAGES[@]}"; do
     _pip="${_entry%%:*}"; _mod="${_entry##*:}"
-    python3 -c "import $_mod" 2>/dev/null \
-        || pip install --prefer-binary -q "$_pip" 2>/dev/null \
-        || echo "⚠  pip install $_pip échoué (connexion ?)"
+    _IDX=$((_IDX + 1))
+    if timeout 5 python3 -c "import $_mod" 2>/dev/null; then
+        echo "  ($_IDX/$_TOTAL) $_pip — déjà présent"
+    else
+        echo -n "  ($_IDX/$_TOTAL) $_pip — installation... "
+        if pip install --prefer-binary -q "$_pip" 2>&1 | tail -1; then
+            echo "✓"
+        else
+            echo "⚠  échec (connexion ?)"
+        fi
+    fi
 done
 echo "✅ Packages Python keygen/Picoport vérifiés"
 

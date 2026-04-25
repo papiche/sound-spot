@@ -10,7 +10,7 @@ setup_networking() {
 [keyfile]
 unmanaged-devices=interface-name:${IFACE_AP}
 EOF
-    systemctl reload NetworkManager 2>/dev/null || true
+    timeout 5 systemctl reload NetworkManager 2>/dev/null || true
 
     # 2. Interface AP SoundSpot (Gère uap0 virtuelle ou wlan1 physique + assignation IP)
     install_template soundspot-ap.service /etc/systemd/system/soundspot-ap.service \
