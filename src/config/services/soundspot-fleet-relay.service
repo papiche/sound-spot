@@ -1,12 +1,11 @@
 [Unit]
-Description=SoundSpot — Relay NOSTR flotte (port 9999, cluster-local)
+Description=SoundSpot — Relay NOSTR flotte (port 29999, cluster-local)
 After=network.target snapserver.service
-PartOf=snapserver.service
 
 [Service]
 Type=simple
 EnvironmentFile=${INSTALL_DIR}/soundspot.conf
-Environment="FLEET_RELAY_PORT=9999"
+Environment="FLEET_RELAY_PORT=29999"
 ExecStart=/usr/bin/python3 ${INSTALL_DIR}/backend/system/fleet_relay.py
 Restart=always
 RestartSec=5
