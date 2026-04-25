@@ -152,16 +152,41 @@ def restore_normal_wav():
         log.info("Message d'accueil normal restauré")
 
 
-def notify_master_shutdown():
-    """Prévient le Master RPi4 de s'éteindre proprement via l'API."""
+def _notify_master_direct():
+    """Fallback : POST direct à l'API du Master si fleet_commander indisponible."""
     import urllib.request
     url = f"http://{MASTER_IP}/api.sh?action=shutdown"
     try:
         req = urllib.request.Request(url, data=b"", method="POST")
         urllib.request.urlopen(req, timeout=5)
-        log.info("Signal d'extinction envoyé au Master (%s)", MASTER_IP)
+        log.info("Fallback POST shutdown envoyé au Master (%s)", MASTER_IP)
     except Exception as exc:
-        log.warning("Master injoignable pour shutdown (%s)", exc)
+        log.warning("Master injoignable pour shutdown direct (%s)", exc)
+
+
+def notify_fleet_shutdown():
+    """Diffuse l'ordre d'extinction à TOUTE la flotte via NOSTR kind 9 (Amiral).
+    Le fleet_listener sur chaque nœud reçoit la commande et s'éteint proprement.
+    Le nœud Énergie coupe le relais physique EN DERNIER (+15s).
+    """
+    fleet_cmd = os.path.join(INSTALL_DIR, "backend/system/fleet_commander.sh")
+    if os.path.isfile(fleet_cmd):
+        try:
+            result = subprocess.run(
+                ["bash", fleet_cmd, "shutdown", str(RELAY_WARN_DELAY)],
+                timeout=15,
+                capture_output=True,
+                text=True,
+            )
+            if result.returncode == 0:
+                log.info("Ordre d'extinction diffusé à la flotte via NOSTR Amiral")
+                return
+            log.warning("fleet_commander.sh code=%d : %s", result.returncode, result.stderr[:120])
+        except Exception as exc:
+            log.warning("fleet_commander.sh exception (%s)", exc)
+    else:
+        log.warning("fleet_commander.sh introuvable — fallback POST direct")
+    _notify_master_direct()
 
 
 def cut_relay():
@@ -184,8 +209,8 @@ def graceful_shutdown():
     # 1. Alerter vocalement (le nœud énergie lui-même via play_welcome si présent)
     generate_low_battery_wav()
 
-    # 2. Envoyer l'ordre d'extinction au Master
-    notify_master_shutdown()
+    # 2. Diffuser l'ordre d'extinction à toute la flotte (NOSTR Amiral)
+    notify_fleet_shutdown()
 
     # 3. Laisser le temps au Master (RPi4) de flush sa SD card
     log.info("Attente %ds avant coupure relais…", RELAY_WARN_DELAY)

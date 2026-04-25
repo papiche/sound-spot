@@ -6,6 +6,7 @@ import subprocess
 import base64
 import time
 import logging
+import threading
 
 # --- CONFIGURATION DU GOLEM DISTRIBUÉ ---
 AUDIO_THRESHOLD = 0.05       # Sensibilité ReSpeaker 2-Mic
@@ -26,6 +27,8 @@ PROMPT_IA = (
 
 logging.basicConfig(level=logging.INFO, format='👁[%(levelname)s] %(message)s')
 last_trigger = 0
+# Empêche deux analyses simultanées (Ollama peut prendre 35s)
+_analysis_lock = threading.Lock()
 
 def capture_image():
     """Capture une image via la libcamera du RPi 4"""
@@ -73,27 +76,33 @@ def talk_to_mouth(text):
     except Exception as e:
         logging.error(f"Impossible de joindre la Bouche (Pi Zero) : {e}")
 
+def _run_analysis():
+    """Thread dédié : capture + IA + parole. Protégé par lock anti-concurrence."""
+    if not _analysis_lock.acquire(blocking=False):
+        logging.info("⏳ Analyse déjà en cours — trigger ignoré.")
+        return
+    try:
+        image_b64 = capture_image()
+        if image_b64:
+            texte_ia = ask_swarm(image_b64)
+            talk_to_mouth(texte_ia)
+        else:
+            talk_to_mouth("Mes yeux sont flous. Il fait tout noir.")
+    finally:
+        _analysis_lock.release()
+
+
 def audio_callback(indata, frames, time_info, status):
-    """Écoute le micro (ReSpeaker) en temps réel"""
+    """Écoute le micro (ReSpeaker) en temps réel — retourne immédiatement."""
     global last_trigger
-    if status:
-        pass # Ignore overflows
-    
-    # Calcul du volume RMS
     volume = np.linalg.norm(indata) / np.sqrt(len(indata))
-    
+
     if volume > AUDIO_THRESHOLD:
         now = time.time()
         if now - last_trigger > COOLDOWN_S:
             last_trigger = now
             logging.info(f"👂 Bruit détecté ! (Vol: {volume:.3f}) -> Réveil de l'Œil.")
-            
-            image_b64 = capture_image()
-            if image_b64:
-                texte_ia = ask_swarm(image_b64)
-                talk_to_mouth(texte_ia)
-            else:
-                talk_to_mouth("Mes yeux sont flous. Il fait tout noir.")
+            threading.Thread(target=_run_analysis, daemon=True).start()
 
 def main():
     logging.info("🚀 Démarrage du Cerveau Sensoriel du Golem.")

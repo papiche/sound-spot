@@ -32,11 +32,24 @@ YT_URL=$(printf '%s' "$POST_DATA" \
     | python3 -c "import sys,urllib.parse; print(urllib.parse.unquote_plus(sys.stdin.read().strip()))" \
     2>/dev/null)
 
-# ── Préparation de la requête (URL ou Recherche) ──────────────
-if [[ "$YT_URL" =~ ^https?:// ]]; then
+# ── Validation stricte et préparation de la requête ──────────
+YT_DOMAIN_RE='^https?://(www\.)?(youtube\.com|youtu\.be|music\.youtube\.com)/'
+if [[ "$YT_URL" =~ $YT_DOMAIN_RE ]]; then
+    # URL YouTube valide — on conserve telle quelle (yt-dlp reçoit après --)
     TARGET="$YT_URL"
+elif [[ "$YT_URL" =~ ^https?:// ]]; then
+    # Domaine non-YouTube → refus (prévient l'SSRF via yt-dlp)
+    jq -n --arg url "$YT_URL" \
+        '{"error":"domain_not_allowed","hint":"Seuls youtube.com et youtu.be sont acceptés","url":$url}'
+    exit 0
+elif [ -n "$YT_URL" ]; then
+    # Recherche textuelle — suppression des caractères dangereux (|;<>&`$)
+    SEARCH=$(printf '%s' "$YT_URL" | tr -d '|;<>&`$\\' | cut -c1-100)
+    [ -z "$SEARCH" ] && { jq -n '{"error":"empty_search"}'; exit 0; }
+    TARGET="ytsearch1:${SEARCH}"
 else
-    TARGET="ytsearch1:$YT_URL"
+    jq -n '{"error":"missing_url","hint":"POST body: url=<youtube_url_ou_texte>"}'
+    exit 0
 fi
 
 # ── Téléchargement ────────────────────────────────────────────
