@@ -74,6 +74,8 @@ LAT=$(echo $RES | awk '{print $2}')
 LON=$(echo $RES | awk '{print $3}')
 
 echo "LAT=$LAT; LON=$LON" > ~/.zen/GPS
+## SOUNDSPOT_USER can read GPS
+sudo chown "${SOUNDSPOT_USER}:${SOUNDSPOT_USER}" /home/${SOUNDSPOT_USER}/.zen/GPS
 
 # --- Bonus 
 echo "installation yt-dlp"

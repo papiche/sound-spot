@@ -219,6 +219,9 @@ install_template soundspot.conf.master.env "$INSTALL_DIR/soundspot.conf" \
 touch "$SOUNDSPOT_LOG"
 chgrp soundspot "$SOUNDSPOT_LOG"
 chmod 664 "$SOUNDSPOT_LOG"
+# et ~/.zen/tmp aussi
+mkdir -p "/home/${SOUNDSPOT_USER}/.zen/tmp"
+chgrp soundspot "/home/${SOUNDSPOT_USER}/.zen/tmp"
 
 hdr "Installation terminée ✓"
 echo -e "${G}SoundSpot est prêt !${N}"

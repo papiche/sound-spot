@@ -20,6 +20,7 @@ QUEUE_DIR="${USER_HOME}/.zen/tmp/${IPFSNODEID}/soundspot_queue"
 
 # Création du dossier IPC avec permissions partagées (pour l'utilisateur web www-data)
 mkdir -p "$QUEUE_DIR"
+chgrp soundspot "$QUEUE_DIR" 2>/dev/null || true
 chmod 775 "$QUEUE_DIR"
 
 # Lancement du listener Python en tâche de fond via l'environnement ~/.astro
@@ -40,7 +41,7 @@ while true; do
             rm -f "$NEXT_JOB"
             echo "▶ Lecture à l'antenne : $PLAY_URL"
             # On télécharge temporairement le MP3 depuis la gateway IPFS locale
-            wget -qO /dev/shm/current_juke.mp3 "$PLAY_URL"
+            wget -q --timeout=10 --tries=2 -O /dev/shm/current_juke.mp3 "$PLAY_URL"
             pw-play /dev/shm/current_juke.mp3 2>/dev/null
             rm -f /dev/shm/current_juke.mp3
         fi

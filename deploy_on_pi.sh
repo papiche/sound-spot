@@ -345,18 +345,23 @@ ask_bt_selection() {
     if [[ "${CHOICE,,}" == "s" ]]; then
         log "Allumez vos enceintes en mode appairage maintenant..."
         rfkill unblock bluetooth 2>/dev/null || true
-        bluetoothctl power on >/dev/null 2>&1 || true
-        bluetoothctl agent on >/dev/null 2>&1 || true
-        bluetoothctl default-agent >/dev/null 2>&1 || true
-        bluetoothctl scan on >/dev/null 2>&1 &
+        # Pipe synchrone : évite le SIGTTIN qui suspend bluetoothctl backgroundé
+        {
+            echo "power on"
+            echo "agent on"
+            echo "default-agent"
+            echo "scan on"
+            sleep 15
+            echo "scan off"
+            echo "quit"
+        } | bluetoothctl > /tmp/bt_scan.log 2>&1 &
         SCAN_PID=$!
         for i in $(seq 1 15); do
             echo -ne "\r  Recherche active... $i/15s "
             sleep 1
         done
+        wait "$SCAN_PID" 2>/dev/null || true
         echo -e "\n"
-        kill "$SCAN_PID" 2>/dev/null || true
-        bluetoothctl scan off >/dev/null 2>&1 || true
         # On relance le menu, qui affichera la liste mise à jour !
         ask_bt_selection
     elif [[ "${CHOICE,,}" == "m" ]]; then
