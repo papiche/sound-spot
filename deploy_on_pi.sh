@@ -251,23 +251,27 @@ if [ "$SOUNDSPOT_MODE" != "2" ] && [ "$IFACE_WAN" != "eth0" ]; then
             fi
         done <<< "$SCAN_DATA"
         
-        # Le canal par défaut exclut de base le canal utilisé par la connexion Internet
+        # Si l'upstream est sur 5 GHz (canal >= 36), aucun conflit possible en 2,4 GHz
+        UPSTREAM_IS_5GHZ=false
+        [ "$UPSTREAM_CHAN" -ge 36 ] 2>/dev/null && UPSTREAM_IS_5GHZ=true
+
         BEST_CHAN=1
         [ "$UPSTREAM_CHAN" == "1" ] && BEST_CHAN=6
         MIN_SCORE=999999
 
         for CH in 1 6 11; do
-            if [ "$CH" != "$UPSTREAM_CHAN" ]; then
+            if $UPSTREAM_IS_5GHZ || [ "$CH" != "$UPSTREAM_CHAN" ]; then
                 # Score = (Nombre de réseaux * 1000) + Somme des pénalités RSSI
                 SCORE=$(( CH_COUNT[$CH] * 1000 + CH_PENALTY[$CH] ))
                 log "  CH${CH} : ${CH_COUNT[$CH]} réseau(x), Pénalité RSSI=${CH_PENALTY[$CH]}, Score=${SCORE}"
-                
+
                 if [ "$SCORE" -lt "$MIN_SCORE" ]; then
                     MIN_SCORE=$SCORE
                     BEST_CHAN=$CH
                 fi
             fi
         done
+        $UPSTREAM_IS_5GHZ && log "Upstream 5 GHz (CH${UPSTREAM_CHAN}) — tous les canaux 2,4 GHz disponibles"
         
         export WIFI_CHANNEL="$BEST_CHAN"
         log "${G}✓${N} Choix automatique : ${W}Canal ${WIFI_CHANNEL}${N} (Score minimal: ${MIN_SCORE})"
