@@ -21,6 +21,7 @@ AMIRAL_HEX=$(cat "$AMIRAL_HEX_FILE")
 # Sur le Maître, relay est local ; sur satellite, via IP résolue du maître
 IS_MASTER=false
 [ -f /etc/hostapd/hostapd.conf ] && IS_MASTER=true
+PY_IS_MASTER=$([ "$IS_MASTER" = "true" ] && echo "True" || echo "False")
 if $IS_MASTER; then
     RELAY_HOST="127.0.0.1"
 else
@@ -43,7 +44,7 @@ RELAY      = "${RELAY}"
 AMIRAL_HEX = "${AMIRAL_HEX}"
 INSTALL_DIR = "${INSTALL_DIR}"
 IS_ENERGY  = "energy" in socket.gethostname().lower()
-IS_MASTER  = ${IS_MASTER}
+IS_MASTER  = ${PY_IS_MASTER}
 
 logging.basicConfig(level=logging.INFO,
     format="%(asctime)s [fleet_listener] %(message)s",

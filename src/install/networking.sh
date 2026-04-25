@@ -4,6 +4,16 @@
 setup_networking() {
     hdr "Configuration Réseau"
 
+    # 1b. Désactiver l'autosuspend USB pour les dongles WiFi connus (évite la mise en veille)
+    mkdir -p /etc/udev/rules.d
+    cat > /etc/udev/rules.d/99-soundspot-wifi-dongle.rules <<'UDEVEOF'
+# Ralink RT3070 (AWUS036H v2, nombreux dongles 2,4 GHz)
+ACTION=="add", SUBSYSTEM=="usb", ATTR{idVendor}=="148f", ATTR{idProduct}=="3070", ATTR{power/autosuspend}="-1"
+# Mediatek MT7612U (AWUS036ACM et équivalents)
+ACTION=="add", SUBSYSTEM=="usb", ATTR{idVendor}=="0e8d", ATTR{idProduct}=="7612", ATTR{power/autosuspend}="-1"
+UDEVEOF
+    udevadm control --reload-rules
+
     # 1. Empêcher NetworkManager de gérer l'interface AP
     mkdir -p /etc/NetworkManager/conf.d
     cat > /etc/NetworkManager/conf.d/99-unmanaged-devices.conf <<EOF

@@ -1,7 +1,8 @@
 [Unit]
 Description=SoundSpot — Pare-feu (iptables + portail captif)
 After=ipset-soundspot.service soundspot-ap.service
-Requires=ipset-soundspot.service soundspot-ap.service
+Requires=ipset-soundspot.service
+Wants=soundspot-ap.service
 Before=hostapd.service dnsmasq.service
 
 [Service]
