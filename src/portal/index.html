@@ -287,7 +287,7 @@
     // API: Status & Énergie
     async function loadStatus() {
       try {
-        const r = await fetch('/api.sh?action=status');
+        const r = await fetch('/status.json?t=' + Date.now());
         const d = await r.json();
         const dj = document.getElementById('dj-badge');
         dj.textContent = d.dj_active ? '🎵 LIVE' : 'Silence';

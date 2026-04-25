@@ -58,6 +58,6 @@ cat /dev/null > ~/.bash_history
 history -c
 
 echo -e "\n${Y}✅ PRÊT POUR LE CLONAGE.${N}"
-echo -e "1. Éteignez : ${W}sudo poweroff${N}"
+echo -e "1. Éteignez : ${W}sudo /usr/sbin/poweroff${N}"
 echo -e "2. Retirez la carte SD et insérez-la dans votre PC."
 echo -e "3. Compressez avec PiShrink : ${G}sudo ./pishrink.sh -z -a soundspot_v2.img${N}\n"
