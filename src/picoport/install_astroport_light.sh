@@ -83,14 +83,11 @@ LAT=$(echo $RES | awk '{print $2}')
 LON=$(echo $RES | awk '{print $3}')
 
 echo "LAT=$LAT; LON=$LON" > ~/.zen/GPS
-## SOUNDSPOT_USER can read GPS
-sudo chown "${SOUNDSPOT_USER}:${SOUNDSPOT_USER}" /home/${SOUNDSPOT_USER}/.zen/GPS
 
 # --- Bonus 
 echo "installation yt-dlp"
 bash $HOME/.zen/Astroport.ONE/install/youtube-dl.sh  
-## ${SOUNDSPOT_USER} mises à jour yt-dlp -U
-sudo chown "${SOUNDSPOT_USER}:${SOUNDSPOT_USER}" /usr/local/bin/yt-dlp
+sudo chown "$(whoami):$(whoami)" /usr/local/bin/yt-dlp 2>/dev/null || true
 
 # ── 5. Script de maintenance quotidienne (20h12 solaire) ─────────
 # Chemin du dépôt sound-spot : déterminé dynamiquement depuis le HOME utilisateur
