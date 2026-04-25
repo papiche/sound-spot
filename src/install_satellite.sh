@@ -21,11 +21,16 @@ source "$SCRIPT_DIR/install/snapclient.sh"
 
 
 # ── Variables configurables ─────────────────────────────────
-MASTER_HOST="${MASTER_HOST:-soundspot.local}"  # hostname/IP du maître sur qo-op
+TARGET_MASTER="${TARGET_MASTER:-soundspot-zicmama}"
+MASTER_HOST="${MASTER_HOST:-${TARGET_MASTER}.local}"
+SPOT_NAME="${SPOT_NAME:-ZICMAMA}"            # SSID AP du maître (pour roaming)
 SNAPCAST_PORT="${SNAPCAST_PORT:-1704}"
 BT_MAC="${BT_MAC:-}"
 BT_MACS="${BT_MACS:-${BT_MAC:-}}"           # Liste MACs séparés par espaces (multi-enceintes)
 INSTALL_DIR="/opt/soundspot"
+PICOPORT_ENABLED="${PICOPORT_ENABLED:-true}"
+LOG_LEVEL="${LOG_LEVEL:-INFO}"
+SOUNDSPOT_LOG="${SOUNDSPOT_LOG:-/var/log/soundspot.log}"
 export SOUNDSPOT_USER="${SOUNDSPOT_USER:-${SUDO_USER:-pi}}"
 export SOUNDSPOT_UID=$(id -u "${SOUNDSPOT_USER}" 2>/dev/null || echo "1000")
 
@@ -129,14 +134,13 @@ esac
 log "config.txt : sortie audio configurée → ${AUDIO_OUTPUT}"
 
 # ── Paquets ──────────────────────────────────────────────────
-# Internet disponible via le NAT du maître (uap0 → wlan0 → qo-op)
 hdr "Installation des paquets"
 apt_retry update -qq
-PKGS="bluez libspa-0.2-bluetooth pipewire pipewire-alsa pipewire-pulse wireplumber snapclient iw wireless-tools zram-tools"
+PKGS="bluez libspa-0.2-bluetooth pipewire pipewire-alsa pipewire-pulse wireplumber snapclient iw wireless-tools zram-tools python3-websockets"
 [ "$AUDIO_OUTPUT" = "bluetooth" ] && PKGS="$PKGS bluez-alsa-utils"
 apt_retry install -y --no-install-recommends $PKGS
 
-mkdir -p "$INSTALL_DIR"
+mkdir -p "$INSTALL_DIR/backend/system"
 
 # ── Groupe système soundspot ─────────────────────────────────
 groupadd --system soundspot 2>/dev/null || true
@@ -162,9 +166,69 @@ fi
 # ── Fichier de configuration central ─────────────────────────
 hdr "Fichier de configuration central"
 install_template soundspot.conf.satellite.env "$INSTALL_DIR/soundspot.conf" \
-    '${MASTER_HOST} ${SNAPCAST_PORT} ${BT_MAC} ${BT_MACS} ${INSTALL_DIR}'
+    '${MASTER_HOST} ${TARGET_MASTER} ${SPOT_NAME} ${SNAPCAST_PORT} ${BT_MAC} ${BT_MACS} ${INSTALL_DIR} ${SOUNDSPOT_USER} ${PICOPORT_ENABLED} ${LOG_LEVEL} ${SOUNDSPOT_LOG}'
 chgrp soundspot "$INSTALL_DIR/soundspot.conf" 2>/dev/null || true
 chmod 640 "$INSTALL_DIR/soundspot.conf"
+
+# ── Roaming dual-réseau (AP maître + réseau amont) ────────────
+hdr "Roaming WiFi dual-réseau"
+if command -v nmcli &>/dev/null && [ -n "${WIFI_SSID:-}" ]; then
+    # Réseau amont (qo-op) — basse priorité
+    nmcli con delete "soundspot-upstream" 2>/dev/null || true
+    nmcli con add type wifi ifname wlan0 con-name "soundspot-upstream" \
+        ssid "$WIFI_SSID" -- wifi-sec.key-mgmt wpa-psk wifi-sec.psk "$WIFI_PASS" 2>/dev/null \
+        && nmcli con mod "soundspot-upstream" connection.autoconnect yes \
+                         connection.autoconnect-priority 10 \
+        && log "Réseau amont ${WIFI_SSID} (priorité 10) ✓" \
+        || warn "nmcli : impossible d'ajouter ${WIFI_SSID}"
+
+    # AP maître — haute priorité
+    nmcli con delete "soundspot-ap" 2>/dev/null || true
+    nmcli con add type wifi ifname wlan0 con-name "soundspot-ap" \
+        ssid "$SPOT_NAME" -- wifi-sec.key-mgmt none 2>/dev/null \
+        && nmcli con mod "soundspot-ap" connection.autoconnect yes \
+                         connection.autoconnect-priority 20 \
+        && log "AP maître ${SPOT_NAME} (priorité 20) ✓" \
+        || warn "nmcli : impossible d'ajouter ${SPOT_NAME}"
+else
+    warn "nmcli absent ou WIFI_SSID vide — roaming dual-réseau non configuré"
+fi
+
+# ── Astroport.ONE léger (keygen + outils flotte NOSTR) ───────
+if [ "${PICOPORT_ENABLED:-true}" = "true" ]; then
+    hdr "Astroport.ONE léger (keygen flotte)"
+    ASTRO_LIGHT="${SCRIPT_DIR}/picoport/install_astroport_light.sh"
+    if [ -f "$ASTRO_LIGHT" ]; then
+        mkdir -p "$INSTALL_DIR/picoport"
+        cp "$ASTRO_LIGHT" "$INSTALL_DIR/picoport/"
+        chown "${SOUNDSPOT_USER}:${SOUNDSPOT_USER}" "$INSTALL_DIR/picoport/install_astroport_light.sh"
+        sudo -u "${SOUNDSPOT_USER}" bash "$INSTALL_DIR/picoport/install_astroport_light.sh" 2>/dev/null \
+            && log "Astroport.ONE cloné — keygen disponible" \
+            || warn "Clone Astroport.ONE partiel (Internet requis)"
+    else
+        warn "install_astroport_light.sh introuvable"
+    fi
+fi
+
+# ── Scripts + service flotte NOSTR ───────────────────────────
+for _f in fleet_listener.sh amiral_keygen.sh fleet_relay.py; do
+    _src="${SCRIPT_DIR}/backend/system/${_f}"
+    [ -f "$_src" ] && cp "$_src" "$INSTALL_DIR/backend/system/" || true
+done
+chmod +x "$INSTALL_DIR/backend/system/"*.sh 2>/dev/null || true
+
+if [ "${PICOPORT_ENABLED:-true}" = "true" ]; then
+    # Génération clé Amiral (même dérivation que le maître → même npub)
+    bash "${INSTALL_DIR}/backend/system/amiral_keygen.sh" \
+        && log "Clé Amiral dérivée ✓" \
+        || warn "amiral_keygen.sh échoué (pynostr ou swarm.key absent)"
+
+    install_template soundspot-fleet.service \
+        /etc/systemd/system/soundspot-fleet.service \
+        '${INSTALL_DIR}'
+    systemctl enable soundspot-fleet
+    log "Fleet listener activé (écoute relay maître port 9999)"
+fi
 
 # ── Résumé ────────────────────────────────────────────────────
 hdr "Installation satellite terminée ✓"

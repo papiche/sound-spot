@@ -11,7 +11,7 @@ case "$REMOTE_ADDR" in
         # Flush les tampons audio proprement avant d'éteindre
         systemctl stop soundspot-client snapserver soundspot-decoder 2>/dev/null || true
         sleep 2
-        sudo poweroff
+        sudo /usr/sbin/poweroff
         ;;
     *)
         echo '{"error":"unauthorized"}'

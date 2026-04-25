@@ -3,7 +3,8 @@ setup_captive_portal() {
     hdr "Portail captif (Lighttpd)"
 
     # Autoriser www-data : ipset (portail captif) + set_clock_mode (toggle horloge) + bt_manage.sh
-    cat > /etc/sudoers.d/soundspot-www <<'SUDOEOF'
+    USER_HOME=$(getent passwd "$SOUNDSPOT_USER" | cut -d: -f6)
+    cat > /etc/sudoers.d/soundspot-www <<SUDOEOF
 www-data ALL=(ALL) NOPASSWD: /usr/sbin/ipset
 www-data ALL=(ALL) NOPASSWD: /opt/soundspot/set_clock_mode.sh
 www-data ALL=(ALL) NOPASSWD: /opt/soundspot/bt_manage.sh
@@ -11,6 +12,7 @@ www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop soundspot-client
 www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop snapserver
 www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop soundspot-decoder
 www-data ALL=(ALL) NOPASSWD: /usr/sbin/poweroff
+www-data ALL=(${SOUNDSPOT_USER}) NOPASSWD: ${USER_HOME}/.zen/Astroport.ONE/IA/orpheus.me.sh
 SUDOEOF
     chmod 0440 /etc/sudoers.d/soundspot-www
 

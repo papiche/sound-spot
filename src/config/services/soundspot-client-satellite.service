@@ -6,12 +6,14 @@ Wants=bluetooth.service network-online.target
 [Service]
 Type=simple
 EnvironmentFile=${INSTALL_DIR}/soundspot.conf
+EnvironmentFile=-/run/soundspot_master.env
 User=${SOUNDSPOT_USER}
 Environment="XDG_RUNTIME_DIR=/run/user/${SOUNDSPOT_UID}"
 Environment="PULSE_SERVER=unix:/run/user/${SOUNDSPOT_UID}/pulse/native"
 ExecStartPre=${INSTALL_DIR}/wait-pw-socket.sh
 ExecStartPre=${INSTALL_DIR}/wait-bt-sink.sh
-ExecStart=/usr/bin/snapclient --logfilter error -h ${MASTER_HOST} -p ${SNAPCAST_PORT} --player pulse:buffer_time=1000
+ExecStartPre=/bin/bash ${INSTALL_DIR}/backend/system/find_master.sh
+ExecStart=/usr/bin/snapclient --logfilter error -h ${MASTER_RESOLVED} -p ${SNAPCAST_PORT} --player pulse:buffer_time=1000
 Restart=always
 RestartSec=10
 SyslogIdentifier=soundspot-client

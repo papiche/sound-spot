@@ -190,6 +190,24 @@ GOEOF
     # Installation du service swarm_sync via template
     install_template soundspot-swarm-sync.service /etc/systemd/system/soundspot-swarm-sync.service '${INSTALL_DIR} ${SOUNDSPOT_USER}'
     systemctl enable --now soundspot-swarm-sync
+
+    # ── Flotte NOSTR Amiral ──────────────────────────────────────
+    hdr "Flotte NOSTR — Relay local (port 9999)"
+    apt-get install -y -q python3-websockets 2>/dev/null || true
+
+    # Génération clé Amiral (déterministe depuis swarm.key)
+    bash "${INSTALL_DIR}/backend/system/amiral_keygen.sh" \
+        && log "Clé Amiral générée ✓" \
+        || warn "Génération clé Amiral échouée (swarm.key ou pynostr absent)"
+
+    install_template soundspot-fleet-relay.service \
+        /etc/systemd/system/soundspot-fleet-relay.service \
+        '${INSTALL_DIR}'
+    install_template soundspot-fleet.service \
+        /etc/systemd/system/soundspot-fleet.service \
+        '${INSTALL_DIR}'
+    systemctl enable soundspot-fleet-relay soundspot-fleet
+    log "Fleet relay (port 9999) + fleet listener activés"
 fi
 
 # ── Fichier de configuration final ──────────────────────────

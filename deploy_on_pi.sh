@@ -98,6 +98,7 @@ fi
 
 MASTER_HOST=""
 SPOT_NAME=""
+TARGET_MASTER=""
 
 # ════════════════════════════════════════════════════════════════
 #  2. Paramètres selon le mode
@@ -106,13 +107,19 @@ if [ "$SOUNDSPOT_MODE" = "2" ]; then
     # ── Mode satellite ───────────────────────────────────────────
     hdr "Mode Satellite"
     echo -e "  Le satellite reçoit le stream du maître via Snapcast."
-    echo -e "  Le maître doit être allumé et joignable sur le même réseau WiFi."
+    echo -e "  Il se connecte au réseau WiFi amont ${W}et${N} à l'AP du maître (roaming)."
     echo ""
-    ask "Hostname ou IP du maître [soundspot.local] : "
-    read -r INPUT_MASTER
-    MASTER_HOST="${INPUT_MASTER:-soundspot.local}"
-    export MASTER_HOST
+    ask "Hostname mDNS unique du maître [soundspot-zicmama] : "
+    read -r INPUT_TARGET
+    TARGET_MASTER="${INPUT_TARGET:-soundspot-zicmama}"
+    MASTER_HOST="${TARGET_MASTER}.local"
+    export MASTER_HOST TARGET_MASTER
     log "Satellite → maître ${C}${MASTER_HOST}${N}"
+
+    ask "SSID WiFi de l'AP du maître (pour roaming direct) [ZICMAMA] : "
+    read -r INPUT_SPOT
+    export SPOT_NAME="${INPUT_SPOT:-ZICMAMA}"
+    log "AP maître pour roaming : ${W}${SPOT_NAME}${N}"
 else
     # ── Mode maître ──────────────────────────────────────────────
     hdr "Identité du SoundSpot maître"
@@ -147,49 +154,63 @@ else
 fi
 
 # ════════════════════════════════════════════════════════════════
-#  3. Réseau WiFi amont et détection Dual-WiFi
+#  3. Réseau et Point d'Accès
 # ════════════════════════════════════════════════════════════════
-hdr "Réseau WiFi amont et Point d'Accès"
+hdr "Réseau et Point d'Accès"
 
 export IFACE_WAN="wlan0"
-if ip link show wlan1 >/dev/null 2>&1; then
-    export IFACE_AP="wlan1"
-    log "Dongle WiFi USB détecté ($IFACE_AP) ! Mode Dual-WiFi activé (Performances max)."
+export IFACE_AP="uap0"
+export WIFI_SSID=""
+export WIFI_PASS=""
+
+# ── Détection topologie réseau ────────────────────────────────
+if [ "$SOUNDSPOT_MODE" != "2" ]; then
+    if ip link show eth0 2>/dev/null | grep -q "state UP"; then
+        export IFACE_WAN="eth0"
+        export IFACE_AP="wlan0"
+        log "Ethernet ${C}eth0${N} UP → puce WiFi ${W}100% dédiée à l'AP ${SPOT_NAME:-SoundSpot}${N}"
+        log "Pas d'interface virtuelle uap0 — wlan0 = AP directe."
+    elif ip link show wlan1 >/dev/null 2>&1; then
+        export IFACE_AP="wlan1"
+        log "Dongle WiFi USB (${IFACE_AP}) — Mode Dual-WiFi activé."
+    else
+        log "Un seul module WiFi — interface virtuelle ${IFACE_AP}."
+    fi
+fi
+
+# ── Réseau WiFi amont (uniquement si pas en Ethernet) ────────
+if [ "$IFACE_WAN" != "eth0" ]; then
+    hdr "Réseau WiFi amont (connexion Internet)"
+    CURRENT_SSID=$(iwgetid -r 2>/dev/null || \
+        nmcli -t -f active,ssid dev wifi 2>/dev/null | awk -F: '/^yes:/{print $2}' || true)
+    [ -n "$CURRENT_SSID" ] && log "WiFi actuel : ${C}${CURRENT_SSID}${N}"
+
+    ask "SSID du réseau WiFi [${CURRENT_SSID:-qo-op}] : "
+    read -r INPUT_WIFI
+    export WIFI_SSID="${INPUT_WIFI:-${CURRENT_SSID:-qo-op}}"
+
+    ask "Mot de passe WiFi [0penS0urce!] : "
+    read -r INPUT_PASS
+    export WIFI_PASS="${INPUT_PASS:-0penS0urce!}"
+
+    # ── Connexion via NetworkManager si le SSID a changé ─────────
+    if [ "$WIFI_SSID" != "${CURRENT_SSID:-}" ] && command -v nmcli &>/dev/null; then
+        log "Connexion NetworkManager → ${WIFI_SSID}..."
+        nmcli dev wifi connect "$WIFI_SSID" password "$WIFI_PASS" ifname wlan0 2>/dev/null \
+            && log "wlan0 → ${WIFI_SSID} ✓" \
+            || warn "nmcli : échec connexion (vérifier SSID/mdp et relancer)"
+    fi
 else
-    export IFACE_AP="uap0"
-    log "Un seul module WiFi détecté. Utilisation de l'interface virtuelle $IFACE_AP."
-fi
-
-hdr "Réseau WiFi amont (connexion Internet)"
-CURRENT_SSID=$(iwgetid -r 2>/dev/null || \
-    nmcli -t -f active,ssid dev wifi 2>/dev/null | awk -F: '/^yes:/{print $2}' || true)
-if [ -n "$CURRENT_SSID" ]; then
-    log "WiFi actuel : ${C}${CURRENT_SSID}${N}"
-fi
-
-ask "SSID du réseau WiFi [${CURRENT_SSID:-qo-op}] : "
-read -r INPUT_WIFI
-export WIFI_SSID="${INPUT_WIFI:-${CURRENT_SSID:-qo-op}}"
-
-ask "Mot de passe WiFi [0penS0urce!] : "
-read -r INPUT_PASS
-export WIFI_PASS="${INPUT_PASS:-0penS0urce!}"
-
-# ── Connexion via NetworkManager si le SSID a changé ─────────
-if [ "$WIFI_SSID" != "$CURRENT_SSID" ] && command -v nmcli &>/dev/null; then
-    log "Connexion NetworkManager → ${WIFI_SSID}..."
-    nmcli dev wifi connect "$WIFI_SSID" password "$WIFI_PASS" ifname wlan0 2>/dev/null \
-        && log "wlan0 → ${WIFI_SSID} ✓" \
-        || warn "nmcli : échec connexion (vérifier SSID/mdp et relancer)"
+    log "Ethernet actif — aucun réseau WiFi amont requis pour le maître."
 fi
 
 # ════════════════════════════════════════════════════════════════
 #  4. Canal WiFi (maître seulement)
 # ════════════════════════════════════════════════════════════════
 export WIFI_CHANNEL="6"
-if [ "$SOUNDSPOT_MODE" != "2" ]; then
+if [ "$SOUNDSPOT_MODE" != "2" ] && [ "$IFACE_WAN" != "eth0" ]; then
     hdr "Optimisation du Canal WiFi"
-    
+
     # 1. Détection canal amont
     UPSTREAM_CHAN=$(iw dev wlan0 info 2>/dev/null | awk '/channel/{print $2; exit}' || echo "11")
     UPSTREAM_CHAN=$(echo "$UPSTREAM_CHAN" | tr -d '[:space:]') # Nettoyage strict
@@ -399,18 +420,22 @@ echo -e "
 ${W}┌────────────────────────────────────────────┐
 │   Récapitulatif — SoundSpot Satellite      │
 ├────────────────────────────────────────────┤${N}
-  Maître Snapcast : ${C}${MASTER_HOST}${N}
+  Maître mDNS     : ${C}${MASTER_HOST}${N}
+  AP maître (roam): ${C}${SPOT_NAME}${N}
   Réseau amont    : ${WIFI_SSID}
   Enceinte BT     : ${W}${BT_MAC:-non configurée}${N}
 ${W}└────────────────────────────────────────────┘${N}"
 else
+    _CLEAN=$(echo "${SPOT_NAME:-}" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9-')
 echo -e "
 ${W}┌────────────────────────────────────────────┐
 │   Récapitulatif — SoundSpot Maître         │
 ├────────────────────────────────────────────┤${N}
-  SSID visiteurs : ${C}${SPOT_NAME}${N}  (réseau ouvert)
-  Réseau amont   : ${WIFI_SSID}  (canal ${WIFI_CHANNEL})
-  Enceinte BT    : ${W}${BT_MAC:-non configurée}${N}
+  Hostname unique : ${C}soundspot-${_CLEAN}.local${N}
+  SSID visiteurs  : ${C}${SPOT_NAME}${N}  (réseau ouvert)
+  Interface AP    : ${W}${IFACE_AP}${N}  (WAN: ${IFACE_WAN})
+  Réseau amont    : ${WIFI_SSID:-Ethernet eth0}  (canal ${WIFI_CHANNEL})
+  Enceinte BT     : ${W}${BT_MAC:-non configurée}${N}
 ${W}└────────────────────────────────────────────┘${N}"
 fi
 
@@ -449,6 +474,15 @@ export SNAPCAST_PORT="1704"
 export PRESENCE_COOLDOWN="${PRESENCE_COOLDOWN:-30}"
 export PRESENCE_ENABLED="${PRESENCE_ENABLED:-false}"
 export SOUNDSPOT_MODE
+
+# ── Hostname unique (Master uniquement) ──────────────────────
+if [ "$SOUNDSPOT_MODE" != "2" ] && [ -n "${SPOT_NAME:-}" ]; then
+    CLEAN_NAME=$(echo "$SPOT_NAME" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9-')
+    NEW_HOSTNAME="soundspot-${CLEAN_NAME}"
+    hostnamectl set-hostname "$NEW_HOSTNAME" 2>/dev/null || true
+    sed -i "s/^127\.0\.1\.1.*/127.0.1.1\t${NEW_HOSTNAME}/" /etc/hosts 2>/dev/null || true
+    log "Hostname → ${C}${NEW_HOSTNAME}.local${N}"
+fi
 
 mkdir -p "$INSTALL_DIR"
 

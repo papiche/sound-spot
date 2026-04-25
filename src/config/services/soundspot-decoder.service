@@ -5,6 +5,7 @@ Wants=icecast2.service snapserver.service
 
 [Service]
 Type=simple
+ExecStartPre=/bin/bash -c 'mkfifo /dev/shm/snapfifo /dev/shm/snapfifo_mic 2>/dev/null; true'
 ExecStart=${INSTALL_DIR}/backend/audio/decoder.sh
 Restart=always
 RestartSec=3

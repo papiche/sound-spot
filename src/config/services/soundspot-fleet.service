@@ -1,0 +1,18 @@
+[Unit]
+Description=SoundSpot — Écoute flotte NOSTR (kind 9, clé Amiral)
+After=network-online.target soundspot-client.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=${INSTALL_DIR}/soundspot.conf
+EnvironmentFile=-/run/soundspot_master.env
+ExecStart=/bin/bash ${INSTALL_DIR}/backend/system/fleet_listener.sh
+Restart=always
+RestartSec=15
+SyslogIdentifier=fleet-listener
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

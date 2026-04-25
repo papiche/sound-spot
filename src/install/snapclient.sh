@@ -19,10 +19,15 @@ setup_snapclient() {
     log "systemd-time-wait-sync activé (NTP avant démarrage Snapclient)"
 
     if [ "$mode" = "satellite" ]; then
+        # find_master.sh : résolution dynamique AP directe ou mDNS unique
+        install_template find_master.sh "${INSTALL_DIR}/backend/system/find_master.sh"
+        chmod +x "${INSTALL_DIR}/backend/system/find_master.sh"
+        log "find_master.sh déployé"
+
         install_template soundspot-client-satellite.service \
             /etc/systemd/system/soundspot-client.service \
-            '${INSTALL_DIR} ${SNAPCAST_PORT} ${MASTER_HOST} ${SOUNDSPOT_USER} ${SOUNDSPOT_UID}'
-        log "Snapclient activé → ${MASTER_HOST}:${SNAPCAST_PORT}"
+            '${INSTALL_DIR} ${SNAPCAST_PORT} ${SOUNDSPOT_USER} ${SOUNDSPOT_UID}'
+        log "Snapclient satellite activé (maître résolu dynamiquement)"
     else
         install_template soundspot-client-master.service \
             /etc/systemd/system/soundspot-client.service \
