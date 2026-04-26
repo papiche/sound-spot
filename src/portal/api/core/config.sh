@@ -24,6 +24,7 @@ jq -n \
     --arg spot_name       "$SPOT_NAME" \
     --arg spot_ip         "$SPOT_IP" \
     --argjson snapcast_port "${SNAPCAST_PORT}" \
+    --argjson snapcast_http 1780 \
     --argjson icecast_port  "${ICECAST_PORT}" \
     --arg clock_mode      "$CLOCK_MODE" \
     --argjson voice_enabled "$([ "${VOICE_ENABLED:-true}" = "false" ] && echo false || echo true)" \

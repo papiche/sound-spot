@@ -166,6 +166,7 @@
       </div>
     </div>
     <button onclick="fixAudio()" class="btn btn-outline" style="margin-top:8px">🛠 Relancer l'Audio</button>
+    <a id="lnk-mixer" href="#" target="_blank" class="btn btn-outline" style="margin-top:8px">🎛 Console de Mixage (Volume) →</a>
   </div>
 
   <div class="card">
@@ -413,6 +414,7 @@
   <div class="card">
     <h2>🔊 Audio</h2>
     <div id="cfg-audio-sinks"><p style="color:var(--muted);font-size:.85rem">Détection sorties…</p></div>
+    <a id="lnk-mixer-cfg" href="#" target="_blank" class="btn btn-teal btn-sm" style="margin-top:8px">Ouvrir Snapweb →</a>
     <div class="ibox" style="margin-top:10px">
       <div class="irow"><span class="lbl">Enceinte(s) BT</span><span class="val" id="cn-bt">…</span></div>
       <div class="irow"><span class="lbl">Port Snapcast</span>  <span class="val" id="cn-snap">…</span></div>
@@ -553,6 +555,9 @@ async function loadConfig() {
     const sp = String(CFG.snapcast_port || 1704);
     const ic = String(CFG.icecast_port  || 8111);
     const lk = CFG.links || {};
+    const mixerUrl = 'http://' + ip + ':1780';
+    setHref('lnk-mixer', mixerUrl);
+    setHref('lnk-mixer-cfg', mixerUrl);
 
     document.getElementById('hero-sub').textContent = 'Nœud // ' + n;
     setTxt(['cfg-ssid','cfg-ssid2','sat-ssid'], n);
