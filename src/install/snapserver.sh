@@ -5,28 +5,34 @@
 setup_snapserver() {
     hdr "Snapcast serveur"
     
-    # Détection de l'utilisateur snapserver (souvent _snapserver sur Bookworm)
+    # Détection de l'utilisateur snapserver
     SNAP_USER="snapserver"
     id _snapserver &>/dev/null && SNAP_USER="_snapserver"
 
     # 1. Droits d'accès
     usermod -aG audio "$SNAP_USER" || true
 
-    # 2. Création immédiate
+    # 2. Création immédiate avec droits permissifs (0666)
+    # On supprime d'abord au cas où c'est un reliquat mal configuré
+    rm -f /dev/shm/snapfifo /dev/shm/snapfifo_mic
     mkfifo /dev/shm/snapfifo     2>/dev/null || true
     mkfifo /dev/shm/snapfifo_mic 2>/dev/null || true
-    chown "$SNAP_USER:audio" /dev/shm/snapfifo*
-    chmod 660 /dev/shm/snapfifo*
+    
+    # CRITIQUE : 666 pour permettre à TOUT LE MONDE d'écrire/lire (ffmpeg + snapserver)
+    chmod 0666 /dev/shm/snapfifo*
+    chown root:audio /dev/shm/snapfifo*
 
-    # 3. Persistance au reboot
+    # 3. Persistance au reboot via systemd-tmpfiles
     cat > /etc/tmpfiles.d/soundspot-fifos.conf <<EOF
-p /dev/shm/snapfifo     0660 $SNAP_USER audio -
-p /dev/shm/snapfifo_mic 0660 $SNAP_USER audio -
+p /dev/shm/snapfifo     0666 root audio -
+p /dev/shm/snapfifo_mic 0666 root audio -
 EOF
 
     install_template snapserver.conf /etc/snapserver.conf
 
-    # On s'assure que le service est bien redémarré avec les nouveaux droits de groupe
+    # Appliquer la config tmpfiles immédiatement
+    systemd-tmpfiles --create /etc/tmpfiles.d/soundspot-fifos.conf
+
     systemctl daemon-reload
     systemctl enable snapserver
     systemctl restart snapserver
