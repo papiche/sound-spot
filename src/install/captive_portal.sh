@@ -34,6 +34,7 @@ server.pid-file             = "/var/run/lighttpd.pid"
 server.username             = "www-data"
 server.groupname            = "www-data"
 server.port                 = 80
+server.follow-symlink       = "enable"
 include_shell "/usr/share/lighttpd/create-mime.conf.pl"
 cgi.assign                  = ( ".sh" => "/bin/bash" )
 

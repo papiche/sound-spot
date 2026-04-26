@@ -182,10 +182,10 @@ if [ "$PICOPORT_ENABLED" = "true" ]; then
     mkdir -p /etc/systemd/system/ipfs.service.d
     cat > /etc/systemd/system/ipfs.service.d/gomemlimit.conf <<'GOEOF'
 [Service]
-Environment="GOMEMLIMIT=1GiB"
+Environment="GOMEMLIMIT=200MiB"
 GOEOF
     systemctl daemon-reload
-    log "GOMEMLIMIT=1GiB configuré pour IPFS"
+    log "GOMEMLIMIT=200MiB configuré pour IPFS"
     
     # Intégration UPassport et Swarm Sync (Port 12345)
     log "Intégration UPassport & Swarm Sync..."

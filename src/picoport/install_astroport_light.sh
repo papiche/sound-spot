@@ -72,15 +72,15 @@ echo "✅ Packages Python keygen/Picoport vérifiés"
 
 # ── 4. Identité Picoport (support+hostname_GPS@qo-op.com) ────────
 source "$HOME/.zen/Astroport.ONE/tools/my.sh" 2>/dev/null || true
-GPS_RAW=$(my_LatLon 2>/dev/null || echo "fr 0.00 0.00")
+GPS_RAW=$(my_LatLon 2>/dev/null || echo "FR 0.00 0.00")
 GPS_SUFFIX=$(echo "$GPS_RAW" | awk '{print tolower($1)"_"$2"_"$3}' | sed 's/ /_/g')
 PICO_ID="support+$(hostname)_${GPS_SUFFIX}@qo-op.com"
 echo "▶ Identité Picoport : $PICO_ID"
 mkdir -p "$HOME/.zen/game/players/.current/"
 echo "$PICO_ID" > "$HOME/.zen/game/players/.current/.player"
-CC=$(echo $RES | awk '{print $1}')
-LAT=$(echo $RES | awk '{print $2}')
-LON=$(echo $RES | awk '{print $3}')
+CC=$(echo "$GPS_RAW" | awk '{print $1}')
+LAT=$(echo "$GPS_RAW" | awk '{print $2}')
+LON=$(echo "$GPS_RAW" | awk '{print $3}')
 
 echo "LAT=$LAT; LON=$LON" > ~/.zen/GPS
 
