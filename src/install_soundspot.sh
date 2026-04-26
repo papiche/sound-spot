@@ -218,8 +218,8 @@ fi
 # ── Fichier de configuration final ──────────────────────────
 hdr "Finalisation"
 install_template soundspot.conf.master.env "$INSTALL_DIR/soundspot.conf" \
-    '${SPOT_NAME} ${SPOT_IP} ${WIFI_SSID} ${WIFI_CHANNEL} ${BT_MAC} ${BT_MACS} ${SNAPCAST_PORT} ${PRESENCE_COOLDOWN} ${PRESENCE_ENABLED} ${INSTALL_DIR} ${IFACE_AP} ${IFACE_WAN} ${LOG_LEVEL} ${SOUNDSPOT_LOG}'
-
+    '${SPOT_NAME} ${SPOT_IP} ${WIFI_SSID} ${WIFI_CHANNEL} ${BT_MAC} ${BT_MACS} ${SNAPCAST_PORT} ${PRESENCE_COOLDOWN} ${PRESENCE_ENABLED} ${INSTALL_DIR} ${IFACE_AP} ${IFACE_WAN} ${LOG_LEVEL} ${SOUNDSPOT_LOG} ${PICOPORT_ENABLED}'
+    
 # S'assurer que le log est accessible
 touch "$SOUNDSPOT_LOG"
 chgrp soundspot "$SOUNDSPOT_LOG"

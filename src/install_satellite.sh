@@ -229,8 +229,9 @@ fi
 
 # ── Fichier de configuration central ─────────────────────────
 hdr "Fichier de configuration central"
+# Modifier dans src/install_satellite.sh
 install_template soundspot.conf.satellite.env "$INSTALL_DIR/soundspot.conf" \
-    '${MASTER_HOST} ${TARGET_MASTER} ${SPOT_NAME} ${SNAPCAST_PORT} ${BT_MAC} ${BT_MACS} ${INSTALL_DIR} ${SOUNDSPOT_USER} ${PICOPORT_ENABLED} ${LOG_LEVEL} ${SOUNDSPOT_LOG}'
+    '${MASTER_HOST} ${TARGET_MASTER} ${SPOT_NAME} ${SNAPCAST_PORT} ${BT_MAC} ${BT_MACS} ${INSTALL_DIR} ${SOUNDSPOT_USER} ${PICOPORT_ENABLED} ${LOG_LEVEL} ${SOUNDSPOT_LOG} ${PICOPORT_ENABLED}'
 chgrp soundspot "$INSTALL_DIR/soundspot.conf" 2>/dev/null || true
 chmod 640 "$INSTALL_DIR/soundspot.conf"
 
