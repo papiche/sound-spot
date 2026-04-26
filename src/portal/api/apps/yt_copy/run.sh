@@ -90,13 +90,17 @@ AUDIO_FILE="${TMPDIR}/${SAFE_TITLE}.mp3"
 IPFS_DIR=$(mktemp -d "${TMPDIR}/ipfs_XXXXXX")
 mv "$AUDIO_FILE" "$IPFS_DIR/"
 
-IPFS_RESP=$(curl -sf \
-    -X POST \
-    -F "file=@${IPFS_DIR}" \
-    "http://127.0.0.1:5001/api/v0/add?pin=true&wrap-with-directory=true" \
-    2>/dev/null)
+# using API
+# IPFS_RESP=$(curl -sf \
+#     -X POST \
+#     -F "file=@${IPFS_DIR}" \
+#     "http://127.0.0.1:5001/api/v0/add?pin=true&wrap-with-directory=true" \
+#     2>/dev/null)
+# CID=$(printf '%s' "$IPFS_RESP" | jq -r '.Hash // empty')
 
-CID=$(printf '%s' "$IPFS_RESP" | jq -r '.Hash // empty')
+# using command
+IPFS_RESP=$(ipfs add -Q -r -w "$IPFS_DIR" 2>/dev/null)
+CID=$(echo "$IPFS_RESP" | tail -n 1)
 
 if [ -z "$CID" ]; then
     jq -n '{"error":"ipfs_add_failed","hint":"Vérifier que IPFS daemon est actif"}'
