@@ -1,130 +1,313 @@
 #!/bin/bash
-# ================================================================
-#  dj_mixxx_setup.sh — Poste DJ Zicmama SoundSpot (V2 Robuste)
-# ================================================================
+# =========================================================================
+#  dj_mixx.sh — Poste DJ Zicmama SoundSpot (Version UPlanet Swarm)
+#  Connecte le WiFi (Local) ou les Tunnels P2P (Swarm), et lance Mixxx.
+#
+#  Usage : 
+#    bash dj_mixx.sh           (lance la session DJ)
+#    bash dj_mixx.sh --setup   (force la reconfiguration)
+# =========================================================================
 set -euo pipefail
 
 # ── Couleurs ─────────────────────────────────────────────────────
 R='\033[0;31m'; G='\033[0;32m'; Y='\033[1;33m'
-C='\033[0;36m'; W='\033[1;37m'; M='\033[0;35m'; N='\033[0m'
+C='\033[0;36m'; W='\033[1;37m'; M='\033[0;35m'; N='\033[0m'; D='\033[2m'
 log()  { echo -e "${G}▶${N} $*"; }
+info() { echo -e "${C}ℹ${N}  $*"; }
 warn() { echo -e "${Y}⚠${N}  $*"; }
 err()  { echo -e "${R}✗${N}  $*" >&2; exit 1; }
 hdr()  { echo -e "\n${C}━━━  $*  ━━━${N}"; }
 ask()  { echo -ne "${M}?${N}  $*"; }
 
-[ "$(id -u)" -eq 0 ] && err "Ne lance PAS en root. sudo sera appelé si nécessaire."
+[ "$(id -u)" -eq 0 ] && err "Ne lancez PAS ce script en root. (sudo sera appelé si nécessaire)"
 
-clear
-echo -e "${C}  Configuration poste DJ — SoundSpot${N}"
+CONF_FILE="$HOME/.config/soundspot_dj.conf"
+P2P_TUNNELS_TO_CLOSE=""
 
-# 1. Paramètres
-hdr "Paramètres du SoundSpot"
-ask "SSID WiFi [ZICMAMA] : "; read -r INPUT_NAME
-SPOT_NAME="${INPUT_NAME:-ZICMAMA}"
-ask "IP du RPi [192.168.10.1] : "; read -r INPUT_IP
-SPOT_IP="${INPUT_IP:-192.168.10.1}"
-ask "Mot de passe Icecast [0penS0urce!] : "; read -r INPUT_PASS
-ICECAST_PASS="${INPUT_PASS:-0penS0urce!}"
+# ── Gestion des arguments ─────────────────────────────
+for arg in "$@"; do
+    case "$arg" in
+        --help|-h)
+            echo -e "${C}Usage : bash dj_mixx.sh [OPTION]${N}"
+            echo "Options :"
+            echo "  --reset   : Effacer la configuration et recommencer à zéro"
+            echo "  --help    : Afficher ce message d'aide"
+            exit 0
+            ;;
+        --reset)
+            echo -e "${Y}⚠ Suppression de la configuration ($CONF_FILE)${N}"
+            rm -f "$CONF_FILE"
+            ;;
+    esac
+done
+# ────────────────────────────────────────────────────────────────
 
-SNAPCAST_PORT="1704"
-ICECAST_PORT="8111"
+# ════════════════════════════════════════════════════════════════
+#  Helper : Récupération du port d'un tunnel P2P
+# ════════════════════════════════════════════════════════════════
+get_p2p_port() {
+    local svc_slug=$1
+    local node_id=$2
+    # Cherche la redirection TCP dans la liste des tunnels IPFS actifs
+    local port=$(ipfs p2p ls 2>/dev/null | grep "/x/${svc_slug}-${node_id}" | grep -oP 'tcp/\K\d+' | head -n 1)
+    echo "$port"
+}
 
-# 2. Installation snapclient mixxx curl
-hdr "Vérification logiciels"
-for pkg in snapclient mixxx curl; do
-    if ! command -v $pkg &>/dev/null; then
-        log "Installation de $pkg..."
-        sudo apt-get update -qq && sudo apt-get install -y $pkg
+# ════════════════════════════════════════════════════════════════
+#  Phase 1 : Configuration & Radar Swarm (si inexistante ou --setup)
+# ════════════════════════════════════════════════════════════════
+do_setup() {
+    clear
+    echo -e "${C}  Configuration Poste DJ — SoundSpot / UPlanet${N}"
+    mkdir -p "$(dirname "$CONF_FILE")"
+
+    DEST_MODE="local"
+    SWARM_NODE=""
+    SWARM_NAME=""
+    STREAM_MODE="1"
+
+    # Radar Swarm
+    declare -a S_NODES
+    declare -a S_NAMES
+    idx=0
+    
+    if command -v ipfs &>/dev/null && [ -d "$HOME/.zen/tmp/swarm" ]; then
+        for script in "$HOME"/.zen/tmp/swarm/*/x_icecast.sh; do
+            [ -f "$script" ] || continue
+            node=$(basename "$(dirname "$script")")
+
+            name="$node"
+            json_file="$HOME/.zen/tmp/swarm/$node/12345.json"
+            if [ -f "$json_file" ]; then
+                parsed_name=$(jq -r '.hostname // empty' "$json_file" | head -n 1)
+                [ -n "$parsed_name" ] && name="$parsed_name"
+            fi
+
+            S_NODES[$idx]="$node"
+            S_NAMES[$idx]="$name"
+            ((idx++))
+        done
+    fi
+
+    if [ $idx -eq 0 ]; then
+    echo -e "  ${D}(Aucun nœud distant détecté dans le Swarm)${N}"
+fi
+
+    hdr "Destination de la diffusion"
+    echo -e "  ${C}[0]${N} Réseau Local  (En direct via WiFi)"
+    if [ $idx -gt 0 ]; then
+        for i in $(seq 0 $((idx-1))); do
+            # On affiche i+1 pour que l'utilisateur choisisse à partir de 1
+            echo -e "  ${C}[$((i+1))]${N} Constellation : ${W}${S_NAMES[$i]}${N} (P2P distant)"
+        done
+    else
+        echo -e "  ${D}(Aucun nœud distant détecté dans le Swarm)${N}"
+    fi
+    echo ""
+    ask "Choix de la destination [0] : "; read -r DEST_CHOICE
+    DEST_CHOICE="${DEST_CHOICE:-0}"
+
+    if [ "$DEST_CHOICE" -gt 0 ] && [ "$DEST_CHOICE" -le "$idx" ]; then
+        REAL_IDX=$((DEST_CHOICE-1))
+        DEST_MODE="swarm"
+        SWARM_NODE="${S_NODES[$DEST_CHOICE]}"
+        SWARM_NAME="${S_NAMES[$DEST_CHOICE]}"
+        log "Mode Constellation (P2P) sélectionné → ${SWARM_NAME}"
+        
+        # En P2P, on force le mode Icecast (le mode direct SSH est trop instable via P2P)
+        STREAM_MODE="1"
+        SPOT_NAME="N/A"
+        SPOT_IP="127.0.0.1" # Les tunnels se bindent en local
+    else
+        DEST_MODE="local"
+        log "Mode Local (WiFi) sélectionné"
+        
+        ask "SSID WiFi [ZICMAMA] : "; read -r INPUT_NAME
+        SPOT_NAME="${INPUT_NAME:-ZICMAMA}"
+        
+        ask "IP du RPi [192.168.10.1] : "; read -r INPUT_IP
+        SPOT_IP="${INPUT_IP:-192.168.10.1}"
+        
+        hdr "Mode de diffusion audio"
+        echo -e "  ${C}[1]${N} Icecast (Classique : config Mixxx requise, latence 2-3s)"
+        echo -e "  ${C}[2]${N} Direct  (Capture le son du PC, Zéro latence, requiert SSH)"
+        ask "Choix [1] : "; read -r S_MODE
+        STREAM_MODE="${S_MODE:-1}"
+    fi
+
+    ask "Mot de passe Icecast [0penS0urce!] : "; read -r INPUT_PASS
+    ICECAST_PASS="${INPUT_PASS:-0penS0urce!}"
+
+    # Sauvegarde
+    cat > "$CONF_FILE" <<EOF
+DEST_MODE="$DEST_MODE"
+SWARM_NODE="$SWARM_NODE"
+SWARM_NAME="$SWARM_NAME"
+SPOT_NAME="$SPOT_NAME"
+SPOT_IP="$SPOT_IP"
+ICECAST_PASS="$ICECAST_PASS"
+STREAM_MODE="$STREAM_MODE"
+SNAPCAST_PORT_DEFAULT="1704"
+ICECAST_PORT_DEFAULT="8111"
+EOF
+    log "Configuration sauvegardée dans $CONF_FILE"
+
+    if [ "$STREAM_MODE" == "2" ]; then
+        echo ""
+        hdr "Configuration SSH (Mode Direct)"
+        info "Le mode Direct nécessite une connexion SSH sans mot de passe."
+        
+        if [ ! -f "$HOME/.ssh/id_rsa" ] && [ ! -f "$HOME/.ssh/id_ed25519" ]; then
+            log "Génération d'une clé SSH locale..."
+            ssh-keygen -t ed25519 -N "" -f "$HOME/.ssh/id_ed25519"
+        fi
+        
+        log "Copie de la clé vers le Raspberry Pi (pi@$SPOT_IP)..."
+        info "Si le système vous demande 'Are you sure you want to continue connecting', tapez 'yes' en toutes lettres."
+        info "Veuillez entrer le mot de passe du Pi si on vous le demande."
+        ssh-copy-id "pi@$SPOT_IP" || warn "La copie a échoué. Le flux direct nécessitera un mot de passe."
+    fi
+}
+
+if [ ! -f "$CONF_FILE" ] || [ "${1:-}" == "--setup" ]; then
+    do_setup
+fi
+
+# Charger la configuration
+source "$CONF_FILE"
+SNAPCAST_PORT="${SNAPCAST_PORT_DEFAULT:-1704}"
+ICECAST_PORT="${ICECAST_PORT_DEFAULT:-8111}"
+
+# ════════════════════════════════════════════════════════════════
+#  Phase 2 : Vérification des dépendances
+# ════════════════════════════════════════════════════════════════
+PKGS="snapclient mixxx curl"
+[ "$STREAM_MODE" == "2" ] && PKGS="$PKGS pulseaudio-utils openssh-client"
+
+MISSING=""
+for pkg in $PKGS; do
+    if ! command -v "$pkg" &>/dev/null; then
+        if [ "$pkg" == "pulseaudio-utils" ] && command -v parec &>/dev/null; then continue; fi
+        MISSING="$MISSING $pkg"
     fi
 done
 
-# 3. Génération du lanceur
-hdr "Génération de ~/zicmama_play.sh"
-LAUNCHER="$HOME/zicmama_play.sh"
-cat > "$LAUNCHER" <<PLAYEOF
-#!/bin/bash
-SPOT_NAME="${SPOT_NAME}"
-SPOT_IP="${SPOT_IP}"
-SNAP_PORT="${SNAPCAST_PORT}"
-ICECAST_PORT="${ICECAST_PORT}"
-ICECAST_PASS="${ICECAST_PASS}"
-
-G='\033[0;32m'; Y='\033[1;33m'; C='\033[0;36m'; W='\033[1;37m'; R='\033[0;31m'; N='\033[0m'
-
-clear
-echo -e "\n\${C}  ZICMAMA SoundSpot — Session DJ\${N}\n"
-
-# ── 1. Connexion WiFi ───────────────────────────────────────
-CURRENT=\$(nmcli -t -f active,ssid dev wifi | grep '^yes' | cut -d: -f2 || echo "")
-
-if [ "\$CURRENT" != "\$SPOT_NAME" ]; then
-    log "Connexion à \${W}\${SPOT_NAME}\${N}..."
-    nmcli dev wifi connect "\$SPOT_NAME" || {
-        echo -e "\${R}✗\${N} Échec WiFi. Vérifie que le SoundSpot est allumé."; exit 1
-    }
-    echo -e "   Attente stabilisation réseau (3s)..."
-    sleep 3
+if [ -n "$MISSING" ]; then
+    hdr "Installation des dépendances manquantes"
+    log "Requiert sudo pour : apt-get install -y$MISSING"
+    sudo apt-get update -qq && sudo apt-get install -y $MISSING
 fi
-echo -e "\${G}▶\${N} WiFi : \${C}\${SPOT_NAME}\${N}"
 
-# ── 2. Test de Joignabilité (Boucle de 15s) ─────────────────
-echo -ne "\${G}▶\${N} Attente du RPi (\${SPOT_IP}) "
-CONNECTED=false
-for i in {1..15}; do
-    if ping -c1 -W1 "\$SPOT_IP" &>/dev/null; then
-        # On teste aussi si le port Snapcast répond
-        if (echo > /dev/tcp/\$SPOT_IP/\$SNAP_PORT) >/dev/null 2>&1; then
-            CONNECTED=true
-            echo -e " \${G}[PRÊT]\${N}"
-            break
+# ════════════════════════════════════════════════════════════════
+#  Phase 3 : Préparation du Réseau (WiFi ou Tunnels P2P)
+# ════════════════════════════════════════════════════════════════
+clear
+echo -e "\n${C}  ZICMAMA SoundSpot — Session DJ${N}\n"
+
+if [ "$DEST_MODE" == "swarm" ]; then
+    echo -e "${G}▶${N} Destination : Constellation ${W}${SWARM_NAME}${N} (P2P)"
+    
+    # 1. Montage du tunnel Icecast (8111)
+    if [ -f "$HOME/.zen/tmp/swarm/$SWARM_NODE/x_icecast.sh" ]; then
+        info "Ouverture du tunnel Icecast..."
+        bash "$HOME/.zen/tmp/swarm/$SWARM_NODE/x_icecast.sh" > /dev/null 2>&1 &
+        sleep 2
+        ICECAST_PORT=$(get_p2p_port "icecast" "$SWARM_NODE")
+        if [ -n "$ICECAST_PORT" ]; then
+            log "Tunnel Icecast établi sur 127.0.0.1:${ICECAST_PORT}"
+            P2P_TUNNELS_TO_CLOSE="${P2P_TUNNELS_TO_CLOSE} /x/icecast-${SWARM_NODE}"
+        else
+            err "Échec de l'ouverture du tunnel Icecast P2P."
+        fi
+    else
+        err "Script x_icecast.sh introuvable pour ce nœud."
+    fi
+
+    # 2. Montage du tunnel Snapcast (1704)
+    if [ -f "$HOME/.zen/tmp/swarm/$SWARM_NODE/x_snapcast.sh" ]; then
+        info "Ouverture du tunnel Snapcast (Retour Casque)..."
+        bash "$HOME/.zen/tmp/swarm/$SWARM_NODE/x_snapcast.sh" > /dev/null 2>&1 &
+        sleep 2
+        SNAPCAST_PORT=$(get_p2p_port "snapcast" "$SWARM_NODE")
+        if [ -n "$SNAPCAST_PORT" ]; then
+            log "Tunnel Snapcast établi sur 127.0.0.1:${SNAPCAST_PORT}"
+            P2P_TUNNELS_TO_CLOSE="${P2P_TUNNELS_TO_CLOSE} /x/snapcast-${SWARM_NODE}"
+        else
+            warn "Échec du tunnel Snapcast. Le retour casque sera indisponible."
         fi
     fi
-    echo -ne "."
-    sleep 1
-done
 
-if [ "\$CONNECTED" = false ]; then
-    echo -e "\n\${R}✗\${N} Impossible de joindre l'audio sur \${SPOT_IP}."
-    echo -e "   Note: Si tu as un câble Ethernet branché, débranche-le ou désactive-le."
-    exit 1
+else
+    # ── Mode Local ──
+    CURRENT=$(nmcli -t -f active,ssid dev wifi 2>/dev/null | grep '^yes' | cut -d: -f2 || echo "")
+    if [ "$CURRENT" != "$SPOT_NAME" ]; then
+        echo -e "${G}▶${N} Connexion à ${W}${SPOT_NAME}${N}..."
+        nmcli dev wifi connect "$SPOT_NAME" || err "Échec WiFi. Vérifiez que le SoundSpot est allumé."
+        sleep 3
+    fi
+    echo -e "${G}▶${N} WiFi : ${C}${SPOT_NAME}${N}"
+
+    echo -ne "${G}▶${N} Attente du RPi ($SPOT_IP) "
+    CONNECTED=false
+    for i in {1..15}; do
+        if ping -c1 -W1 "$SPOT_IP" &>/dev/null; then CONNECTED=true; echo -e " ${G}[PRÊT]${N}"; break; fi
+        echo -ne "."; sleep 1
+    done
+    if [ "$CONNECTED" = false ]; then err "Impossible de joindre $SPOT_IP"; fi
 fi
 
-# ── 3. Lancement Audio ──────────────────────────────────────
+# ════════════════════════════════════════════════════════════════
+#  Phase 4 : Démarrage Audio & Trap de fermeture
+# ════════════════════════════════════════════════════════════════
 pkill snapclient 2>/dev/null || true
-snapclient -h "\$SPOT_IP" -p "\$SNAP_PORT" > /dev/null 2>&1 &
-SPID=\$!
-trap "kill \$SPID 2>/dev/null; exit 0" INT TERM
+SNAP_PID=""
 
-echo -e "\${G}▶\${N} Snapclient (retour casque) actif [PID \$SPID]"
-echo -e "\${Y}   INFO : Configure Mixxx sur Icecast2 -> \${SPOT_IP}:\${ICECAST_PORT}\${N}"
+# Lancement de Snapclient seulement si on a réussi à résoudre le port
+if [ -n "$SNAPCAST_PORT" ]; then
+    snapclient -h "$SPOT_IP" -p "$SNAPCAST_PORT" > /dev/null 2>&1 &
+    SNAP_PID=$!
+    echo -e "${G}▶${N} Snapclient (retour casque) actif [PID $SNAP_PID]"
+fi
 
+PAREC_PID=""
+if [ "$STREAM_MODE" == "2" ]; then
+    # ── NOUVEAU : Vérification SSH au premier plan avant la capture ──
+    echo -e "${G}▶${N} Mode DIRECT : Vérification de l'accès SSH..."
+    info "Une confirmation d'empreinte (fingerprint) peut apparaître ci-dessous :"
+    
+    # On lance un test SSH synchrone. L'utilisateur peut répondre 'yes' tranquillement.
+    if ! ssh -o ConnectTimeout=5 "pi@$SPOT_IP" "echo '[SSH OK]'"; then
+        err "Échec de la connexion SSH. Avez-vous accepté la clé ? (Relancez avec --reset pour reconfigurer)"
+    fi
+    # ─────────────────────────────────────────────────────────────────
+
+    echo -e "${G}▶${N} Capture du son vers le RPi..."
+    parec -d @DEFAULT_SINK@.monitor --format=s16le --rate=48000 --channels=2 | ssh "pi@$SPOT_IP" "cat > /dev/shm/snapfifo" &
+    PAREC_PID=$!
+    echo -e "${Y}   INFO : Le son du PC est diffusé instantanément sur SoundSpot !${N}"
+else
+    echo -e "${Y}   INFO : Configurez le Broadcaster Mixxx vers Icecast2 -> ${SPOT_IP}:${ICECAST_PORT}${N}"
+    echo -e "          Montage: /live | Login: source | Mdp: $ICECAST_PASS"
+fi
+
+# Cleanup Function (S'exécute à la fermeture de Mixxx ou en cas d'interruption)
+cleanup() {
+    echo -e "\n${C}Fermeture de la session DJ...${N}"[ -n "$SNAP_PID" ] && kill "$SNAP_PID" 2>/dev/null || true[ -n "$PAREC_PID" ] && kill "$PAREC_PID" 2>/dev/null || true
+    
+    # Fermeture des tunnels P2P montés par le script
+    if [ -n "$P2P_TUNNELS_TO_CLOSE" ]; then
+        info "Fermeture des tunnels IPFS P2P..."
+        for proto in $P2P_TUNNELS_TO_CLOSE; do
+            ipfs p2p close -p "$proto" 2>/dev/null || true
+        done
+    fi
+}
+trap cleanup INT TERM EXIT
+
+# ════════════════════════════════════════════════════════════════
+#  Phase 5 : Lancement de Mixxx
+# ════════════════════════════════════════════════════════════════
+echo -e "${G}▶${N} Lancement de Mixxx..."
 mixxx
-kill "\$SPID" 2>/dev/null
-PLAYEOF
 
-chmod +x "$LAUNCHER"
-log "Lanceur créé : ${Y}${LAUNCHER}${N}"
-
-# ════════════════════════════════════════════════════════════════
-#  Résumé
-# ════════════════════════════════════════════════════════════════
-echo -e "
-${W}════════════════════════════════════════════════════${N}
-${G}  Poste DJ configuré !${N}
-${W}════════════════════════════════════════════════════${N}
-
-${C}── Jouer ────────────────────────────────────────────${N}
-  1. Se connecter au WiFi : ${Y}${SPOT_NAME}${N}
-  2. Lancer : ${Y}~/zicmama_play.sh${N}
-
-${C}── Informations Icecast ─────────────────────────────${N}
-  Serveur  : ${C}${SPOT_IP}:${ICECAST_PORT}${N}
-  Montage  : /live    Login : source
-  Mdp      : ${W}${ICECAST_PASS}${N}
-
-${C}── Diagnostic Snapcast ──────────────────────────────${N}
-  ${C}http://${SPOT_IP}:1780${N}
-
-${W}════════════════════════════════════════════════════${N}
-"
+# La fonction `cleanup` sera appelée automatiquement après la fermeture de Mixxx grâce au trap EXIT.

@@ -41,6 +41,11 @@ try:
 except ImportError:
     import sys; print("websockets requis", file=sys.stderr); sys.exit(1)
 
+try:
+    from pynostr.event import Event
+except ImportError:
+    import sys; print("pynostr requis pour la sécurité", file=sys.stderr); sys.exit(1)
+
 RELAY      = "${RELAY}"
 AMIRAL_HEX = "${AMIRAL_HEX}"
 INSTALL_DIR = "${INSTALL_DIR}"
@@ -51,7 +56,6 @@ logging.basicConfig(level=logging.INFO,
     format="%(asctime)s [fleet_listener] %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S")
 log = logging.getLogger("fleet_listener")
-
 
 async def execute_command(event: dict):
     try:
@@ -64,13 +68,11 @@ async def execute_command(event: dict):
     if cmd == "shutdown":
         delay = int(payload.get("delay_s", 30))
         log.info("Extinction dans %ds…", delay)
-        subprocess.run(
-            ["systemctl", "stop", "soundspot-client", "snapserver", "soundspot-decoder"],
+        subprocess.run(["systemctl", "stop", "soundspot-client", "snapserver", "soundspot-decoder"],
             capture_output=True,
         )
         await asyncio.sleep(delay)
         if IS_ENERGY:
-            # Nœud Énergie : laisse le temps aux autres nœuds de s'éteindre, coupe le relais en dernier
             log.info("Nœud Énergie — attente 15s supplémentaires avant coupure relais")
             await asyncio.sleep(15)
         subprocess.run(["sudo", "/usr/sbin/poweroff"])
@@ -88,7 +90,6 @@ async def execute_command(event: dict):
                                  stderr=subprocess.DEVNULL)
             log.info("Annonce : %s", text[:80])
 
-
 async def listen():
     while True:
         try:
@@ -105,8 +106,17 @@ async def listen():
                         continue
                     if msg[0] == "EVENT":
                         event = msg[2] if len(msg) > 2 else {}
+                        # 1. Vérification de l'Auteur
                         if isinstance(event, dict) and event.get("pubkey") == AMIRAL_HEX:
-                            await execute_command(event)
+                            # 2. Vérification Cryptographique de la Signature
+                            try:
+                                ev_obj = Event.from_dict(event)
+                                if ev_obj.verify():
+                                    await execute_command(event)
+                                else:
+                                    log.warning("ALERTE SÉCURITÉ: Signature NOSTR falsifiée rejetée ! (id: %s)", event.get("id"))
+                            except Exception as e:
+                                log.warning("Erreur vérification NOSTR : %s", e)
         except Exception as exc:
             log.warning("Relay déconnecté : %s — reconnexion dans 15s", exc)
             await asyncio.sleep(15)
