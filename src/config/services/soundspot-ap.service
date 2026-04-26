@@ -9,7 +9,7 @@ EnvironmentFile=/opt/soundspot/soundspot.conf
 ExecStartPre=/bin/bash -c '\
   if [ "$IFACE_AP" = "uap0" ]; then \
     /sbin/iw dev wlan0 interface add uap0 type __ap 2>/dev/null || true; \
-    /usr/bin/python3 -c "import subprocess; p=open(\"/sys/class/net/wlan0/address\").read().strip().split(\":\"); p[0]=format((int(p[0],16)|2)&254,\"02x\"); subprocess.run([\"ip\",\"link\",\"set\",\"dev\",\"uap0\",\"address\",\":\".join(p)])" || true; \
+    /opt/soundspot/backend/system/soundspot-uap0-mac.sh || true; \
   elif ! /sbin/ip link show "$IFACE_AP" > /dev/null 2>&1; then \
     WAN_PHY=$(/sbin/iw dev "$IFACE_WAN" info 2>/dev/null | awk "/wiphy/{print \"phy\"\$2}"); \
     for p in /sys/class/ieee80211/*/; do \

@@ -7,27 +7,30 @@ set -e
 [ "$(id -u)" -eq 0 ] || { echo "❌ Veuillez lancer ce script en root (sudo bash ...)"; exit 1; }
 INSTALL_DIR="/opt/soundspot/picoport"
 SOUNDSPOT_USER="${SOUNDSPOT_USER:-pi}"
+# Architecture cible — amd64 (PC) ou arm64 (RPi 4/5/Zero 2W)
+PICO_ARCH=$(dpkg --print-architecture 2>/dev/null || uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
 # Récupération propre du HOME de l'utilisateur (évite les erreurs sudo -E)
 USER_HOME=$(getent passwd "$SOUNDSPOT_USER" | cut -d: -f6)
 
-echo "=== 1. Installation des dépendances (socat, jq) ==="
+echo "=== 1. Installation des dépendances ==="
 _MISSING_PKGS=""
-for _pkg in socat jq curl wget bc gnupg pinentry-curses python3-dev libffi-dev libssl-dev; do
+for _pkg in socat jq curl wget bc gnupg pinentry-curses python3-dev libffi-dev libssl-dev prometheus-node-exporter; do
     dpkg-query -W -f='${Status}' "$_pkg" 2>/dev/null | grep -q "ok installed" || _MISSING_PKGS="$_MISSING_PKGS $_pkg"
 done
 if [ -n "$_MISSING_PKGS" ]; then
     apt-get update -qq
     # shellcheck disable=SC2086
+    # prometheus-node-exporter = sonde légère :9100 (heartbox) — PAS le serveur Prometheus
     apt-get install -y --no-install-recommends $_MISSING_PKGS
 else
-    echo "socat jq curl wget bc gnupg pinentry-curses python3-dev déjà installés — ignoré"
+    echo "Dépendances déjà installées — ignoré"
 fi
 
-echo "=== 2. Installation de Kubo (IPFS) ARM64 ==="
+echo "=== 2. Installation de Kubo (IPFS) — ${PICO_ARCH} ==="
 if ! command -v ipfs &>/dev/null; then
     cd /tmp
-    wget -q --show-progress https://dist.ipfs.tech/kubo/v0.40.0/kubo_v0.40.0_linux-arm64.tar.gz
-    tar -xzf kubo_v0.40.0_linux-arm64.tar.gz
+    wget -q --show-progress "https://dist.ipfs.tech/kubo/v0.40.0/kubo_v0.40.0_linux-${PICO_ARCH}.tar.gz"
+    tar -xzf "kubo_v0.40.0_linux-${PICO_ARCH}.tar.gz"
     bash kubo/install.sh
     rm -rf kubo*
     echo "IPFS installé : $(ipfs --version)"
@@ -49,9 +52,10 @@ _install_g1cli() {
 import sys, json
 try:
     data = json.load(sys.stdin)
+    arch = '${PICO_ARCH}'
     for l in data.get('assets', {}).get('links', []):
         name = l.get('name', '').lower()
-        if 'arm64' in name and 'binary' in name:
+        if arch in name and 'binary' in name:
             print(l['url']); break
 except: pass
 " 2>/dev/null)
