@@ -4,7 +4,8 @@
 #  Permet de vérifier si l'enceinte Bluetooth crache du son.
 # ================================================================
 
-# On se met en contexte root ou sudoer[ "$(id -u)" -eq 0 ] || exec sudo bash "${BASH_SOURCE[0]}" "$@"
+# On se met en contexte root ou sudoer
+[ "$(id -u)" -eq 0 ] || exec sudo bash "${BASH_SOURCE[0]}" "$@"
 
 CONF="/opt/soundspot/soundspot.conf"
 [ -f "$CONF" ] && source "$CONF"

@@ -120,7 +120,7 @@ discover_neighbors() {
     PEERS=$(ipfs swarm peers | grep -oP 'p2p/\K.*' | sort -u | shuf | head -n 5)
     for peer in $PEERS; do
         if [ "$peer" != "$IPFSNODEID" ]; then
-            if [ ! -d "$SWARM_DIR/$peer" ] ||[ "$(find "$SWARM_DIR/$peer" -maxdepth 0 -mmin +60)" ]; then
+            if [ ! -d "$SWARM_DIR/$peer" ] || [ "$(find "$SWARM_DIR/$peer" -maxdepth 0 -mmin +60)" ]; then
                 ss_debug "Téléchargement balise complète : $peer"
                 TMP_GET="/tmp/get_$peer"
                 if ipfs --timeout 20s get -o "$TMP_GET" "/ipns/$peer/" >/dev/null 2>&1; then

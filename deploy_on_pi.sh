@@ -404,7 +404,7 @@ ask_bt_selection() {
     elif [[ "$CHOICE" == "0" || -z "$CHOICE" ]]; then
         log "Configuration Bluetooth ignorée."
         export BT_INPUT=""
-    elif [[ "$CHOICE" =~ ^[0-9]+$ ]] &&[ "$CHOICE" -gt 0 ] && [ "$CHOICE" -lt "$IDX" ]; then
+    elif [[ "$CHOICE" =~ ^[0-9]+$ ]] && [ "$CHOICE" -gt 0 ] && [ "$CHOICE" -lt "$IDX" ]; then
         SELECTED="${BT_MAP[$CHOICE]}"
         export BT_INPUT=$(echo "$SELECTED" | cut -d'|' -f1)
         log "Sélectionné : ${W}$BT_INPUT${N}"

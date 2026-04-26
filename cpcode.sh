@@ -160,8 +160,7 @@ JSON_COMMA=""
 if $JSON_MODE; then echo "{" >> "$FINAL_OUT"; echo '  "files": [' >> "$FINAL_OUT"; fi
 
 # Tri alphabétique des fichiers pour un rendu constant
-IFS=$'\n' SORTED_FILES=($(sort <<<"${!FILES_LIST[*]}"))
-unset IFS
+mapfile -t SORTED_FILES < <(printf "%s\n" "${!FILES_LIST[@]}" | sort)
 
 for FILE in "${SORTED_FILES[@]}"; do
     FILENAME=$(basename "$FILE")

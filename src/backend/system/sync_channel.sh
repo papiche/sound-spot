@@ -38,18 +38,25 @@ if [ "$IFACE_AP" != "uap0" ]; then
     BEST_CHAN=1
     [ "$UPSTREAM_CHAN" == "1" ] && BEST_CHAN=6
     
-    MIN_RESEAUX=999
-    for CH in 1 6 11; do
-        if [ "$CH" != "$UPSTREAM_CHAN" ]; then
-            # Utilisation de wc -l pour éviter les bugs d'affichage multi-lignes
-            COUNT=$(echo "$SCAN_RAW" | grep -w "$CH" | wc -l)
-            if [ "$COUNT" -lt "$MIN_RESEAUX" ]; then
-                MIN_RESEAUX=$COUNT
-                BEST_CHAN=$CH
+    # Sécurité : Si le scan a échoué ou qu'il n'y a aucun réseau
+    if [ -z "$SCAN_RAW" ] || [ "$SCAN_RAW" = " " ]; then
+        log "Aucun réseau détecté (zone blanche ou carte occupée). Canal de repli : CH${BEST_CHAN}"
+    else
+        MIN_RESEAUX=999
+        for CH in 1 6 11; do
+            # On ignore le canal utilisé par la connexion Internet (pour éviter l'auto-brouillage)
+            if [ "$CH" != "$UPSTREAM_CHAN" ]; then
+
+                COUNT=$(grep -cw "$CH" <<< "$SCAN_RAW" || echo 0)
+                
+                if [ "$COUNT" -lt "$MIN_RESEAUX" ]; then
+                    MIN_RESEAUX=$COUNT
+                    BEST_CHAN=$CH
+                fi
             fi
-        fi
-    done
-    log "Meilleur canal dégagé trouvé : CH${BEST_CHAN} (Réseau amont sur CH${UPSTREAM_CHAN})"
+        done
+        log "Meilleur canal dégagé trouvé : CH${BEST_CHAN} (Réseau amont sur CH${UPSTREAM_CHAN})"
+    fi
 else
     log "Mode Mono-WiFi : Canal AP forcé sur CH${BEST_CHAN} pour suivre ${IFACE_WAN}"
 fi
