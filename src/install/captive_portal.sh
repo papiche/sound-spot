@@ -7,6 +7,8 @@ setup_captive_portal() {
     cat > /etc/sudoers.d/soundspot-www <<SUDOEOF
 www-data ALL=(ALL) NOPASSWD: /usr/sbin/ipset
 www-data ALL=(ALL) NOPASSWD: /opt/soundspot/set_clock_mode.sh
+www-data ALL=(ALL) NOPASSWD: /opt/soundspot/set_voice_mode.sh
+www-data ALL=(ALL) NOPASSWD: /opt/soundspot/set_bells_mode.sh
 www-data ALL=(ALL) NOPASSWD: /opt/soundspot/bt_manage.sh
 www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop soundspot-client
 www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop snapserver
@@ -62,10 +64,14 @@ EOF
     chmod +x /var/www/html/api/apps/*/run.sh 2>/dev/null || true
     log "Portail lié : /var/www/html → $INSTALL_DIR/portal"
 
-    # Script root pour modification de soundspot.conf depuis le portail
+    # Scripts root pour modification de soundspot.conf depuis le portail
     install_template set_clock_mode.sh "$INSTALL_DIR/set_clock_mode.sh"
     chmod +x "$INSTALL_DIR/set_clock_mode.sh"
-    log "set_clock_mode.sh déployé"
+    install_template set_voice_mode.sh "$INSTALL_DIR/set_voice_mode.sh"
+    chmod +x "$INSTALL_DIR/set_voice_mode.sh"
+    install_template set_bells_mode.sh "$INSTALL_DIR/set_bells_mode.sh"
+    chmod +x "$INSTALL_DIR/set_bells_mode.sh"
+    log "set_clock_mode.sh + set_voice_mode.sh + set_bells_mode.sh déployés"
 
     # Activer explicitement le module CGI dans Debian
     lighttpd-enable-mod cgi 2>/dev/null || true

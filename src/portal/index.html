@@ -178,11 +178,15 @@
   <div class="card">
     <h2>⏰ Clocher Numérique</h2>
     <div class="ibox">
-      <div class="irow"><span class="lbl">Bip 429.62 Hz</span>  <span class="val">Toujours actif</span></div>
-      <div class="irow"><span class="lbl">Messages</span>        <span class="val">Toutes les 15 min</span></div>
-      <div class="irow"><span class="lbl">Coups de cloche</span> <span class="val" id="clock-lbl">…</span></div>
+      <div class="irow"><span class="lbl">Bip + Cloches</span>   <span class="val" id="bells-lbl">…</span></div>
+      <div class="irow"><span class="lbl">Coups (heure pile)</span><span class="val" id="clock-lbl">…</span></div>
+      <div class="irow"><span class="lbl">Messages &amp; heure</span><span class="val" id="voice-lbl">…</span></div>
     </div>
-    <button onclick="toggleClock()" id="btn-clock" class="btn btn-outline btn-sm" style="margin-top:6px">…</button>
+    <div class="row" style="margin-top:6px">
+      <button onclick="toggleBells()" id="btn-bells" class="btn btn-outline btn-sm">…</button>
+      <button onclick="toggleClock()" id="btn-clock" class="btn btn-outline btn-sm">…</button>
+      <button onclick="toggleVoice()" id="btn-voice" class="btn btn-outline btn-sm">…</button>
+    </div>
     <p style="font-size:.78rem;color:var(--muted);margin-top:6px">Effectif immédiatement, sans redémarrage.</p>
   </div>
 
@@ -382,10 +386,65 @@
     <div class="ibox">
       <div class="irow"><span class="lbl">Licence</span>    <span class="val">AGPL-3.0</span></div>
       <div class="irow"><span class="lbl">IPFS</span>       <span class="val" id="pico-status-detail">—</span></div>
+      <div class="irow"><span class="lbl">GPIO Pinout</span><span class="val"><a href="/pinout/" target="_blank">Référence →</a></span></div>
       <div class="irow"><span class="lbl">Code Source</span><span class="val"><a id="lnk-src" href="#" target="_blank">GitHub →</a></span></div>
       <div class="irow"><span class="lbl">Soutien</span>    <span class="val"><a id="lnk-oc2" href="#" target="_blank">OpenCollective →</a></span></div>
     </div>
     <a href="docs.sh" class="btn btn-outline btn-sm" style="display:block;margin-top:10px">Documentation locale →</a>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════
+     TAB 5 — CONFIG
+════════════════════════════════════════ -->
+<div id="tab-config" class="tab-content">
+
+  <div class="card">
+    <h2>📡 Réseau</h2>
+    <div class="ibox" id="cfg-network-box">
+      <div class="irow"><span class="lbl">SSID Visiteurs</span> <span class="val" id="cn-ssid">…</span></div>
+      <div class="irow"><span class="lbl">IP Station</span>     <span class="val" id="cn-ip">…</span></div>
+      <div class="irow"><span class="lbl">Hostname</span>        <span class="val" id="cn-hostname">…</span></div>
+      <div class="irow"><span class="lbl">IPv4 amont</span>      <span class="val" id="cn-wan">…</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>🔊 Audio</h2>
+    <div id="cfg-audio-sinks"><p style="color:var(--muted);font-size:.85rem">Détection sorties…</p></div>
+    <div class="ibox" style="margin-top:10px">
+      <div class="irow"><span class="lbl">Enceinte(s) BT</span><span class="val" id="cn-bt">…</span></div>
+      <div class="irow"><span class="lbl">Port Snapcast</span>  <span class="val" id="cn-snap">…</span></div>
+      <div class="irow"><span class="lbl">Port Icecast</span>   <span class="val" id="cn-ice">…</span></div>
+    </div>
+    <button onclick="fixAudioCfg()" class="btn btn-outline btn-sm" style="margin-top:8px">🔄 Reconnecter l'audio</button>
+  </div>
+
+  <div class="card">
+    <h2>🎛 Voix &amp; Clocher</h2>
+    <div class="ibox">
+      <div class="irow"><span class="lbl">Bip + Cloches</span>   <span class="val" id="cfg-bells-lbl">…</span></div>
+      <div class="irow"><span class="lbl">Coups (heure pile)</span><span class="val" id="cfg-clock-lbl">…</span></div>
+      <div class="irow"><span class="lbl">Voix (annonces)</span><span class="val" id="cfg-voice-lbl">…</span></div>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <button onclick="toggleBells()" id="cfg-btn-bells" class="btn btn-outline btn-sm">…</button>
+      <button onclick="toggleClock()" id="cfg-btn-clock" class="btn btn-outline btn-sm">…</button>
+      <button onclick="toggleVoice()" id="cfg-btn-voice" class="btn btn-outline btn-sm">…</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>🔧 GPIO &amp; Extensions</h2>
+    <p>Carte brochage Raspberry Pi disponible hors-ligne :</p>
+    <a href="/pinout/" target="_blank" class="btn btn-outline">📌 Ouvrir Pinout.xyz →</a>
+    <p style="font-size:.78rem;color:var(--muted);margin-top:8px">Cloner d'autres extensions : <code class="val">git clone …</code> dans <code class="val">~/.zen/workspace/</code></p>
+  </div>
+
+  <div class="card">
+    <h2>⚡ Services</h2>
+    <div id="cfg-services-list"><p style="color:var(--muted);font-size:.85rem">Chargement…</p></div>
   </div>
 
 </div>
@@ -422,11 +481,18 @@
     </svg>
     Énergie
   </button>
+  <button class="tab-btn" onclick="showTab('tab-config',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+    </svg>
+    Config
+  </button>
 </nav>
 
 <script>
 'use strict';
-let CFG = {}, clockMode = 'bells', chart, chartData = { labels: [], series: [[]] };
+let CFG = {}, clockMode = 'bells', voiceEnabled = true, bellsEnabled = true, chart, chartData = { labels: [], series: [[]] };
 
 function showTab(id, btn) {
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
@@ -434,6 +500,7 @@ function showTab(id, btn) {
   document.getElementById(id).classList.add('active');
   btn.classList.add('active');
   if (id === 'tab-solaire') setTimeout(initChart, 200);
+  if (id === 'tab-config') { loadConfigTab(); loadServicesStatus(); setTimeout(loadAudioSinksCfg, 300); }
 }
 
 function toast(msg, ok = true) {
@@ -488,8 +555,13 @@ async function loadConfig() {
       document.getElementById('card-jukebox').style.display = '';
     }
 
-    clockMode = CFG.clock_mode || 'bells';
+    clockMode    = CFG.clock_mode    || 'bells';
+    voiceEnabled = CFG.voice_enabled !== false;
+    bellsEnabled = CFG.bells_enabled !== false;
     updateClockUI();
+    updateVoiceUI();
+    updateBellsUI();
+    loadConfigTab();
   } catch(e) { console.error('Config failed', e); }
 }
 
@@ -536,6 +608,14 @@ async function loadStatus() {
       clockMode = d.clock_mode;
       updateClockUI();
     }
+    if (typeof d.voice_enabled !== 'undefined' && d.voice_enabled !== voiceEnabled) {
+      voiceEnabled = d.voice_enabled;
+      updateVoiceUI();
+    }
+    if (typeof d.bells_enabled !== 'undefined' && d.bells_enabled !== bellsEnabled) {
+      bellsEnabled = d.bells_enabled;
+      updateBellsUI();
+    }
   } catch(e) {}
 }
 
@@ -570,11 +650,61 @@ async function doAuth() {
 }
 
 function updateClockUI() {
-  const lbl = document.getElementById('clock-lbl');
-  const btn = document.getElementById('btn-clock');
-  if (!lbl || !btn) return;
-  lbl.textContent = clockMode === 'bells' ? '🔔 Activées' : '🔇 Silencieuses';
-  btn.textContent = clockMode === 'bells' ? 'Désactiver les cloches' : 'Activer les cloches';
+  const active = clockMode === 'bells';
+  const lbl  = active ? '🔔 Activées' : '🔇 Silencieuses';
+  const btxt = active ? 'Désactiver les cloches' : 'Activer les cloches';
+  ['clock-lbl','cfg-clock-lbl'].forEach(id => { const e=document.getElementById(id); if(e) e.textContent=lbl; });
+  ['btn-clock','cfg-btn-clock'].forEach(id => { const e=document.getElementById(id); if(e) e.textContent=btxt; });
+}
+
+function updateBellsUI() {
+  const active = bellsEnabled !== false;
+  const lbl  = active ? '🔔 Actifs' : '🔕 Coupés';
+  const btxt = active ? 'Couper ding & cloches' : 'Activer ding & cloches';
+  ['bells-lbl','cfg-bells-lbl'].forEach(id => { const e=document.getElementById(id); if(e) e.textContent=lbl; });
+  ['btn-bells','cfg-btn-bells'].forEach(id => { const e=document.getElementById(id); if(e) e.textContent=btxt; });
+}
+
+async function toggleBells() {
+  const next = bellsEnabled ? 'false' : 'true';
+  try {
+    const r = await fetch('/api.sh?action=bells', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'mode=' + next
+    });
+    const d = await r.json();
+    if (d.status === 'ok') {
+      bellsEnabled = d.bells_enabled === true || d.bells_enabled === 'true';
+      updateBellsUI();
+      toast(bellsEnabled ? '🔔 Ding & cloches activés' : '🔕 Ding & cloches coupés');
+    }
+  } catch(e) { toast('Erreur réseau', false); }
+}
+
+function updateVoiceUI() {
+  const active = voiceEnabled !== false;
+  const lbl  = active ? '🔊 Activée' : '🔇 Coupée';
+  const btxt = active ? 'Couper les voix' : 'Activer les voix';
+  ['voice-lbl','cfg-voice-lbl'].forEach(id => { const e=document.getElementById(id); if(e) e.textContent=lbl; });
+  ['btn-voice','cfg-btn-voice'].forEach(id => { const e=document.getElementById(id); if(e) e.textContent=btxt; });
+}
+
+async function toggleVoice() {
+  const next = voiceEnabled ? 'false' : 'true';
+  try {
+    const r = await fetch('/api.sh?action=voice', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'mode=' + next
+    });
+    const d = await r.json();
+    if (d.status === 'ok') {
+      voiceEnabled = d.voice_enabled === true || d.voice_enabled === 'true';
+      updateVoiceUI();
+      toast(voiceEnabled ? '🔊 Voix activées' : '🔇 Voix coupées');
+    }
+  } catch(e) { toast('Erreur réseau', false); }
 }
 
 async function toggleClock() {
@@ -600,6 +730,53 @@ async function fixAudio() {
   catch(e) { toast('Erreur', false); }
 }
 
+async function fixAudioCfg() { fixAudio(); }
+
+function loadConfigTab() {
+  if (!CFG.spot_name) return;
+  const sp = String(CFG.snapcast_port || 1704);
+  const ic = String(CFG.icecast_port  || 8111);
+  setTxt(['cn-ssid'], CFG.spot_name || '—');
+  setTxt(['cn-ip'],   CFG.spot_ip   || '—');
+  setTxt(['cn-snap'], sp);
+  setTxt(['cn-ice'],  ic);
+  setTxt(['cn-bt'],   CFG.bt_macs   || '—');
+  setTxt(['cn-hostname'], CFG.hostname || location.hostname);
+  setTxt(['cn-wan'], CFG.wan_ip || '—');
+
+  // Cloner les sinks audio dans l'onglet config
+  const srcDiv = document.getElementById('audio-sinks-list');
+  const dstDiv = document.getElementById('cfg-audio-sinks');
+  if (srcDiv && dstDiv && srcDiv.innerHTML.trim() !== '<p style="color:var(--muted);font-size:.85rem">Détection…</p>') {
+    dstDiv.innerHTML = srcDiv.innerHTML;
+  }
+}
+
+function loadServicesStatus() {
+  const services = [
+    { name: 'snapserver',         label: 'Snapserver' },
+    { name: 'soundspot-decoder',  label: 'Décodeur audio' },
+    { name: 'soundspot-client',   label: 'Snapclient' },
+    { name: 'soundspot-idle',     label: 'Clocher' },
+    { name: 'icecast2',           label: 'Icecast' },
+    { name: 'lighttpd',           label: 'Portail web' },
+    { name: 'picoport',           label: 'Picoport IPFS' },
+  ];
+  const box = document.getElementById('cfg-services-list');
+  if (!box) return;
+  // On affiche juste les services connus sans appel serveur supplémentaire
+  box.innerHTML = '<div class="ibox">' + services.map(s =>
+    `<div class="irow"><span class="lbl">${s.label}</span><span class="val" id="svc-${s.name}">…</span></div>`
+  ).join('') + '</div>';
+  // Récupérer l'état via le status existant
+  fetch('/api.sh?action=status').then(r=>r.json()).then(d=>{
+    document.getElementById('svc-picoport') &&
+      (document.getElementById('svc-picoport').textContent = d.picoport_active ? '✅' : '—');
+    document.getElementById('svc-icecast2') &&
+      (document.getElementById('svc-icecast2').textContent = d.dj_active ? '✅ Live' : '🎙 Prêt');
+  }).catch(()=>{});
+}
+
 async function loadAudioSinks() {
   try {
     const r = await fetch('/api.sh?action=audio_output');
@@ -607,6 +784,23 @@ async function loadAudioSinks() {
     if (!Array.isArray(sinks) || !sinks.length) return;
     document.getElementById('det-audio').style.display = '';
     document.getElementById('audio-sinks-list').innerHTML =
+      '<div class="row" style="flex-wrap:wrap;gap:8px">' +
+      sinks.map(s =>
+        `<button class="btn btn-sm ${s.active ? 'btn-teal' : 'btn-outline'}"
+           onclick="setAudioSink('${s.name}')"
+           style="flex:none;min-width:120px">${s.label}${s.active ? ' ✓' : ''}</button>`
+      ).join('') + '</div>';
+  } catch(e) {}
+}
+
+async function loadAudioSinksCfg() {
+  try {
+    const r = await fetch('/api.sh?action=audio_output');
+    const sinks = await r.json();
+    if (!Array.isArray(sinks) || !sinks.length) return;
+    const div = document.getElementById('cfg-audio-sinks');
+    if (!div) return;
+    div.innerHTML =
       '<div class="row" style="flex-wrap:wrap;gap:8px">' +
       sinks.map(s =>
         `<button class="btn btn-sm ${s.active ? 'btn-teal' : 'btn-outline'}"

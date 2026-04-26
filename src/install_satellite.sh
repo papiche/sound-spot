@@ -40,6 +40,16 @@ hdr "Vérifications"
 grep -q "Raspberry Pi" /proc/cpuinfo 2>/dev/null || warn "Pas un RPi — on continue"
 log "Mode satellite → snapserver ${MASTER_HOST}:${SNAPCAST_PORT}"
 
+# ── Détection Pi Zero V1 (ARM1176, 512 Mo RAM, sans VideoCore VI) ────────────
+# /proc/device-tree/model contient "Raspberry Pi Zero" sans "2" pour la V1
+PI_MODEL=$(tr -d '\0' < /proc/device-tree/model 2>/dev/null || echo "")
+IS_PIZERO_V1=false
+if echo "$PI_MODEL" | grep -qi "Raspberry Pi Zero" && \
+   ! echo "$PI_MODEL" | grep -qi "Zero 2"; then
+    IS_PIZERO_V1=true
+    warn "Raspberry Pi Zero V1 détecté (${PI_MODEL}) — optimisations basse consommation activées"
+fi
+
 # ── Sélecteur de sortie audio ────────────────────────────────
 hdr "Sélection de la sortie audio"
 echo -e "
@@ -167,6 +177,44 @@ done
 # ── Configuration ─────────────────────────────────────────────
 [ "$AUDIO_OUTPUT" = "bluetooth" ] && setup_bluetooth
 setup_pipewire
+
+# ── Optimisations Pi Zero V1 ─────────────────────────────────────────────────
+if $IS_PIZERO_V1; then
+    hdr "Optimisations Pi Zero V1"
+
+    # PipeWire : résampeur basse qualité (économie CPU) + quantum élevé (buffers larges)
+    mkdir -p /etc/pipewire/pipewire.conf.d
+    cat > /etc/pipewire/pipewire.conf.d/99-pizero-opt.conf << 'PWEOF'
+# Optimisations Pi Zero V1 : réduction charge CPU audio
+context.properties = {
+    default.clock.rate        = 44100
+    default.clock.quantum     = 2048
+    default.clock.min-quantum = 1024
+    default.clock.max-quantum = 8192
+}
+PWEOF
+
+    # WirePlumber : qualité de rééchantillonnage minimale (SPEEX 0)
+    mkdir -p /etc/wireplumber/wireplumber.conf.d
+    cat > /etc/wireplumber/wireplumber.conf.d/99-pizero-resample.conf << 'WEOF'
+monitor.alsa.rules = [
+  {
+    matches = [ { node.name = "~alsa_.*" } ]
+    actions = {
+      update-props = {
+        resample.quality = 2
+      }
+    }
+  }
+]
+WEOF
+
+    # snapclient : augmenter la latence tampon pour éviter les coupures
+    # La valeur est lue par setup_snapclient via SNAPCLIENT_LATENCY (ms)
+    export SNAPCLIENT_LATENCY="${SNAPCLIENT_LATENCY:-1000}"
+    log "PipeWire quantum=2048, resample.quality=2, snapclient latency=${SNAPCLIENT_LATENCY}ms ✓"
+fi
+
 setup_snapclient satellite
 
 # Reconnexion BT réactive (remplace le polling 60s de bt-autoconnect)

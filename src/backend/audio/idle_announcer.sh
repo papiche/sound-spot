@@ -39,6 +39,8 @@ reload_conf() {
     ICECAST_PORT="${ICECAST_PORT:-8111}"
     IDLE_ANNOUNCE_INTERVAL="${IDLE_ANNOUNCE_INTERVAL:-900}"
     CLOCK_MODE="${CLOCK_MODE:-bells}"
+    VOICE_ENABLED="${VOICE_ENABLED:-true}"
+    BELLS_ENABLED="${BELLS_ENABLED:-true}"
     ORPHEUS_VOICE="${ORPHEUS_VOICE:-pierre}"
     ORPHEUS_PORT="${ORPHEUS_PORT:-5005}"
 }
@@ -55,6 +57,7 @@ play_wav() {
 # sinon espeak-ng en fallback. Le changement de voix est l'indicateur
 # auditif que le nœud est bien relié à sa constellation.
 say() {
+    [ "${VOICE_ENABLED:-true}" = "false" ] && return 0
     local wav_paths
     # tts.sh peut retourner 2 lignes : intro constellation + message
     wav_paths=$(bash "$TTS_SH" "$*" "${ORPHEUS_VOICE:-pierre}" 2>/dev/null)
@@ -73,25 +76,52 @@ play_message_file() {
     local wav="$WAV_DIR/message_${id}.wav"
     local txt="$WAV_DIR/message_${id}.txt"
 
-    # Régénérer le .wav (espeak) si absent ou .txt plus récent
+    # Régénérer le .wav espeak si absent ou .txt plus récent
     if [ -f "$txt" ] && { [ ! -f "$wav" ] || [ "$txt" -nt "$wav" ]; }; then
         espeak-ng -v fr+f3 -s 115 -p 40 "$(cat "$txt")" -w "$wav" 2>/dev/null || true
     fi
 
-    # Si Picoport actif → lecture live via Orpheus (sans écraser le .wav espeak)
-    if [ -f "$txt" ] && systemctl is-active --quiet picoport.service 2>/dev/null; then
+    # Si voix désactivée depuis le portail, lecture directe du .wav espeak
+    if [ "${VOICE_ENABLED:-true}" = "false" ]; then
+        [ -f "$wav" ] && play_wav "$wav"
+        return
+    fi
+
+    # Tenter Orpheus (voix naturelle) si le service est actif OU si l'endpoint répond
+    local _use_orpheus=false
+    systemctl is-active --quiet picoport.service 2>/dev/null && _use_orpheus=true
+    # Fallback direct : tester l'endpoint sans dépendance au nom du service
+    if ! $_use_orpheus; then
+        curl -s -o /dev/null -w "%{http_code}" --max-time 2 \
+            "http://localhost:${ORPHEUS_PORT:-5005}/docs" 2>/dev/null | grep -q "200" \
+            && _use_orpheus=true
+    fi
+
+    if $_use_orpheus && [ -f "$txt" ]; then
         local live_wav
         live_wav=$(bash "$TTS_SH" "$(cat "$txt")" "${ORPHEUS_VOICE:-pierre}" 2>/dev/null | tail -1)
         if [ -f "$live_wav" ]; then
-            play_wav "$live_wav"
-            rm -f "$live_wav"
+            # Remplacer le .wav espeak par la version Orpheus (voix persistée)
+            mv "$live_wav" "$wav" 2>/dev/null || { play_wav "$live_wav"; rm -f "$live_wav"; return; }
+            play_wav "$wav"
             return
         fi
     fi
 
-    if [ -f "$wav" ]; then
-        play_wav "$wav"
-    fi
+    [ -f "$wav" ] && play_wav "$wav"
+}
+
+# ── Régénérer tous les .wav espeak au démarrage ──────────────────
+# Garantit que chaque boot commence avec les voix espeak (robot).
+# Lorsqu'Orpheus se connecte, play_message_file() les remplace par la
+# voix naturelle — c'est l'indicateur auditif que UPlanet est joignable.
+init_espeak_wavs() {
+    for txt in "$WAV_DIR"/message_*.txt; do
+        [ -f "$txt" ] || continue
+        local wav="${txt%.txt}.wav"
+        espeak-ng -v fr+f3 -s 115 -p 40 "$(cat "$txt")" -w "$wav" 2>/dev/null || true
+    done
+    ss_info "Voix espeak initialisées — Orpheus les remplacera à la connexion UPlanet"
 }
 
 # ── Nombre de messages disponibles dans wav/ ─────────────────────
@@ -171,6 +201,9 @@ announce_time() {
 
 # ── Boucle principale ─────────────────────────────────────────────
 main() {
+    reload_conf
+    init_espeak_wavs   # boot = espeak ; remplacement progressif par Orpheus si connecté
+
     local last_announce=0
     local msg_index=0
 
@@ -191,12 +224,14 @@ main() {
             else
                 ss_info "annonce h${sol_h}:$(printf '%02d' "$sol_m") mode=${CLOCK_MODE:-bells}"
 
-                # 1. Bip 429.62 Hz (signal de vie — non désactivable)
-                play_wav "$WAV_DIR/tone_429hz.wav"
-                sleep 1
+                # 1. Bip 429.62 Hz — inhibé si BELLS_ENABLED=false
+                if [ "${BELLS_ENABLED:-true}" = "true" ]; then
+                    play_wav "$WAV_DIR/tone_429hz.wav"
+                    sleep 1
+                fi
 
-                # 2. Coups de cloche à l'heure solaire pile (configurable via CLOCK_MODE)
-                if [ "$sol_m" = "0" ] && [ "${CLOCK_MODE:-bells}" = "bells" ]; then
+                # 2. Coups de cloche à l'heure solaire pile (configurable via CLOCK_MODE + BELLS_ENABLED)
+                if [ "$sol_m" = "0" ] && [ "${CLOCK_MODE:-bells}" = "bells" ] && [ "${BELLS_ENABLED:-true}" = "true" ]; then
                     local bells=$(( sol_h % 12 ))
                     [ "$bells" -eq 0 ] && bells=12
                     ss_debug "coups de cloche : ${bells}"

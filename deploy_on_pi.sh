@@ -545,6 +545,54 @@ else
 fi
 
 # ════════════════════════════════════════════════════════════════
+#  10. Pinout.xyz — référence GPIO locale (RPi)
+#  Disponible hors-ligne via le portail : http://192.168.10.1/pinout/
+# ════════════════════════════════════════════════════════════════
+hdr "Pinout.xyz (référence GPIO hors-ligne)"
+USER_HOME_DEPLOY=$(getent passwd "$SOUNDSPOT_USER" | cut -d: -f6)
+PINOUT_DIR="$USER_HOME_DEPLOY/.zen/workspace/Pinout.xyz"
+
+if [ "$SOUNDSPOT_MODE" != "2" ]; then
+    if [ ! -d "$PINOUT_DIR/.git" ]; then
+        log "Clonage de Pinout.xyz → ${PINOUT_DIR}..."
+        mkdir -p "$USER_HOME_DEPLOY/.zen/workspace"
+        sudo -u "$SOUNDSPOT_USER" git clone --depth=1 \
+            https://github.com/pinout-xyz/Pinout.xyz "$PINOUT_DIR" 2>/dev/null \
+            && log "Pinout.xyz cloné ✓" \
+            || warn "Clone Pinout.xyz échoué (Internet requis). À relancer plus tard."
+    else
+        log "Pinout.xyz déjà présent — mise à jour..."
+        sudo -u "$SOUNDSPOT_USER" git -C "$PINOUT_DIR" pull --ff-only 2>/dev/null || true
+    fi
+
+    # Générer les pages HTML statiques via generate-html.py
+    if [ -d "$PINOUT_DIR" ] && [ -f "$PINOUT_DIR/generate-html.py" ]; then
+        log "Génération des pages Pinout.xyz (generate-html.py)..."
+        apt-get install -y -q python3 python3-jinja2 2>/dev/null || true
+        sudo -u "$SOUNDSPOT_USER" bash -c \
+            "cd '$PINOUT_DIR' && python3 generate-html.py 2>/dev/null" \
+            && log "Pinout.xyz HTML généré ✓" \
+            || warn "generate-html.py échoué — les sources brutes seront servies"
+    fi
+
+    # Lien symbolique pour le portail captif : /var/www/html/pinout → Pinout.xyz/
+    # lighttpd suit les symlinks hors document-root si server.follow-symlink est activé
+    PORTAL_PINOUT="$INSTALL_DIR/portal/pinout"
+    if [ -d "$PINOUT_DIR" ] && [ ! -L "$PORTAL_PINOUT" ]; then
+        ln -sfn "$PINOUT_DIR" "$PORTAL_PINOUT"
+        log "Lien portail /pinout/ → Pinout.xyz ✓"
+    fi
+
+    # Activer server.follow-symlink dans lighttpd (si pas déjà présent)
+    if [ -f /etc/lighttpd/lighttpd.conf ] && \
+       ! grep -q "follow-symlink" /etc/lighttpd/lighttpd.conf; then
+        echo 'server.follow-symlink = "enable"' >> /etc/lighttpd/lighttpd.conf
+        systemctl reload lighttpd 2>/dev/null || true
+        log "lighttpd : follow-symlink activé ✓"
+    fi
+fi
+
+# ════════════════════════════════════════════════════════════════
 #  Fin
 # ════════════════════════════════════════════════════════════════
 echo -e "\n${G}Installation terminée !${N}"

@@ -15,13 +15,33 @@ MY_SERVICES="icecast:8111 snapcast:1704 upassport:54321 ssh:22"
 # ── heartbox_analysis.sh (Astroport.ONE light install) ──────────────────────
 # Fournit capacities.power_score, capacities.crypto_score, provider_ready…
 # Cohérent avec astrosystemctl list-remote et le format 12345.json du swarm.
-HB_SCRIPT=""
-for _hb in "$HOME/.zen/Astroport.ONE/tools/heartbox_analysis.sh" \
-           "$HOME/.zen/workspace/sound-spot/src/picoport/../../../Astroport.ONE/tools/heartbox_analysis.sh"; do
-    [[ -x "$_hb" ]] && HB_SCRIPT="$_hb" && break
-done
+HB_SCRIPT="$HOME/.zen/Astroport.ONE/tools/heartbox_analysis.sh"
 
 mkdir -p "$MY_NODE_DIR" "$SWARM_DIR"
+
+# ── NOSTR Identity (Y-Level) ────────────────────────────────────────────────
+# Dérive ou charge le HEX NOSTR depuis secret.june / secret.nostr.
+# Publié dans MY_NODE_DIR/HEX → téléchargé par la constellation via swarm IPNS.
+# Permet à all_but_blacklist.sh du relay de reconnaître ce nœud.
+NODEHEX=""
+ASTRO_TOOLS="$HOME/.zen/Astroport.ONE/tools"
+if [[ -s ~/.zen/game/secret.nostr ]]; then
+    source ~/.zen/game/secret.nostr
+    NODEHEX="${HEX:-}"
+elif [[ -s ~/.zen/game/secret.june && -f "$ASTRO_TOOLS/keygen" ]]; then
+    source ~/.zen/game/secret.june
+    _CRED_PICO=$(mktemp -p /dev/shm 2>/dev/null || mktemp)
+    chmod 600 "$_CRED_PICO"
+    trap "rm -f '$_CRED_PICO'" EXIT INT TERM
+    printf '%s\n%s\n' "$SALT" "$PEPPER" > "$_CRED_PICO"
+    _npub=$(python3 "$ASTRO_TOOLS/keygen" -t nostr -i "$_CRED_PICO" 2>/dev/null)
+    NODEHEX=$(python3 "$ASTRO_TOOLS/nostr2hex.py" "$_npub" 2>/dev/null)
+    _nsec=$(python3  "$ASTRO_TOOLS/keygen" -t nostr -s -i "$_CRED_PICO" 2>/dev/null)
+    [[ -n "$NODEHEX" ]] && echo "NSEC=$_nsec; NPUB=$_npub; HEX=$NODEHEX" > ~/.zen/game/secret.nostr
+    rm -f "$_CRED_PICO"
+fi
+# Publier HEX dans la balise IPNS (lu par all_but_blacklist.sh via swarm cache)
+[[ -n "$NODEHEX" ]] && echo "$NODEHEX" > "$MY_NODE_DIR/HEX"
 
 # --- CHARGEMENT DES LOGS ---
 _SS_SERVICE="picoport"
@@ -63,6 +83,7 @@ generate_dragon_scripts() {
             fi
             
             # 3. Génération du script client x_*.sh avec gestion de conflit
+            # NB: identique à Astoport.ONE/RUNTIME/DRAGON_p2p_ssh
             cat > "$MY_NODE_DIR/x_$SVC_NAME.sh" << EOF
 #!/bin/bash
 ### Fichier : x_$SVC_NAME.sh
@@ -185,6 +206,8 @@ while true; do
     "hostname":      "$(hostname)",
     "ipfsnodeid":    "$IPFSNODEID",
     "captain":       "",
+    "NODEHEX":       "$NODEHEX",
+    "SSHPUB":        "$(cat ~/.ssh/id_ed25519.pub 2>/dev/null || echo '')",
     "dragon_services": "$DRAGON_LIST",
     "streaming":     { "icecast": true, "snapcast": true },
     "capacities":    $CAPACITIES

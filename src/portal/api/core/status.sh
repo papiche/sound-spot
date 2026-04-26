@@ -2,6 +2,8 @@
 # api/core/status.sh — État du système SoundSpot
 # Appelé par api.sh (hérite des exports : SPOT_NAME, SPOT_IP, ICECAST_PORT, …)
 
+VOICE_ENABLED="${VOICE_ENABLED:-true}"
+BELLS_ENABLED="${BELLS_ENABLED:-true}"
 DJ_ACTIVE="false"
 HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 1 \
     "http://127.0.0.1:${ICECAST_PORT}/live" 2>/dev/null || echo "000")
@@ -27,6 +29,8 @@ cat <<JSON
   "icecast_port": ${ICECAST_PORT},
   "dj_active": ${DJ_ACTIVE},
   "clock_mode": "${CLOCK_MODE}",
+  "voice_enabled": ${VOICE_ENABLED},
+  "bells_enabled": ${BELLS_ENABLED},
   "picoport_active": ${PICOPORT_ACTIVE},
   "cpu_load": "${CPU_LOAD}",
   "mem_free_kb": ${MEM_FREE},
