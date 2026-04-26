@@ -52,30 +52,27 @@ def is_connected(mac: str) -> bool:
 def watch_loop():
     global monitor_proc
     try:
-        # stdbuf -o0 force le vidage du buffer ligne par ligne
         monitor_proc = subprocess.Popen(["stdbuf", "-o0", "bluetoothctl", "monitor"],
             stdout=subprocess.PIPE,
-            stderr=subprocess.DEVNULL,
+            stderr=subprocess.STDOUT, # Capturer les erreurs aussi
             text=True,
             bufsize=1
         )
-        log.info("Écoute des événements BlueZ…")
+        # On ne logue "Écoute..." qu'une seule fois au démarrage, pas à chaque boucle
         
         for raw_line in monitor_proc.stdout:
-            # Nettoyage robuste des couleurs et sauts de ligne
             line = ANSI_ESCAPE.sub('', raw_line).strip()
-            if not line:
-                continue
+            if not line: continue
                 
             for mac in TARGET_MACS:
                 if mac in line.upper():
-                    if "Connected: yes" in line or "new" in line.lower():
+                    if "Connected: yes" in line:
                         if not is_connected(mac):
                             connect_mac(mac)
                     break
     except Exception as exc:
-        log.error("Erreur surveillance BlueZ : %s — reprise dans 10s", exc)
-        time.sleep(10)
+        # On ne logue l'erreur que si ce n'est pas un arrêt normal
+        log.error("Flux Bluetooth interrompu : %s", exc)
 
 def handle_sigterm(signum, frame):
     global monitor_proc
@@ -86,12 +83,22 @@ def handle_sigterm(signum, frame):
 
 def main():
     signal.signal(signal.SIGTERM, handle_sigterm)
+    log.info("Démarrage de la surveillance réactive BlueZ (Mode Root)...")
+    
+    # Premier essai de connexion au démarrage
     for mac in TARGET_MACS:
         if not is_connected(mac):
             connect_mac(mac)
+            
     while True:
-        watch_loop()
-        time.sleep(5)
+        try:
+            watch_loop()
+        except Exception as e:
+            log.error(f"Erreur boucle: {e}")
+        
+        # CETTE LIGNE EST CRUCIALE : 
+        # Si le bus Bluetooth crash, on attend 10s avant de polluer les logs
+        time.sleep(10)
 
 if __name__ == "__main__":
     main()
