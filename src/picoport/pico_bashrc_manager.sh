@@ -2,12 +2,10 @@
 
 # Configuration
 BASHRC="$HOME/.bashrc"
-START_MARKER="# >>> PICOPORT ALIASES START >>>"
-END_MARKER="# <<< PICOPORT ALIASES END <<<"
 
 # Contenu du bloc PicoPort
 read -r -d '' PICO_BLOCK << 'EOF'
-$START_MARKER
+# >>> PICOPORT ALIASES START >>>
 
 # ── Diagnostic & Surveillance ─────────────────────────────────────────────
 # Correction de l'alias check pour pointer vers le workspace si absent de /opt
@@ -183,13 +181,13 @@ pico-power() {
         echo "   (heartbox_analysis.json absent — IPFS en cours de démarrage ?)"
     fi
 }
-$END_MARKER
+# <<< PICOPORT ALIASES END <<<
 EOF
 
 remove_block() {
-    if grep -q "$START_MARKER" "$BASHRC"; then
+    if grep -q "# >>> PICOPORT ALIASES START >>>" "$BASHRC"; then
         # Supprime tout ce qui se trouve entre les deux balises (incluses)
-        sed -i "/$START_MARKER/,/$END_MARKER/d" "$BASHRC"
+        sed -i "/# >>> PICOPORT ALIASES START >>>/,/# <<< PICOPORT ALIASES END <<</d" "$BASHRC"
         return 0
     else
         return 1
