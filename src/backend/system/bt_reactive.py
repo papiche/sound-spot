@@ -33,8 +33,15 @@ if not TARGET_MACS:
 log.info("Surveillance BT réactive → %s", TARGET_MACS)
 
 def connect_mac(mac: str):
-    log.info("Connexion BT détectée (D-Bus) : %s", mac)
-    subprocess.run(["bluetoothctl", "connect", mac], timeout=15, capture_output=True)
+    log.info("Connexion BT : %s", mac)
+    res = subprocess.run(["bluetoothctl", "connect", mac],
+                         timeout=15, capture_output=True, text=True)
+    if "Connected: yes" not in res.stdout and "successful" not in res.stdout.lower():
+        log.warning("Connexion %s incertaine : %s", mac, res.stdout.strip())
+    # Recombiner les sinks PipeWire (multi-enceintes)
+    combine = os.path.join(INSTALL_DIR, "backend/system/bt-combine-sinks.sh")
+    if os.path.exists(combine):
+        subprocess.run(["bash", combine], capture_output=True, timeout=10)
     subprocess.run(["systemctl", "restart", "soundspot-client"], capture_output=True)
     log.info("soundspot-client redémarré après connexion %s", mac)
 

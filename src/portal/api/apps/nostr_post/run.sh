@@ -9,12 +9,12 @@
 #        ou : cid=QmXXX&kind=1    (pour poster une URL IPFS)
 #
 # Modes de signature :
-#   1. Identité Picoport  : clé Nostr du nœud (~/.zen/game/nostr.keys)
-#   2. nsec visiteur      : nsec1xxx passé dans le body (jamais loggé)
+#   1. Identité Picoport  : ~/.zen/game/secret.nostr (format NSEC=nsec1...; NPUB=...; HEX=...;)
+#   2. nsec visiteur      : nsec1xxx passé dans le body (keyfile temporaire /dev/shm, supprimé après)
 #
 # Prérequis :
-#   - Picoport actif (clés NOSTR dans ~/.zen/game/nostr.keys)
-#   - python3 + nostr (pip install nostr)  OU  nak (go install)
+#   - Picoport actif (Astroport.ONE light install, venv ~/.astro/)
+#   - nostr_send_note.py dans ~/.zen/Astroport.ONE/tools/
 #   - Relay local accessible ws://127.0.0.1:9999
 #
 # Hérite des exports de api.sh.
@@ -24,10 +24,6 @@ RELAY="ws://127.0.0.1:9999"
 
 # ── Lire le body POST ────────────────────────────────────────
 read -r -n "${CONTENT_LENGTH:-0}" POST_DATA 2>/dev/null || true
-
-urldecode() {
-    python3 -c "import sys,urllib.parse; print(urllib.parse.unquote_plus(sys.stdin.read().strip()))"
-}
 
 TEXT=$(printf '%s' "$POST_DATA" | grep -oP '(?<=text=)[^&]+' | head -1 | urldecode)
 CID=$(printf '%s' "$POST_DATA"  | grep -oP '(?<=cid=)[^&]+'  | head -1 | urldecode)
@@ -46,47 +42,73 @@ if [ -z "$CONTENT" ]; then
     exit 0
 fi
 
-# ── Déterminer la clé de signature ───────────────────────────
-NOSTR_KEYS=""
+# ── Déterminer le keyfile de signature ───────────────────────
+USER_HOME=$(getent passwd "${SOUNDSPOT_USER:-pi}" | cut -d: -f6)
+KEYFILE=""
+SIGN_MODE=""
+
 if [ -n "$NSEC" ]; then
-    # Clé fournie par le visiteur (mode personnel)
-    NSEC_ARG="$NSEC"
+    # Clé visiteur — keyfile temporaire en RAM, supprimé à la sortie
+    KEYFILE=$(mktemp -p /dev/shm nostr_kf_XXXXXX 2>/dev/null || mktemp)
+    chmod 644 "$KEYFILE"
+    trap "rm -f '$KEYFILE'" EXIT
+    printf 'NSEC=%s;\n' "$NSEC" > "$KEYFILE"
     SIGN_MODE="visitor"
 else
-    # Identité du Picoport
-    KEYS_FILE=$(eval echo "~${SOUNDSPOT_USER:-pi}/.zen/game/nostr.keys")
-    if [ -f "$KEYS_FILE" ]; then
-        # Format attendu : NSEC=nsec1xxx ou nsec=nsec1xxx
-        NSEC_ARG=$(grep -oP '(?<=NSEC=|nsec=)[^\s]+' "$KEYS_FILE" | head -1)
-        SIGN_MODE="picoport"
-    fi
+    # Identité Picoport (écrite par picoport_init_keys.sh)
+    KEYFILE="${USER_HOME}/.zen/game/secret.nostr"
+    SIGN_MODE="picoport"
 fi
 
-if [ -z "${NSEC_ARG:-}" ]; then
+if [ ! -f "$KEYFILE" ]; then
     jq -n '{"error":"no_signing_key","hint":"Picoport requis ou nsec= dans le body"}'
     exit 0
 fi
 
-# ── Publication avec `nak` (le plus simple) ──────────────────
-# nak : https://github.com/fiatjaf/nak  (go install github.com/fiatjaf/nak@latest)
-if command -v nak &>/dev/null; then
+# ── Publication via nostr_send_note.py ───────────────────────
+NOSTR_SCRIPT="${USER_HOME}/.zen/Astroport.ONE/tools/nostr_send_note.py"
+PYTHON="${USER_HOME}/.astro/bin/python3"
+
+if [ -f "$NOSTR_SCRIPT" ] && [ -x "$PYTHON" ]; then
+    RESULT=$(sudo -u "${SOUNDSPOT_USER:-pi}" "$PYTHON" "$NOSTR_SCRIPT" \
+        --keyfile "$KEYFILE" \
+        --content "$CONTENT" \
+        --kind   "$KIND" \
+        --relays "$RELAY" \
+        --json 2>/dev/null)
+
+    EVENT_ID=$(printf '%s' "$RESULT" | jq -r '.event_id // empty')
+    if [ -n "$EVENT_ID" ]; then
+        jq -n \
+            --arg id    "$EVENT_ID" \
+            --arg relay "$RELAY" \
+            --arg mode  "${SIGN_MODE}" \
+            --argjson kind "$KIND" \
+            '{"status":"ok","event_id":$id,"relay":$relay,"sign_mode":$mode,"kind":$kind}'
+    else
+        ERR=$(printf '%s' "$RESULT" | jq -r '.errors[0] // "publish_failed"')
+        jq -n --arg relay "$RELAY" --arg err "$ERR" '{"error":$err,"relay":$relay}'
+    fi
+
+elif command -v nak &>/dev/null; then
+    # Fallback nak (optionnel, non installé par défaut)
+    NSEC_ARG=$(grep -oP '(?<=NSEC=)[^;\s]+' "$KEYFILE" | head -1)
     EVENT_ID=$(nak event \
         --sec "$NSEC_ARG" \
         --kind "$KIND" \
         --content "$CONTENT" \
         "$RELAY" 2>/dev/null | jq -r '.id // empty')
-
     if [ -n "$EVENT_ID" ]; then
         jq -n \
-            --arg id      "$EVENT_ID" \
-            --arg relay   "$RELAY" \
-            --arg mode    "${SIGN_MODE:-unknown}" \
+            --arg id    "$EVENT_ID" \
+            --arg relay "$RELAY" \
+            --arg mode  "${SIGN_MODE}" \
             --argjson kind "$KIND" \
             '{"status":"ok","event_id":$id,"relay":$relay,"sign_mode":$mode,"kind":$kind}'
     else
         jq -n --arg relay "$RELAY" '{"error":"publish_failed","relay":$relay}'
     fi
+
 else
-    # TODO : fallback Python nostr library
-    jq -n '{"error":"nak_not_installed","hint":"go install github.com/fiatjaf/nak@latest"}'
+    jq -n '{"error":"no_publisher","hint":"Picoport (Astroport.ONE light install) requis"}'
 fi

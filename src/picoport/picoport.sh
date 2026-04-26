@@ -43,6 +43,14 @@ fi
 # Publier HEX dans la balise IPNS (lu par all_but_blacklist.sh via swarm cache)
 [[ -n "$NODEHEX" ]] && echo "$NODEHEX" > "$MY_NODE_DIR/HEX"
 
+# Mot de passe admin portail = 10 derniers caractères de UPLANETNAME (swarm.key)
+# Écrit en RAM (/dev/shm) pour www-data (CGI lighttpd).
+_UPLANETNAME=$(tail -n 1 ~/.ipfs/swarm.key 2>/dev/null || echo "")
+if [ -n "$_UPLANETNAME" ]; then
+    echo "${_UPLANETNAME: -10}" > /dev/shm/soundspot_admin_pass
+    chmod 644 /dev/shm/soundspot_admin_pass
+fi
+
 # --- CHARGEMENT DES LOGS ---
 _SS_SERVICE="picoport"
 LOG_LIB="/opt/soundspot/log.sh"

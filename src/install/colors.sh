@@ -25,13 +25,11 @@ apt_retry() {
 # install_template SRC DEST [VARS]
 install_template() {
     local src="$1" dest="$2"; shift 2
-    # On cherche le template
+    # Recherche dans l'ordre : templates/ → config/services/ → backend/system/
     local template_path="${SCRIPT_DIR}/templates/${src}"
     [ ! -f "$template_path" ] && template_path="${SCRIPT_DIR}/config/services/${src}"
-    
-    if [ -z "$template_path" ]; then
-        err "Template introuvable : ${src}"
-    fi
+    [ ! -f "$template_path" ] && template_path="${SCRIPT_DIR}/backend/system/${src}"
+    [ ! -f "$template_path" ] && err "Template introuvable : ${src}"
 
     if [ $# -eq 0 ]; then
         cp "${template_path}" "${dest}"

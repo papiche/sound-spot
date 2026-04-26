@@ -36,6 +36,18 @@ setup_bluetooth() {
     [ -f "$INSTALL_DIR/bt_manage.sh" ] && chmod +x "$INSTALL_DIR/bt_manage.sh" \
         && log "bt_manage.sh installé (connexion, volume)"
 
-    [ -n "$BT_MACS" ] && systemctl enable bt-autoconnect
-    log "Service bt-autoconnect configuré"
+    # Service réactif (D-Bus BlueZ) — master ET satellite.
+    # bt-autoconnect gère le boot ; bt_reactive gère les reconnexions runtime.
+    install_template soundspot-bt-reactive.service \
+        /etc/systemd/system/soundspot-bt-reactive.service \
+        '${INSTALL_DIR} ${SOUNDSPOT_UID} ${SOUNDSPOT_USER}'
+    cp "$SCRIPT_DIR/backend/system/bt_reactive.py" "$INSTALL_DIR/backend/system/bt_reactive.py" 2>/dev/null || true
+
+    if [ -n "$BT_MACS" ]; then
+        systemctl enable bt-autoconnect
+        systemctl enable soundspot-bt-reactive
+        log "Services bt-autoconnect + soundspot-bt-reactive activés"
+    else
+        log "BT_MACS non défini — services BT désactivés (configurer via portail admin)"
+    fi
 }

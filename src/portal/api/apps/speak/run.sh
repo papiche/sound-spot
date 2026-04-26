@@ -3,7 +3,7 @@
 
 read -r -n "${CONTENT_LENGTH:-0}" POST_DATA 2>/dev/null || true
 
-TEXT=$(printf '%s' "$POST_DATA" | grep -oP '(?<=text=)[^&]+' | head -1 | python3 -c "import sys,urllib.parse; print(urllib.parse.unquote_plus(sys.stdin.read().strip()))" 2>/dev/null)
+TEXT=$(printf '%s' "$POST_DATA" | grep -oP '(?<=text=)[^&]+' | head -1 | urldecode)
 VOICE=$(printf '%s' "$POST_DATA" | grep -oP '(?<=voice=)[^&]+' | head -1)
 
 if [ -n "$TEXT" ]; then

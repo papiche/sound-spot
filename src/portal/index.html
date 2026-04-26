@@ -447,6 +447,29 @@
     <div id="cfg-services-list"><p style="color:var(--muted);font-size:.85rem">Chargement…</p></div>
   </div>
 
+  <!-- ── Administration (protégée par mot de passe UPLANETNAME) ── -->
+  <div class="card">
+    <h2>🔒 Administration BT</h2>
+    <div id="adm-login">
+      <div class="irow">
+        <input id="adm-pass-input" type="password" placeholder="Mot de passe (10 car.)"
+          style="flex:1;padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:.9rem"
+          onkeydown="if(event.key==='Enter') admLogin()" />
+        <button class="btn btn-sm" onclick="admLogin()">Connexion</button>
+      </div>
+      <p style="font-size:.75rem;color:var(--muted);margin-top:4px">10 derniers caractères de UPLANETNAME</p>
+    </div>
+    <div id="adm-panel" style="display:none">
+      <div class="irow"><span class="lbl">MACs configurés</span><span class="val" id="adm-bt-macs">—</span></div>
+      <div class="irow"><span class="lbl">Connectés</span><span class="val" id="adm-bt-connected">—</span></div>
+      <div class="irow" style="gap:8px;flex-wrap:wrap">
+        <button class="btn btn-sm" onclick="admBtScan()">Scanner (10s)</button>
+        <button class="btn btn-sm btn-outline" onclick="admBtRefresh()">Actualiser</button>
+      </div>
+      <div id="adm-bt-results" style="margin-top:8px"></div>
+    </div>
+  </div>
+
 </div>
 
 <!-- ═══ NAVIGATION ═══ -->
@@ -855,6 +878,96 @@ loadConfig().then(() => {
   loadAudioSinks();
   setInterval(loadStatus, 15000);
 });
+
+// ═══ ADMINISTRATION BT ═══
+let admPass = null;
+
+async function admLogin() {
+  const p = document.getElementById('adm-pass-input').value.trim();
+  if (!p) return;
+  try {
+    const r = await fetch('/api.sh?action=admin&cmd=status&pass=' + encodeURIComponent(p));
+    const d = await r.json();
+    if (d.error === 'unauthorized') { toast('Mot de passe incorrect', false); return; }
+    admPass = p;
+    document.getElementById('adm-login').style.display = 'none';
+    document.getElementById('adm-panel').style.display = '';
+    admApplyStatus(d);
+    toast('Administration déverrouillée');
+  } catch(e) { toast('Erreur réseau', false); }
+}
+
+function admApplyStatus(d) {
+  setTxt(['adm-bt-macs'],      d.bt_macs      || '—');
+  setTxt(['adm-bt-connected'], d.bt_connected || '—');
+}
+
+async function admBtRefresh() {
+  if (!admPass) return;
+  const r = await fetch('/api.sh?action=admin&cmd=status&pass=' + encodeURIComponent(admPass));
+  const d = await r.json();
+  if (d.error) { toast('Session expirée', false); admPass = null; return; }
+  admApplyStatus(d);
+}
+
+async function admBtScan() {
+  if (!admPass) return;
+  const btn = document.querySelector('#adm-panel button');
+  btn.disabled = true; btn.textContent = 'Scan…';
+  try {
+    const r = await fetch('/api.sh?action=admin&cmd=bt_scan&pass=' + encodeURIComponent(admPass));
+    const d = await r.json();
+    if (!d.devices) { toast('Erreur scan', false); return; }
+    const div = document.getElementById('adm-bt-results');
+    div.innerHTML = d.devices.length ? d.devices.map(dev =>
+      `<div class="irow" style="flex-wrap:wrap;gap:6px">
+        <span class="lbl">${dev.name || dev.mac}</span>
+        <span style="font-size:.72rem;color:var(--muted)">${dev.mac}</span>
+        <button class="btn btn-sm" onclick="admBtConnect('${dev.mac}')">Connecter</button>
+        ${dev.connected
+          ? `<button class="btn btn-sm btn-outline" onclick="admBtRemove('${dev.mac}')">— Config</button>`
+          : `<button class="btn btn-sm btn-outline" onclick="admBtAdd('${dev.mac}')">+ Config</button>`}
+      </div>`
+    ).join('') : '<p style="color:var(--muted);font-size:.85rem">Aucun appareil trouvé</p>';
+  } catch(e) { toast('Erreur réseau', false); }
+  finally { btn.disabled = false; btn.textContent = 'Scanner (10s)'; }
+}
+
+async function admBtConnect(mac) {
+  if (!admPass) return;
+  toast('Connexion en cours…');
+  const r = await fetch('/api.sh?action=admin', {
+    method: 'POST',
+    headers: {'Content-Type':'application/x-www-form-urlencoded'},
+    body: `cmd=bt_connect&mac=${mac}&pass=${encodeURIComponent(admPass)}`
+  });
+  const d = await r.json();
+  toast(d.error ? 'Erreur connexion' : `${mac} → reconnexion lancée`, !d.error);
+}
+
+async function admBtAdd(mac) {
+  if (!admPass) return;
+  const r = await fetch('/api.sh?action=admin', {
+    method: 'POST',
+    headers: {'Content-Type':'application/x-www-form-urlencoded'},
+    body: `cmd=bt_add&mac=${mac}&pass=${encodeURIComponent(admPass)}`
+  });
+  const d = await r.json();
+  toast(d.error ? 'Erreur' : `${mac} ajouté à la config`, !d.error);
+  if (!d.error) admBtRefresh();
+}
+
+async function admBtRemove(mac) {
+  if (!admPass) return;
+  const r = await fetch('/api.sh?action=admin', {
+    method: 'POST',
+    headers: {'Content-Type':'application/x-www-form-urlencoded'},
+    body: `cmd=bt_remove&mac=${mac}&pass=${encodeURIComponent(admPass)}`
+  });
+  const d = await r.json();
+  toast(d.error ? 'Erreur' : `${mac} retiré`, !d.error);
+  if (!d.error) admBtRefresh();
+}
 </script>
 
 </body>

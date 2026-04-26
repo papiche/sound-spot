@@ -9,6 +9,15 @@ export ICECAST_PORT="${ICECAST_PORT:-8111}"
 export CLOCK_MODE="${CLOCK_MODE:-bells}"
 export INSTALL_DIR="${INSTALL_DIR:-/opt/soundspot}"
 
+# urldecode — pur Bash, remplace python3 -c "urllib.parse..." (~200ms sur Pi Zero)
+# Utilisation : urldecode "str%20enc%2B" OU echo "str" | urldecode
+urldecode() {
+    local s="${1:-$(cat)}"
+    s="${s//+/ }"
+    printf '%b\n' "${s//%/\\x}"
+}
+export -f urldecode
+
 echo "Content-Type: application/json; charset=utf-8"
 echo "Access-Control-Allow-Origin: *"
 echo "Cache-Control: no-cache"

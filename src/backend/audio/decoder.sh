@@ -3,7 +3,9 @@
 # le décode en PCM 48 kHz s16le et l'écrit dans le snapfifo.
 # ffmpeg est tolérant aux coupures : il attend et relance automatiquement.
 FIFO="/dev/shm/snapfifo"
-[ -p "$FIFO" ] || mkfifo -m 0666 "$FIFO"
+# FIFO créé par systemd-tmpfiles (soundspot-fifos.conf) avec droits audio corrects.
+# On attend qu'il existe avant de démarrer (garantit l'ordre même sur premier boot).
+until [ -p "$FIFO" ]; do sleep 1; done
 
 while true; do
   if curl -s -f http://127.0.0.1:8111/status-json.xsl | grep -q '"source"'; then

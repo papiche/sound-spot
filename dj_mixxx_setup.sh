@@ -240,11 +240,15 @@ fi
 pkill snapclient 2>/dev/null || true
 SNAP_PID=""
 
-# Lancement de Snapclient seulement si on a réussi à résoudre le port
-if [ -n "$SNAPCAST_PORT" ]; then
+# Snapclient retour casque — DÉSACTIVÉ en mode Direct (STREAM_MODE=2) :
+# parec capture DEFAULT_SINK@.monitor ; si snapclient rejoue le même flux,
+# sa sortie est recapturée → écho. En mode Direct, le DJ s'écoute en local.
+if [ -n "$SNAPCAST_PORT" ] && [ "$STREAM_MODE" != "2" ]; then
     snapclient -h "$SPOT_IP" -p "$SNAPCAST_PORT" > /dev/null 2>&1 &
     SNAP_PID=$!
     echo -e "${G}▶${N} Snapclient (retour casque) actif [PID $SNAP_PID]"
+elif [ "$STREAM_MODE" == "2" ]; then
+    echo -e "${D}   (Snapclient désactivé en mode Direct — écoute locale uniquement)${N}"
 fi
 
 PAREC_PID=""

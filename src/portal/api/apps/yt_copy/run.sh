@@ -27,10 +27,7 @@ fi
 # ── Lire et décoder l'URL POST ────────────────────────────────
 read -r -n "${CONTENT_LENGTH:-0}" POST_DATA 2>/dev/null || true
 
-YT_URL=$(printf '%s' "$POST_DATA" \
-    | grep -oP '(?<=url=)[^&]+' | head -1 \
-    | python3 -c "import sys,urllib.parse; print(urllib.parse.unquote_plus(sys.stdin.read().strip()))" \
-    2>/dev/null)
+YT_URL=$(printf '%s' "$POST_DATA" | grep -oP '(?<=url=)[^&]+' | head -1 | urldecode)
 
 # ── Validation stricte et préparation de la requête ──────────
 YT_DOMAIN_RE='^https?://(www\.)?(youtube\.com|youtu\.be|music\.youtube\.com)/'
