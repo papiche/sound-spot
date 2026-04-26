@@ -48,6 +48,15 @@ cp "${DEV_DIR}/src/log.sh" "${INSTALL_DIR}/log.sh" 2>/dev/null || true
 # Droits d'exécution
 find "${INSTALL_DIR}" -maxdepth 3 -type f -name "*.sh" -exec chmod +x {} \; 2>/dev/null || true
 
+log "Synchronisation du portail web..."
+if [ -L "${INSTALL_DIR}/portal" ]; then
+    log "Mode DEV détecté (symlink) : le portail est déjà à jour."
+else
+    cp -r "${DEV_DIR}/src/portal/"* "${INSTALL_DIR}/portal/" 2>/dev/null || true
+    chown -R www-data:www-data "${INSTALL_DIR}/portal/"
+    log "Fichiers du portail copiés dans ${INSTALL_DIR}/portal"
+fi
+
 log "Redémarrage des services systemd (runtime hot-reload)..."
 sudo systemctl daemon-reload
 
@@ -62,6 +71,7 @@ for svc in $SERVICES; do
         sleep 2 # Laisser le CPU respirer entre chaque service
     fi
 done
+
 
 sudo systemctl reload lighttpd 2>/dev/null || true
 

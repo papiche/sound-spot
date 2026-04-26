@@ -20,10 +20,6 @@ soundspot.conf
 deploy_*.log
 install_*.log
 
-# Lanceur DJ généré par dj_mixxx_setup.sh (personnalisé par l'utilisateur)
-~/zicmama_play.sh
-zicmama_play.sh
-
 # Fichiers temporaires système
 *.tmp
 *.bak

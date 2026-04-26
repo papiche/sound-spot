@@ -69,7 +69,8 @@ apt_retry install -y --no-install-recommends \
     espeak-ng jq \
     curl wget ffmpeg \
     iw wireless-tools socat gettext-base rsyslog \
-    zram-tools
+    zram-tools 
+    ## keep z ram packet last (for update.sh)
 
 # ── Groupe système soundspot (pi + www-data + astro) ────────────
 hdr "Groupe système soundspot"

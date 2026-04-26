@@ -105,14 +105,40 @@ def export_to_prometheus(voltage, percent):
     except Exception as e:
         log.error("Failed to export metrics: %s", e)
 
+### LiPO config
+# VOLTAGE_MAX = 4.20
+# VOLTAGE_MIN = 3.20
 
-VOLTAGE_MAX = 4.20
-VOLTAGE_MIN = 3.20
 
+# def voltage_to_percent(v: float) -> int:
+#     pct = (v - VOLTAGE_MIN) / (VOLTAGE_MAX - VOLTAGE_MIN) * 100
+#     return max(0, min(100, int(pct)))
+
+# ── Configuration (LiFePO4 12.8V) ──────────────
+VOLTAGE_MAX = 13.80  # Tension pleine charge (repos) LiFePO4 4S
+VOLTAGE_MIN = 10.50  # Sécurité avant coupure BMS (souvent 10V)
 
 def voltage_to_percent(v: float) -> int:
-    pct = (v - VOLTAGE_MIN) / (VOLTAGE_MAX - VOLTAGE_MIN) * 100
-    return max(0, min(100, int(pct)))
+    """
+    Estimation non-linéaire pour LiFePO4 4S (12.8V nominal).
+    Courbe de décharge typique (au repos) :
+    > 13.6V  -> 100%
+      13.3V  -> 90%
+      13.2V  -> 70%
+      13.0V  -> 30%
+      12.8V  -> 20%  <-- Seuil d'alerte par défaut
+      12.0V  -> 9%
+      10.5V  -> 0%
+    """
+    if v >= 13.6: return 100
+    elif v >= 13.3: return 90 + int((v - 13.3)/0.3 * 10)
+    elif v >= 13.2: return 70 + int((v - 13.2)/0.1 * 20)
+    elif v >= 13.0: return 30 + int((v - 13.0)/0.2 * 40)
+    elif v >= 12.8: return 20 + int((v - 12.8)/0.2 * 10)
+    elif v >= 12.0: return 9 + int((v - 12.0)/0.8 * 11)
+    else:
+        pct = (v - VOLTAGE_MIN) / (12.0 - VOLTAGE_MIN) * 9
+        return max(0, min(100, int(pct)))
 
 
 def backup_normal_wav():
