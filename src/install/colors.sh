@@ -30,6 +30,8 @@ install_template() {
     [ ! -f "$template_path" ] && template_path="${SCRIPT_DIR}/config/services/${src}"
     [ ! -f "$template_path" ] && template_path="${SCRIPT_DIR}/config/network/${src}"
     [ ! -f "$template_path" ] && template_path="${SCRIPT_DIR}/backend/system/${src}"
+    [ ! -f "$template_path" ] && template_path="${SCRIPT_DIR}/backend/audio/${src}"
+    [ ! -f "$template_path" ] && template_path="${SCRIPT_DIR}/backend/video/${src}"
     [ ! -f "$template_path" ] && err "Template introuvable : ${src}"
 
     if [ $# -eq 0 ]; then
