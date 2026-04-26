@@ -11,7 +11,7 @@ Mode AVEUGLE : aucune caméra disponible → annonce vocale à intervalle fixe
 Variables d'environnement (depuis /opt/soundspot/soundspot.conf) :
   PRESENCE_COOLDOWN      Secondes entre deux messages (mode normal) (défaut : 30)
   PRESENCE_BLIND_INTERVAL Secondes entre annonces en mode aveugle   (défaut : 900)
-  PRESENCE_INTERVAL      Analyser 1 frame sur N                     (défaut : 20)
+  PRESENCE_INTERVAL      Analyser 1 frame sur N                     (défaut : 100)
   PRESENCE_WIDTH         Largeur de capture                         (défaut : 320)
   PRESENCE_HEIGHT        Hauteur de capture                         (défaut : 240)
   PRESENCE_FPS           FPS caméra demandé                         (défaut : 15)
@@ -32,7 +32,7 @@ import sys
 # ── Configuration (surchargeable par variables d'environnement) ────
 COOLDOWN_S      = int(os.getenv("PRESENCE_COOLDOWN",        "30"))
 BLIND_INTERVAL  = max(1, int(os.getenv("PRESENCE_BLIND_INTERVAL", "900")))  # 15 min, min 1s
-DETECT_INTERVAL = int(os.getenv("PRESENCE_INTERVAL",        "20"))
+DETECT_INTERVAL = int(os.getenv("PRESENCE_INTERVAL",        "100"))
 FRAME_W         = int(os.getenv("PRESENCE_WIDTH",           "320"))
 FRAME_H         = int(os.getenv("PRESENCE_HEIGHT",          "240"))
 CAMERA_FPS      = int(os.getenv("PRESENCE_FPS",             "15"))

@@ -103,9 +103,9 @@ for GROUP in "${GROUPS[@]}"; do
             echo "Cible : Backend (Audio, Video, System)" >&2
             add_target "src/backend"
             add_target "monitor"
-            add_target "src/bt_manage.sh"
-            add_target "src/bt_update.sh"
-            add_target "src/log.sh"
+            add_target "src/backend/system/bt_manage.sh"
+            add_target "src/backend/system/bt_update.sh"
+            add_target "src/backend/system/log.sh"
             add_target "code_reload.sh"
             ;;
         --frontend)

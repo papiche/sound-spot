@@ -44,7 +44,7 @@ sudo bash deploy_on_pi.sh --satellite  # force satellite mode
 bash dj_mixxx_setup.sh   # installs Snapclient + Mixxx, generates ~/zicmama_play.sh
 
 # BT speaker management (after install):
-bash src/bt_update.sh pi@soundspot.local
+bash src/backend/system/bt_update.sh pi@soundspot.local
 ```
 
 There is no build step — this project is pure Bash + Python. ShellCheck can be run from the parent workspace: `make check` (in `../Astroport.ONE/`).

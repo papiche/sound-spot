@@ -150,7 +150,7 @@ Quand un visiteur se connecte au WiFi `ZICMAMA` :
 
 ```bash
 # Interactif (depuis le PC, via SSH)
-bash src/bt_update.sh pi@soundspot.local
+bash src/backend/system/bt_update.sh pi@soundspot.local
 
 # Ou manuellement sur le RPi
 ssh pi@soundspot.local

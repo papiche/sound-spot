@@ -244,7 +244,7 @@ cmd_menu() {
             cmd_volume "$VOL"
             ;;
         4) cmd_fix_a2dp ;;
-        5) bash "${BASH_SOURCE[0]%/*}/../src/bt_update.sh" --rpi ;;
+        5) bash "${BASH_SOURCE[0]%/*}/bt_update.sh" --rpi ;;
         q|Q) echo "Bye."; exit 0 ;;
         *) warn "Choix invalide" ;;
     esac

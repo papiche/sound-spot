@@ -47,7 +47,7 @@ if [ "$IFACE_AP" != "uap0" ]; then
             # On ignore le canal utilisé par la connexion Internet (pour éviter l'auto-brouillage)
             if [ "$CH" != "$UPSTREAM_CHAN" ]; then
 
-                COUNT=$(grep -cw "$CH" <<< "$SCAN_RAW" || echo 0)
+                COUNT=$(echo "$SCAN_RAW" | grep -cw "$CH" || echo 0)
                 
                 if [ "$COUNT" -lt "$MIN_RESEAUX" ]; then
                     MIN_RESEAUX=$COUNT

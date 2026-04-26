@@ -193,6 +193,13 @@ else
     fail "Pas d'Internet via $IFACE_WAN (8.8.8.8 injoignable)"
 fi
 
+hdr "Synchronisation Temps (NTP)"
+if timedatectl status | grep -q "synchronized: yes"; then
+    ok "Horloge système synchronisée"
+else
+    warn "Horloge NON SYNCHRONISÉE (Risque de décalage audio Snapcast)"
+fi
+
 # ── 3. Pare-feu ─────────────────────────────────────────────────
 hdr "Pare-feu  iptables / ipset"
 
@@ -293,6 +300,10 @@ case "$HTTP_ICECAST" in
     *)   warn "Icecast /live : HTTP ${HTTP_ICECAST}" ;;
 esac
 
+if $ASUSER pw-dump | grep -q "errors"; then
+    warn "PipeWire rapporte des erreurs de flux (Xruns possibles)"
+fi
+
 # welcome.wav
 [ -f "/opt/soundspot/welcome.wav" ] \
     && ok "welcome.wav présent" \
@@ -369,6 +380,19 @@ for probe in generate_204 hotspot-detect.html ncsi.txt; do
         || warn "Probe /${probe} ne répond pas"
 done
 
+hdr "Permissions Portail"
+if [ -x "/var/www/html/api.sh" ]; then
+    ok "api.sh est exécutable"
+else
+    fail "api.sh n'est pas exécutable (CHMOD +X requis)"
+fi
+
+if [ -w "/opt/soundspot/soundspot.conf" ]; then
+    ok "soundspot.conf est accessible en écriture (pour les changements de mode)"
+else
+    warn "soundspot.conf est en lecture seule (le portail ne pourra pas changer le mode cloche)"
+fi
+
 # ── 7. Détecteur de présence ────────────────────────────────────
 hdr "Détecteur de présence"
 
@@ -439,6 +463,13 @@ fi
 # ── 10. Golem Health ────────────────────────────────────────────
 hdr "Golem Health"
 
+# Vérification de l'espace disque (pour éviter que les logs bloquent le système)
+DISK_USAGE=$(df / --output=pcent | tail -1 | tr -dc '0-9')
+if [ "$DISK_USAGE" -gt 90 ]; then
+    fail "Espace disque critique : ${DISK_USAGE}%"
+else
+    ok "Espace disque : ${DISK_USAGE}%"
+fi
 # Température CPU
 if [ -f /sys/class/thermal/thermal_zone0/temp ]; then
     CPU_TEMP=$(awk '{printf "%.1f", $1/1000}' /sys/class/thermal/thermal_zone0/temp)
@@ -466,6 +497,17 @@ if [ -n "$BATT_PCT" ]; then
     fi
 else
     info "Capteur batterie absent (INA219 non détecté)"
+fi
+
+hdr "Santé Matérielle"
+if command -v vcgencmd &>/dev/null; then
+    THROTTLED=$(vcgencmd get_throttled | cut -d= -f2)
+    if [ "$THROTTLED" != "0x0" ]; then
+        fail "Alerte Alimentation/Temp : $THROTTLED (Voltage insuffisant ou surchauffe passée)"
+        info "Note: 0x50005 signifie que le Pi a manqué de courant récemment."
+    else
+        ok "Alimentation stable (0x0)"
+    fi
 fi
 
 # Bouches connectées au Snapserver (liste par IP)
@@ -508,6 +550,51 @@ if [ -n "$MASTER_HOST_CHECK" ] && [ "$MASTER_HOST_CHECK" != "soundspot.local" ];
         [ -n "$SAT_BATT" ] && info "Batterie satellite : ${SAT_BATT}%"
     else
         warn "Satellite ${MASTER_HOST_CHECK} injoignable (ping KO)"
+    fi
+fi
+
+# ── 11. Picoport ───────────────────────────────────────────────────
+hdr "Picoport & Swarm"
+if [ "${PICOPORT_ENABLED:-false}" = "true" ]; then
+    # Vérification identité
+    [ -f "/home/${SOUNDSPOT_USER}/.zen/game/secret.nostr" ] && ok "Identité Nostr présente" || warn "Identité Nostr absente"
+    
+    # Peers IPFS
+    if pgrep ipfs >/dev/null; then
+        PEERS=$(sudo -u "$SOUNDSPOT_USER" ipfs swarm peers | wc -l)
+        if [ "$PEERS" -gt 0 ]; then
+            ok "Connexion Swarm IPFS : $PEERS pairs"
+        else
+            warn "IPFS actif mais ISOLÉ (0 pair)"
+        fi
+    fi
+
+    # Tunnel Fleet Relay (port 9999) : NOSTR
+    if port_open 9999; then
+        ok "Relais de flotte local (port 9999) actif"
+    else
+        fail "Relais de flotte local (port 9999) KO"
+    fi
+
+    # Tunnel Ollama (port 11434) : LLM
+    if port_open 11434; then
+        ok "Service LLM ollama (port 11434) actif"
+    else
+        fail "Serveur ollama (port 11434) KO"
+    fi
+
+    # Tunnel Orpheus (port 5005) : T2S
+    if port_open 5005; then
+        ok "Serveur orpheus synthese vocale (port 5005) actif"
+    else
+        fail "Serveur orpheus synthese vocale (port 5005) KO"
+    fi
+
+    # 12345.json (la balise de visibilité)
+    if [ -f "/dev/shm/picoport_12345.http" ]; then
+        ok "Balise HTTP 12345 (RAM) prête"
+    else
+        warn "Balise HTTP 12345 manquante"
     fi
 fi
 
