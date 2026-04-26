@@ -91,6 +91,8 @@ if RELAY_PIN > 0:
 
 def export_to_prometheus(voltage, percent):
     prom_path = "/var/lib/prometheus/node-exporter/picoport_battery.prom"
+    if not os.path.exists(os.path.dirname(prom_path)):
+        os.makedirs(os.path.dirname(prom_path), exist_ok=True)
     try:
         with open(prom_path + ".tmp", "w") as f:
             f.write(f"# HELP picoport_battery_voltage Voltage of the solar battery\n")
