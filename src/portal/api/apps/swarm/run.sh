@@ -66,6 +66,8 @@ elif curl -sX POST "http://127.0.0.1:5001/api/v0/version" >/dev/null 2>&1; then
         | jq -r '.Peers | length' 2>/dev/null || echo 0)
 fi
 
+[ -z "$IPFS_PEERS" ] && IPFS_PEERS=0 
+
 jq -n \
     --argjson nodes "${NODES_JSON:-[]}" \
     --argjson ipfs_peers "$IPFS_PEERS" \

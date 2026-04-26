@@ -365,8 +365,7 @@ HTTP_PORTAL=$(curl -s -o /dev/null -w "%{http_code}" \
     || fail "Portail injoignable sur http://${SPOT_IP}/"
 
 # auth.sh
-AUTH_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
-    --max-time 3 -X POST "http://${SPOT_IP}/auth.sh" 2>/dev/null; true)
+AUTH_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 3 -d "" "http://${SPOT_IP}/auth.sh" 2>/dev/null; true)
 [ "${AUTH_CODE:-000}" != "000" ] \
     && ok "auth.sh répond : HTTP ${AUTH_CODE}" \
     || fail "auth.sh injoignable"

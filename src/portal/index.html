@@ -660,7 +660,7 @@ async function doAuth() {
   const msg = document.getElementById('auth-msg');
   btn.disabled = true; btn.textContent = 'Ouverture…';
   try {
-    const r = await fetch('/api.sh?action=auth', { method: 'POST' });
+    const r = await fetch('/api.sh?action=auth', { method: 'POST', body: '' });
     const d = await r.json();
     if (d.status === 'authorized') {
       btn.textContent = '✓ Accès ouvert (15 min)';

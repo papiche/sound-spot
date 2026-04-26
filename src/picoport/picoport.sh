@@ -30,6 +30,7 @@ if [[ -s ~/.zen/game/secret.nostr ]]; then
     NODEHEX="${HEX:-}"
 elif [[ -s ~/.zen/game/secret.june && -f "$ASTRO_TOOLS/keygen" ]]; then
     source ~/.zen/game/secret.june
+    source "$HOME/.astro/bin/activate" 2>/dev/null || true
     _CRED_PICO=$(mktemp -p /dev/shm 2>/dev/null || mktemp)
     chmod 600 "$_CRED_PICO"
     trap "rm -f '$_CRED_PICO'" EXIT INT TERM
