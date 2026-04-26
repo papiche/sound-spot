@@ -18,13 +18,13 @@ hdr()  { echo -e "\n${C}━━━  $*  ━━━${N}"; }
 # ── Chemins ──────────────────────────────────────────────────────
 INSTALL_DIR="/opt/soundspot"
 CONF_FILE="${INSTALL_DIR}/soundspot.conf"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SRC_DIR="${SCRIPT_DIR}/src"
 
 [ ! -f "$CONF_FILE" ] && err "SoundSpot non installé dans ${INSTALL_DIR}."
 
 # Charger la config
-source "$CONF_FILE"
+. "$CONF_FILE"
 SOUNDSPOT_USER="${SOUNDSPOT_USER:-pi}"
 SOUNDSPOT_UID=$(id -u "${SOUNDSPOT_USER}")
 

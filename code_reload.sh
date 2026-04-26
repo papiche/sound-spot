@@ -41,9 +41,9 @@ find "${DEV_DIR}/src/backend" -maxdepth 2 -type f \( -name "*.py" -o -name "*.sh
 
 # Copies additionnelles (log, utilitaires BT, check)
 cp "${DEV_DIR}/check.sh" "${INSTALL_DIR}/check.sh" 2>/dev/null || true
-cp "${DEV_DIR}/src/bt_manage.sh" "${INSTALL_DIR}/bt_manage.sh" 2>/dev/null || true
-cp "${DEV_DIR}/src/bt_update.sh" "${INSTALL_DIR}/bt_update.sh" 2>/dev/null || true
-cp "${DEV_DIR}/src/log.sh" "${INSTALL_DIR}/log.sh" 2>/dev/null || true
+cp "${DEV_DIR}/src/backend/system/bt_manage.sh" "${INSTALL_DIR}/bt_manage.sh"
+cp "${DEV_DIR}/src/backend/system/bt_update.sh" "${INSTALL_DIR}/bt_update.sh"
+cp "${DEV_DIR}/src/backend/system/log.sh" "${INSTALL_DIR}/log.sh" 2>/dev/null || true
 
 # Droits d'exécution
 find "${INSTALL_DIR}" -maxdepth 3 -type f -name "*.sh" -exec chmod +x {} \; 2>/dev/null || true

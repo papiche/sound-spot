@@ -30,9 +30,7 @@ setup_bluetooth() {
     chmod +x "$INSTALL_DIR/bt-combine-sinks.sh"
 
     # Script de gestion quotidienne BT + volume
-    cp "$(dirname "${BASH_SOURCE[0]}")/../bt_manage.sh" "$INSTALL_DIR/bt_manage.sh" 2>/dev/null \
-        || cp "$(dirname "${BASH_SOURCE[0]}")/../../bt_manage.sh" "$INSTALL_DIR/bt_manage.sh" 2>/dev/null \
-        || true
+    cp "$SCRIPT_DIR/backend/system/bt_manage.sh" "$INSTALL_DIR/bt_manage.sh"
     [ -f "$INSTALL_DIR/bt_manage.sh" ] && chmod +x "$INSTALL_DIR/bt_manage.sh" \
         && log "bt_manage.sh installé (connexion, volume)"
 
