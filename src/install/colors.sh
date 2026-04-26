@@ -28,6 +28,7 @@ install_template() {
     # Recherche dans l'ordre : templates/ → config/services/ → backend/system/
     local template_path="${SCRIPT_DIR}/templates/${src}"
     [ ! -f "$template_path" ] && template_path="${SCRIPT_DIR}/config/services/${src}"
+    [ ! -f "$template_path" ] && template_path="${SCRIPT_DIR}/config/network/${src}"
     [ ! -f "$template_path" ] && template_path="${SCRIPT_DIR}/backend/system/${src}"
     [ ! -f "$template_path" ] && err "Template introuvable : ${src}"
 
