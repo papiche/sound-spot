@@ -82,6 +82,9 @@ except: pass
 }
 _install_g1cli || true   # optionnel : PAYforSURE.sh dégrade gracieusement si absent
 
+echo "=== 2c. Installation de nak (CLI Nostr) ==="
+bash "$(dirname "$0")/install_nak.sh"
+
 echo "=== 3. Mise en place des Bootstraps UPlanet ==="
 mkdir -p "$INSTALL_DIR"
 cat > "$INSTALL_DIR/A_boostrap_nodes.txt" << 'EOF'
