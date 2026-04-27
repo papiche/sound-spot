@@ -29,12 +29,13 @@ log()  { echo -e "${G}▶${N} $*"; }
 warn() { echo -e "${Y}⚠${N}  $*"; }
 hdr()  { echo -e "\n${C}━━━  $*  ━━━${N}"; }
 
-# ── Jouer un wav ─────────────────────────────────────────────
+# ── Jouer un wav (via session audio de SOUNDSPOT_USER) ───────
 play_wav() {
     local f="$1"
     if [ ! -f "$f" ]; then warn "Fichier absent : $f"; return; fi
-    paplay "$f" 2>/dev/null || pw-play "$f" 2>/dev/null || aplay -q "$f" 2>/dev/null || \
-        warn "Aucun lecteur audio disponible (paplay/pw-play/aplay)"
+    sudo -u "$SOUNDSPOT_USER" bash -c "
+        paplay '$f' 2>/dev/null || pw-play '$f' 2>/dev/null || aplay '$f' 2>/dev/null
+    " || warn "Aucun lecteur audio disponible (paplay/pw-play/aplay)"
 }
 
 # ── Vérifier Orpheus ─────────────────────────────────────────
@@ -46,27 +47,35 @@ orpheus_alive() {
 # ── Générer avec espeak ──────────────────────────────────────
 gen_espeak() {
     local txt="$1" out="$2"
-    espeak-ng -v fr+f3 -s 115 -p 40 "$txt" -w "$out" 2>/dev/null && \
-        log "espeak-ng → $out" || warn "espeak-ng échoué"
+    espeak-ng -v fr+f3 -s 115 -p 40 "$txt" -w "$out" 2>/dev/null \
+        && chown www-data:www-data "$out" 2>/dev/null || true
+    [ -f "$out" ] && log "espeak-ng → $out" || warn "espeak-ng échoué"
 }
 
-# ── Générer avec Orpheus ─────────────────────────────────────
+# ── Générer avec Orpheus (appel API direct, pas de fallback espeak) ──
 gen_orpheus() {
     local txt="$1" out="$2" voice="${3:-pierre}"
     if ! orpheus_alive; then
         warn "Orpheus non disponible (port ${ORPHEUS_PORT})"
         return 1
     fi
-    if [ -f "$TTS_SH" ]; then
-        local live
-        live=$(sudo -u "$SOUNDSPOT_USER" bash "$TTS_SH" "$txt" "$voice" 2>/dev/null | tail -1)
-        if [ -f "${live:-}" ]; then
-            cp "$live" "$out" && rm -f "$live"
-            log "Orpheus ($voice) → $out"
-            return 0
-        fi
+    local tmp="/dev/shm/tts_test_$$.wav"
+    local json_txt
+    json_txt=$(python3 -c "import sys,json; print(json.dumps(sys.argv[1]))" "$txt" 2>/dev/null \
+               || echo "\"${txt//\"/\\\"}\"")
+    if curl -sf --max-time 20 \
+        -o "$tmp" \
+        -H "Content-Type: application/json" \
+        -d "{\"model\":\"orpheus\",\"input\":${json_txt},\"voice\":\"${voice}\",\"response_format\":\"wav\",\"speed\":1.0}" \
+        "http://localhost:${ORPHEUS_PORT}/v1/audio/speech" 2>/dev/null \
+        && [ -s "$tmp" ]; then
+        mv "$tmp" "$out"
+        chown www-data:www-data "$out" 2>/dev/null || true
+        log "Orpheus ($voice) → $out"
+        return 0
     fi
-    warn "Génération Orpheus échouée"
+    rm -f "$tmp"
+    warn "Génération Orpheus échouée (réponse vide ou erreur curl)"
     return 1
 }
 
