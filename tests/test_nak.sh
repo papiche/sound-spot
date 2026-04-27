@@ -10,7 +10,8 @@ G='\033[0;32m'; R='\033[0;31m'; C='\033[0;36m'; N='\033[0m'
 if ! command -v nak &>/dev/null; then
     echo -e "${R}❌ L'outil 'nak' n'est pas installé.${N}"
     exit 1
-fi[ -f /opt/soundspot/soundspot.conf ] && source /opt/soundspot/soundspot.conf
+fi
+[ -f /opt/soundspot/soundspot.conf ] && source /opt/soundspot/soundspot.conf
 SOUNDSPOT_USER="${SOUNDSPOT_USER:-pi}"
 USER_HOME=$(getent passwd "$SOUNDSPOT_USER" | cut -d: -f6)
 
