@@ -126,5 +126,20 @@ while true; do
         fi
     done
 
+    # ── AJOUT : Publication de la carte Swarm pour les autres nœuds ──
+    SWARMSIZE=$(du -sb ~/.zen/tmp/swarm 2>/dev/null | awk '{print $1}' || echo 0)
+    local_swarm_size=$(cat ~/.zen/tmp/swarm/.bsize 2>/dev/null || echo 0)
+
+    if [[ "$SWARMSIZE" != "$local_swarm_size" && -n "$CHAN" ]]; then
+        echo "${SWARMSIZE}" > ~/.zen/tmp/swarm/.bsize
+        # La commande 'add -rwq .../*' génère un dossier racine (Directory wrapper) propre à IPFS
+        SWARMH=$(ipfs --timeout 30s add -rwq ~/.zen/tmp/swarm/* 2>/dev/null | tail -n 1)
+        if [[ -n "$SWARMH" ]]; then
+            echo "🚀 Publication du Swarm étendu : /ipfs/${SWARMH}"
+            (ipfs name publish --lifetime=24h --ttl=30m --key "MySwarm_${IPFSNODEID}" /ipfs/${SWARMH} >/dev/null 2>&1 &)
+        fi
+    fi
+    # ─────────────────────────────────────────────────────────────────
+
     sleep 300
 done

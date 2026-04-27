@@ -231,7 +231,24 @@ EOF
 
     # Publication IPNS
     ss_info "Publication de la balise (Services: $DRAGON_LIST)"
+    
+    # ── AJOUT : Sécurisation vitale de la balise pour l'Astroport ──
+    echo "${MOATS}" > "$MY_NODE_DIR/_MySwarm.moats"
+    echo "$(date -u)" > "$MY_NODE_DIR/_MySwarm.staom"
+    echo "$(hostname)" > "$MY_NODE_DIR/name"
+    echo "🌿 Light" > "$MY_NODE_DIR/power"
+    
+    # ── AJOUT : Preuve cryptographique Y-Level (SSH PubKey) ──
+    if [[ -f ~/.ssh/id_ed25519.pub ]]; then
+        # Fichier brut pour compatibilité générale
+        cat ~/.ssh/id_ed25519.pub > "$MY_NODE_DIR/SSHPUB"
+        # Fichier y_ssh.pub qui prouve au swarm que nous sommes "Y-Level"
+        cat ~/.ssh/id_ed25519.pub > "$MY_NODE_DIR/y_ssh.pub"
+    fi
+    # ───────────────────────────────────────────────────────────────
+    
     ipfs add -rwQ "$MY_NODE_DIR" | tail -n 1 | xargs ipfs name publish --lifetime=24h --ttl=1h >/dev/null 2>&1 &
 
-    sleep 900
+    # S'aligner sur le rythme de la constellation (5 minutes)
+    sleep 300
 done
