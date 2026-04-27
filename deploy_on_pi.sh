@@ -605,6 +605,27 @@ if [ "$SOUNDSPOT_MODE" != "2" ]; then
                 cp "$_f" "$PORTAL_PINOUT/$_name/index.html"
             done
         fi
+        # Réécrire les liens absolus pour le sous-chemin /pinout/
+        python3 - "$PORTAL_PINOUT" <<'PYEOF'
+import re, os, sys
+root = sys.argv[1]
+def fix(t):
+    t = t.replace('href="/"', 'href="/pinout/"')
+    t = re.sub(r'href="/((?!pinout/)(?!/)[^"]+)"', r'href="/pinout/\1"', t)
+    t = re.sub(r'src="/((?!pinout/)(?!/)[^"]+)"',  r'src="/pinout/\1"',  t)
+    return t
+n = 0
+for d, _, files in os.walk(root):
+    for f in files:
+        if not f.endswith('.html'): continue
+        p = os.path.join(d, f)
+        orig = open(p).read()
+        fixed = fix(orig)
+        if fixed != orig:
+            open(p,'w').write(fixed)
+            n += 1
+print(f'{n} fichiers HTML corrigés (liens absolus → /pinout/)')
+PYEOF
         chmod -R a+rX "$PORTAL_PINOUT/"
         log "Pinout.xyz copié → portal/pinout/ ✓  (http://$(hostname -I | awk '{print $1}')/pinout/)"
     elif [ -d "$PINOUT_DIR" ]; then
