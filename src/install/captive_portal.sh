@@ -33,11 +33,14 @@ server.modules = (
     "mod_alias",
     "mod_redirect",
     "mod_rewrite",
-    "mod_cgi"
+    "mod_cgi",
+    "mod_accesslog"
 )
 server.document-root        = "/var/www/html"
 server.upload-dirs          = ( "/var/cache/lighttpd/uploads" )
 server.errorlog             = "/var/log/lighttpd/error.log"
+accesslog.filename          = "/var/log/lighttpd/access.log"
+accesslog.format            = "%t %h \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\""
 server.pid-file             = "/var/run/lighttpd.pid"
 server.username             = "www-data"
 server.groupname            = "www-data"

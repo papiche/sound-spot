@@ -161,6 +161,26 @@ if [ -d "$INSTALL_DIR/wav" ]; then
     log "wav/ permissions corrigées (www-data)"
 fi
 
+# ── Activer accesslog dans lighttpd.conf si absent ───────────
+python3 - <<'PYEOF'
+import sys
+f = '/etc/lighttpd/lighttpd.conf'
+try:
+    t = open(f).read()
+    if 'mod_accesslog' in t:
+        sys.exit(0)
+    t = t.replace('"mod_cgi"', '"mod_cgi",\n    "mod_accesslog"')
+    t = t.replace(
+        'server.errorlog',
+        'accesslog.filename = "/var/log/lighttpd/access.log"\n'
+        'accesslog.format   = "%t %h \\"%r\\" %>s %b"\nserver.errorlog'
+    )
+    open(f, 'w').write(t)
+    print('lighttpd : accesslog activé')
+except Exception as e:
+    print(f'WARN : {e}', file=sys.stderr)
+PYEOF
+
 # ── Rechargement lighttpd ─────────────────────────────────────
 hdr "Rechargement lighttpd"
 if systemctl is-active --quiet lighttpd 2>/dev/null; then
