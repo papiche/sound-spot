@@ -117,6 +117,44 @@ init_espeak_wavs() {
     ss_info "Voix espeak initialisées — Orpheus les remplacera à la connexion UPlanet"
 }
 
+# ── Régénérer tous les .wav avec Orpheus dès qu'il est disponible ──
+# Tourne en background au démarrage. Attend jusqu'à 10 min, puis abandonne.
+regen_orpheus_wavs_bg() {
+    local port="${ORPHEUS_PORT:-5005}"
+    local voice="${ORPHEUS_VOICE:-pierre}"
+    local waited=0
+    while [ $waited -lt 600 ]; do
+        if curl -s -o /dev/null -w "%{http_code}" --max-time 2 \
+            "http://localhost:${port}/docs" 2>/dev/null | grep -q "200"; then
+            ss_info "Orpheus disponible — régénération de tous les messages en ${voice}"
+            for txt in "$WAV_DIR"/message_*.txt; do
+                [ -f "$txt" ] || continue
+                local wav="${txt%.txt}.wav"
+                local tmp="/dev/shm/tts_regen_$$.wav"
+                local json_txt
+                json_txt=$(python3 -c "import sys,json; print(json.dumps(sys.stdin.read()))" \
+                           < "$txt" 2>/dev/null || echo "\"$(cat "$txt")\"")
+                if curl -sf --max-time 20 \
+                    -o "$tmp" \
+                    -H "Content-Type: application/json" \
+                    -d "{\"model\":\"orpheus\",\"input\":${json_txt},\"voice\":\"${voice}\",\"response_format\":\"wav\",\"speed\":1.0}" \
+                    "http://localhost:${port}/v1/audio/speech" 2>/dev/null \
+                    && [ -s "$tmp" ]; then
+                    mv "$tmp" "$wav"
+                    ss_info "$(basename "$wav") → orpheus/${voice}"
+                else
+                    rm -f "$tmp"
+                fi
+            done
+            ss_info "Régénération Orpheus terminée"
+            return 0
+        fi
+        sleep 30
+        waited=$(( waited + 30 ))
+    done
+    ss_info "Orpheus non disponible après 10 min — messages conservés en espeak"
+}
+
 # ── Nombre de messages disponibles dans wav/ ─────────────────────
 count_messages() {
     ls "$WAV_DIR"/message_*.txt 2>/dev/null | wc -l
@@ -195,7 +233,8 @@ announce_time() {
 # ── Boucle principale ─────────────────────────────────────────────
 main() {
     reload_conf
-    init_espeak_wavs   # boot = espeak ; remplacement progressif par Orpheus si connecté
+    init_espeak_wavs              # boot = espeak (immédiat)
+    regen_orpheus_wavs_bg &       # remplace par Orpheus en arrière-plan dès connexion
 
     local last_announce=0
     local msg_index=0
@@ -213,21 +252,21 @@ main() {
             last_announce=$now
 
             # Vérifier Orpheus UNE FOIS par cycle (évite espeak/Orpheus dans le même cycle)
+            # Pas de dépendance à picoport.service : Orpheus peut tourner via tunnel sans que
+            # le service soit marqué "active" par systemd.
             _CYCLE_ORPHEUS=false
-            if systemctl is-active --quiet picoport.service 2>/dev/null; then
-                if curl -s -o /dev/null -w "%{http_code}" --max-time 2 \
-                    "http://localhost:${ORPHEUS_PORT:-5005}/docs" 2>/dev/null | grep -q "200"; then
-                    _CYCLE_ORPHEUS=true
-                else
-                    # Tentative de connexion (tunnel P2P Orpheus)
-                    local _user_home; _user_home=$(getent passwd "${SOUNDSPOT_USER:-pi}" | cut -d: -f6)
-                    local _orpheus_sh="${_user_home}/.zen/Astroport.ONE/IA/orpheus.me.sh"
-                    [ -x "$_orpheus_sh" ] && sudo -u "$SOUNDSPOT_USER" bash "$_orpheus_sh" \
-                        >/dev/null 2>&1 && sleep 8
-                    curl -s -o /dev/null -w "%{http_code}" --max-time 2 \
-                        "http://localhost:${ORPHEUS_PORT:-5005}/docs" 2>/dev/null | grep -q "200" \
-                        && _CYCLE_ORPHEUS=true
-                fi
+            if curl -s -o /dev/null -w "%{http_code}" --max-time 2 \
+                "http://localhost:${ORPHEUS_PORT:-5005}/docs" 2>/dev/null | grep -q "200"; then
+                _CYCLE_ORPHEUS=true
+            else
+                # Tentative de connexion (tunnel P2P Orpheus)
+                local _user_home; _user_home=$(getent passwd "${SOUNDSPOT_USER:-pi}" | cut -d: -f6)
+                local _orpheus_sh="${_user_home}/.zen/Astroport.ONE/IA/orpheus.me.sh"
+                [ -x "$_orpheus_sh" ] && sudo -u "$SOUNDSPOT_USER" bash "$_orpheus_sh" \
+                    >/dev/null 2>&1 && sleep 8
+                curl -s -o /dev/null -w "%{http_code}" --max-time 2 \
+                    "http://localhost:${ORPHEUS_PORT:-5005}/docs" 2>/dev/null | grep -q "200" \
+                    && _CYCLE_ORPHEUS=true
             fi
             ss_debug "Orpheus cycle=${_CYCLE_ORPHEUS}"
 

@@ -33,9 +33,12 @@ hdr()  { echo -e "\n${C}━━━  $*  ━━━${N}"; }
 play_wav() {
     local f="$1"
     if [ ! -f "$f" ]; then warn "Fichier absent : $f"; return; fi
-    sudo -u "$SOUNDSPOT_USER" bash -c "
-        paplay '$f' 2>/dev/null || pw-play '$f' 2>/dev/null || aplay '$f' 2>/dev/null
-    " || warn "Aucun lecteur audio disponible (paplay/pw-play/aplay)"
+    local uid; uid=$(id -u "$SOUNDSPOT_USER" 2>/dev/null || echo "1000")
+    sudo -u "$SOUNDSPOT_USER" \
+        XDG_RUNTIME_DIR="/run/user/${uid}" \
+        PULSE_SERVER="unix:/run/user/${uid}/pulse/native" \
+        bash -c "paplay '$f' 2>/dev/null || pw-play '$f' 2>/dev/null || aplay '$f' 2>/dev/null" \
+    || warn "Aucun lecteur audio disponible (paplay/pw-play/aplay)"
 }
 
 # ── Vérifier Orpheus ─────────────────────────────────────────

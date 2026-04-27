@@ -77,23 +77,38 @@ if [ "${CMD}" = "tts_now" ]; then
     ORPHEUS_PORT="${ORPHEUS_PORT:-5005}"
 
     WAV_URL="/wav/message_${ID}.wav"
+    TXT_CONTENT=$(cat "$txt")
     _log "tts_now id=$ID voice=$VOICE"
 
-    # Essayer Orpheus via tts.sh (sudo pour accès PipeWire/Orpheus de SOUNDSPOT_USER)
-    if [ -f "$TTS_SH" ]; then
-        LIVE_WAV=$(sudo -u "${SOUNDSPOT_USER:-pi}" bash "$TTS_SH" "$(cat "$txt")" "$VOICE" 2>>"$PORTAL_LOG" | tail -1)
-        if [ -f "${LIVE_WAV:-}" ]; then
-            mv "$LIVE_WAV" "$wav" 2>/dev/null || cp "$LIVE_WAV" "$wav"
-            _log "ok source=orpheus wav=$wav"
+    # Essayer Orpheus directement (pas via tts.sh pour éviter le blocage sur picoport.service)
+    HTTP_ORPHEUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 3 \
+        "http://localhost:${ORPHEUS_PORT}/docs" 2>/dev/null || echo "000")
+    if [ "$HTTP_ORPHEUS" = "200" ]; then
+        TMP_WAV="/dev/shm/tts_portal_$$.wav"
+        JSON_TXT=$(python3 -c "import sys,json; print(json.dumps(sys.argv[1]))" "$TXT_CONTENT" 2>/dev/null \
+                   || echo "\"${TXT_CONTENT//\"/\\\"}\"")
+        if curl -sf --max-time 20 \
+            -o "$TMP_WAV" \
+            -H "Content-Type: application/json" \
+            -d "{\"model\":\"orpheus\",\"input\":${JSON_TXT},\"voice\":\"${VOICE}\",\"response_format\":\"wav\",\"speed\":1.0}" \
+            "http://localhost:${ORPHEUS_PORT}/v1/audio/speech" 2>>"$PORTAL_LOG" \
+            && [ -s "$TMP_WAV" ]; then
+            mv "$TMP_WAV" "$wav"
+            chown www-data:www-data "$wav" 2>/dev/null || true
+            _log "ok source=orpheus voice=$VOICE wav=$wav"
             jq -n --arg id "$ID" --arg voice "$VOICE" --arg url "$WAV_URL" \
                 '{"status":"ok","id":$id,"voice":$voice,"source":"orpheus","url":$url}'
             exit 0
         fi
-        _log "orpheus indisponible — fallback espeak"
+        rm -f "$TMP_WAV"
+        _log "Orpheus KO (curl vide) — fallback espeak"
+    else
+        _log "Orpheus absent (port ${ORPHEUS_PORT}) — fallback espeak"
     fi
 
     # Fallback espeak
-    if espeak-ng -v fr+f3 -s 115 -p 40 "$(cat "$txt")" -w "$wav" 2>>"$PORTAL_LOG"; then
+    if espeak-ng -v fr+f3 -s 115 -p 40 "$TXT_CONTENT" -w "$wav" 2>>"$PORTAL_LOG"; then
+        chown www-data:www-data "$wav" 2>/dev/null || true
         _log "ok source=espeak wav=$wav"
         jq -n --arg id "$ID" --arg url "$WAV_URL" \
             '{"status":"ok","id":$id,"source":"espeak","url":$url}'
