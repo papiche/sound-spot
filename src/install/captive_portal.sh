@@ -23,8 +23,14 @@ www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop soundspot-decoder
 www-data ALL=(ALL) NOPASSWD: /usr/sbin/poweroff
 www-data ALL=(${SOUNDSPOT_USER}) NOPASSWD: ${USER_HOME}/.zen/Astroport.ONE/IA/orpheus.me.sh
 www-data ALL=(${SOUNDSPOT_USER}) NOPASSWD: ${USER_HOME}/.astro/bin/python3 ${USER_HOME}/.zen/Astroport.ONE/tools/nostr_send_note.py *
+www-data ALL=(${SOUNDSPOT_USER}) NOPASSWD: /bin/bash ${INSTALL_DIR}/backend/audio/tts.sh *
 SUDOEOF
     chmod 0440 /etc/sudoers.d/soundspot-www
+
+    # Fichier de log portail (CGI + API)
+    touch /var/log/soundspot-portal.log
+    chown www-data:www-data /var/log/soundspot-portal.log
+    chmod 640 /var/log/soundspot-portal.log
 
     # Configuration lighttpd
     cat > /etc/lighttpd/lighttpd.conf <<EOF
@@ -59,7 +65,8 @@ cgi.assign                  = ( ".sh" => "/bin/bash" )
 # Assigner index.html en priorité (SPA statique), puis index.sh (fallback CGI)
 index-file.names = ( "index.html", "index.sh" )
 
-# Servir les fichiers .json comme JSON (manifest PWA)
+# Exposer les fichiers wav (previews TTS depuis le portail)
+alias.url = ( "/wav/" => "${INSTALL_DIR}/wav/" )
 
 # Capturer les URL de test Android/Apple
 url.rewrite-once = (

@@ -26,6 +26,8 @@ echo "Cache-Control: no-cache"
 echo ""
 
 ACTION=$(echo "$QUERY_STRING" | grep -oP '(?<=action=)[a-zA-Z0-9_]+' | head -1)
+echo "[$(date '+%Y-%m-%dT%H:%M:%S')] [api] action=${ACTION} method=${REQUEST_METHOD:-GET} ip=${REMOTE_ADDR:-?}" \
+    >> /var/log/soundspot-portal.log 2>/dev/null || true
 
 CORE="${INSTALL_DIR}/portal/api/core/${ACTION}.sh"
 APP="${INSTALL_DIR}/portal/api/apps/${ACTION}/run.sh"

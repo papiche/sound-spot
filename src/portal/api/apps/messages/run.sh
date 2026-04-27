@@ -14,6 +14,8 @@
 
 WAV_DIR="${INSTALL_DIR:-/opt/soundspot}/wav"
 TTS_SH="${INSTALL_DIR:-/opt/soundspot}/backend/audio/tts.sh"
+PORTAL_LOG="/var/log/soundspot-portal.log"
+_log() { echo "[$(date '+%Y-%m-%dT%H:%M:%S')] [messages] $*" >> "$PORTAL_LOG" 2>/dev/null || true; }
 
 # ── Lecture des paramètres ───────────────────────────────────
 CMD=$(echo "$QUERY_STRING" | grep -oP '(?<=cmd=)[a-zA-Z0-9_]+' | head -1)
@@ -74,21 +76,31 @@ if [ "${CMD}" = "tts_now" ]; then
     PYTHON="${USER_HOME}/.astro/bin/python3"
     ORPHEUS_PORT="${ORPHEUS_PORT:-5005}"
 
-    # Essayer Orpheus via tts.sh
+    WAV_URL="/wav/message_${ID}.wav"
+    _log "tts_now id=$ID voice=$VOICE"
+
+    # Essayer Orpheus via tts.sh (sudo pour accès PipeWire/Orpheus de SOUNDSPOT_USER)
     if [ -f "$TTS_SH" ]; then
-        LIVE_WAV=$(bash "$TTS_SH" "$(cat "$txt")" "$VOICE" 2>/dev/null | tail -1)
+        LIVE_WAV=$(sudo -u "${SOUNDSPOT_USER:-pi}" bash "$TTS_SH" "$(cat "$txt")" "$VOICE" 2>>"$PORTAL_LOG" | tail -1)
         if [ -f "${LIVE_WAV:-}" ]; then
             mv "$LIVE_WAV" "$wav" 2>/dev/null || cp "$LIVE_WAV" "$wav"
-            jq -n --arg id "$ID" --arg voice "$VOICE" \
-                '{"status":"ok","id":$id,"voice":$voice,"source":"orpheus"}'
+            _log "ok source=orpheus wav=$wav"
+            jq -n --arg id "$ID" --arg voice "$VOICE" --arg url "$WAV_URL" \
+                '{"status":"ok","id":$id,"voice":$voice,"source":"orpheus","url":$url}'
             exit 0
         fi
+        _log "orpheus indisponible — fallback espeak"
     fi
 
     # Fallback espeak
-    espeak-ng -v fr+f3 -s 115 -p 40 "$(cat "$txt")" -w "$wav" 2>/dev/null && \
-        jq -n --arg id "$ID" '{"status":"ok","id":$id,"source":"espeak"}' || \
+    if espeak-ng -v fr+f3 -s 115 -p 40 "$(cat "$txt")" -w "$wav" 2>>"$PORTAL_LOG"; then
+        _log "ok source=espeak wav=$wav"
+        jq -n --arg id "$ID" --arg url "$WAV_URL" \
+            '{"status":"ok","id":$id,"source":"espeak","url":$url}'
+    else
+        _log "ERREUR tts_failed"
         jq -n '{"error":"tts_failed"}'
+    fi
     exit 0
 fi
 

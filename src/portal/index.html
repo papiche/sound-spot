@@ -1044,7 +1044,7 @@ async function msgTts(id, voice) {
   });
   const d = await r.json();
   toast(d.error ? 'TTS échoué: ' + d.error : `msg_${id} → ${d.source} (${voice})`, !d.error);
-  if (!d.error) msgLoad();
+  if (!d.error) { if (d.url) new Audio(d.url + '?t=' + Date.now()).play(); msgLoad(); }
 }
 </script>
 

@@ -161,6 +161,38 @@ if [ -d "$INSTALL_DIR/wav" ]; then
     log "wav/ permissions corrigées (www-data)"
 fi
 
+# ── Fichier de log portail ────────────────────────────────────
+if [ ! -f /var/log/soundspot-portal.log ]; then
+    touch /var/log/soundspot-portal.log
+    chown www-data:www-data /var/log/soundspot-portal.log
+    chmod 640 /var/log/soundspot-portal.log
+    log "Créé /var/log/soundspot-portal.log"
+fi
+
+# ── Alias /wav/ dans lighttpd.conf si absent ──────────────────
+LCONF=/etc/lighttpd/lighttpd.conf
+if [ -f "$LCONF" ] && ! grep -q 'alias.url' "$LCONF"; then
+    python3 - <<PYEOF
+f = '/etc/lighttpd/lighttpd.conf'
+t = open(f).read()
+t = t.replace(
+    'index-file.names',
+    'alias.url = ( "/wav/" => "/opt/soundspot/wav/" )\n\nindex-file.names'
+)
+open(f,'w').write(t)
+print('lighttpd : alias /wav/ ajouté')
+PYEOF
+fi
+
+# ── Sudoers tts.sh si absent ──────────────────────────────────
+SUDOERS=/etc/sudoers.d/soundspot-www
+USER_HOME_U=$(getent passwd "${SOUNDSPOT_USER}" | cut -d: -f6)
+TTS_RULE="www-data ALL=(${SOUNDSPOT_USER}) NOPASSWD: /bin/bash ${INSTALL_DIR}/backend/audio/tts.sh *"
+if [ -f "$SUDOERS" ] && ! grep -q 'tts.sh' "$SUDOERS"; then
+    echo "$TTS_RULE" >> "$SUDOERS"
+    log "Sudoers : règle tts.sh ajoutée"
+fi
+
 # ── Activer accesslog dans lighttpd.conf si absent ───────────
 python3 - <<'PYEOF'
 import sys
