@@ -20,6 +20,7 @@ www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart soundspot-bt-reactive
 www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop soundspot-client
 www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop snapserver
 www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop soundspot-decoder
+www-data ALL=(ALL) NOPASSWD: /opt/soundspot/backend/system/set_audio_output.sh *
 www-data ALL=(ALL) NOPASSWD: /usr/sbin/poweroff
 www-data ALL=(${SOUNDSPOT_USER}) NOPASSWD: ${USER_HOME}/.zen/Astroport.ONE/IA/orpheus.me.sh
 www-data ALL=(${SOUNDSPOT_USER}) NOPASSWD: ${USER_HOME}/.astro/bin/python3 ${USER_HOME}/.zen/Astroport.ONE/tools/nostr_send_note.py *

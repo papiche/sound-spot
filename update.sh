@@ -186,11 +186,15 @@ fi
 
 # ── Sudoers tts.sh si absent ──────────────────────────────────
 SUDOERS=/etc/sudoers.d/soundspot-www
-USER_HOME_U=$(getent passwd "${SOUNDSPOT_USER}" | cut -d: -f6)
-TTS_RULE="www-data ALL=(${SOUNDSPOT_USER}) NOPASSWD: /bin/bash ${INSTALL_DIR}/backend/audio/tts.sh *"
-if [ -f "$SUDOERS" ] && ! grep -q 'tts.sh' "$SUDOERS"; then
-    echo "$TTS_RULE" >> "$SUDOERS"
-    log "Sudoers : règle tts.sh ajoutée"
+if [ -f "$SUDOERS" ]; then
+    if ! grep -q 'tts.sh' "$SUDOERS"; then
+        echo "www-data ALL=(${SOUNDSPOT_USER}) NOPASSWD: /bin/bash ${INSTALL_DIR}/backend/audio/tts.sh *" >> "$SUDOERS"
+        log "Sudoers : règle tts.sh ajoutée"
+    fi
+    if ! grep -q 'set_audio_output' "$SUDOERS"; then
+        echo "www-data ALL=(ALL) NOPASSWD: ${INSTALL_DIR}/backend/system/set_audio_output.sh *" >> "$SUDOERS"
+        log "Sudoers : règle set_audio_output.sh ajoutée"
+    fi
 fi
 
 # ── Activer accesslog dans lighttpd.conf si absent ───────────
