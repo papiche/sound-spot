@@ -449,6 +449,13 @@
     <div id="cfg-services-list"><p style="color:var(--muted);font-size:.85rem">Chargement…</p></div>
   </div>
 
+  <!-- ── Messages du clocher ── -->
+  <div class="card">
+    <h2>📢 Messages du clocher</h2>
+    <div id="msg-list" style="display:flex;flex-direction:column;gap:8px"></div>
+    <button class="btn btn-sm btn-outline" style="margin-top:8px" onclick="msgLoad()">Actualiser</button>
+  </div>
+
   <!-- ── Administration (protégée par mot de passe UPLANETNAME) ── -->
   <div class="card">
     <h2>🔒 Administration BT</h2>
@@ -525,7 +532,7 @@ function showTab(id, btn) {
   document.getElementById(id).classList.add('active');
   btn.classList.add('active');
   if (id === 'tab-solaire') setTimeout(initChart, 200);
-  if (id === 'tab-config') { loadConfigTab(); loadServicesStatus(); setTimeout(loadAudioSinksCfg, 300); }
+  if (id === 'tab-config') { loadConfigTab(); loadServicesStatus(); setTimeout(loadAudioSinksCfg, 300); msgLoad(); }
 }
 
 function toast(msg, ok = true) {
@@ -792,17 +799,35 @@ function loadServicesStatus() {
   ];
   const box = document.getElementById('cfg-services-list');
   if (!box) return;
-  // On affiche juste les services connus sans appel serveur supplémentaire
   box.innerHTML = '<div class="ibox">' + services.map(s =>
-    `<div class="irow"><span class="lbl">${s.label}</span><span class="val" id="svc-${s.name}">…</span></div>`
+    `<div class="irow"><span class="lbl">${s.label}</span><span class="val" id="svc-${s.name}" style="color:var(--muted)">…</span></div>`
   ).join('') + '</div>';
-  // Récupérer l'état via le status existant
+
   fetch('/api.sh?action=status').then(r=>r.json()).then(d=>{
-    document.getElementById('svc-picoport') &&
-      (document.getElementById('svc-picoport').textContent = d.picoport_active ? '✅' : '—');
-    document.getElementById('svc-icecast2') &&
-      (document.getElementById('svc-icecast2').textContent = d.dj_active ? '✅ Live' : '🎙 Prêt');
-  }).catch(()=>{});
+    const svc = d.services || {};
+    const st = (name) => {
+      const v = svc[name] || '';
+      if (v === 'active')      return { t: '✅', c: 'var(--teal)' };
+      if (v === 'failed')      return { t: '❌', c: 'var(--red)' };
+      if (v === 'activating')  return { t: '⏳', c: 'var(--gold)' };
+      return { t: '—', c: 'var(--muted)' };
+    };
+    services.forEach(s => {
+      const el = document.getElementById('svc-' + s.name);
+      if (!el) return;
+      let r = st(s.name);
+      if (s.name === 'icecast2' && svc['icecast2'] === 'active')
+        r = d.dj_active ? { t: '🔴 Live', c: 'var(--dj)' } : { t: '🎙 Prêt', c: 'var(--teal)' };
+      if (s.name === 'picoport' && d.picoport_active)
+        r = { t: '✅ IPFS', c: 'var(--teal)' };
+      el.textContent = r.t;
+      el.style.color = r.c;
+    });
+  }).catch(()=>{
+    document.querySelectorAll('[id^="svc-"]').forEach(el => {
+      el.textContent = '?'; el.style.color = 'var(--muted)';
+    });
+  });
 }
 
 async function loadAudioSinks() {
@@ -972,6 +997,54 @@ async function admBtRemove(mac) {
   const d = await r.json();
   toast(d.error ? 'Erreur' : `${mac} retiré`, !d.error);
   if (!d.error) admBtRefresh();
+}
+
+// ═══ MESSAGES DU CLOCHER ═══
+async function msgLoad() {
+  const r = await fetch('/api.sh?action=messages&cmd=list');
+  const d = await r.json();
+  const el = document.getElementById('msg-list');
+  if (!d.messages || !d.messages.length) { el.innerHTML = '<p style="color:var(--muted);font-size:.85rem">Aucun message trouvé</p>'; return; }
+  el.innerHTML = d.messages.map(m => `
+    <div style="background:var(--deep);border-radius:6px;padding:10px 12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <span style="font-size:.75rem;color:var(--muted);font-family:var(--mono)">msg_${m.id}</span>
+        <span style="font-size:.7rem;color:${m.has_wav ? 'var(--teal)' : 'var(--muted)'}">
+          ${m.has_wav ? '🔊 wav' : '⚠ pas de wav'}
+        </span>
+      </div>
+      <textarea id="msg-txt-${m.id}"
+        style="width:100%;margin-top:6px;padding:6px 8px;border-radius:6px;border:1px solid var(--border);background:var(--panel);color:var(--text);font-size:.85rem;resize:vertical;min-height:52px"
+        rows="2">${m.text}</textarea>
+      <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
+        <button class="btn btn-sm" onclick="msgSave('${m.id}')">Enregistrer</button>
+        <button class="btn btn-sm btn-outline" onclick="msgTts('${m.id}','pierre')">Pierre</button>
+        <button class="btn btn-sm btn-outline" onclick="msgTts('${m.id}','amelie')">Amélie</button>
+      </div>
+    </div>`).join('');
+}
+
+async function msgSave(id) {
+  const txt = document.getElementById('msg-txt-' + id).value;
+  const r = await fetch('/api.sh?action=messages', {
+    method: 'POST',
+    headers: {'Content-Type':'application/x-www-form-urlencoded'},
+    body: `cmd=set_text&id=${id}&text=${encodeURIComponent(txt)}`
+  });
+  const d = await r.json();
+  toast(d.error ? 'Erreur: ' + d.error : `msg_${id} sauvegardé — regeneration au prochain cycle`, !d.error);
+}
+
+async function msgTts(id, voice) {
+  toast(`Génération ${voice}…`);
+  const r = await fetch('/api.sh?action=messages', {
+    method: 'POST',
+    headers: {'Content-Type':'application/x-www-form-urlencoded'},
+    body: `cmd=tts_now&id=${id}&voice=${voice}`
+  });
+  const d = await r.json();
+  toast(d.error ? 'TTS échoué: ' + d.error : `msg_${id} → ${d.source} (${voice})`, !d.error);
+  if (!d.error) msgLoad();
 }
 </script>
 

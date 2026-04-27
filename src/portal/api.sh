@@ -8,6 +8,8 @@ export SNAPCAST_PORT="${SNAPCAST_PORT:-1704}"
 export ICECAST_PORT="${ICECAST_PORT:-8111}"
 export CLOCK_MODE="${CLOCK_MODE:-bells}"
 export INSTALL_DIR="${INSTALL_DIR:-/opt/soundspot}"
+export SOUNDSPOT_USER="${SOUNDSPOT_USER:-pi}"
+export ORPHEUS_PORT="${ORPHEUS_PORT:-5005}"
 
 # urldecode — pur Bash, remplace python3 -c "urllib.parse..." (~200ms sur Pi Zero)
 # Utilisation : urldecode "str%20enc%2B" OU echo "str" | urldecode

@@ -69,45 +69,38 @@ say() {
 }
 
 # ── Jouer un message numéroté depuis wav/ ────────────────────────
-# Priorité : .wav existant → régénération depuis .txt → synthèse inline
+# Utilise _CYCLE_ORPHEUS (positionné une fois par cycle dans main()).
+# Priorité : Orpheus → espeak fallback.
 play_message_file() {
     local n="$1"
     local id; id=$(printf '%02d' "$n")
     local wav="$WAV_DIR/message_${id}.wav"
     local txt="$WAV_DIR/message_${id}.txt"
 
-    # Régénérer le .wav espeak si absent ou .txt plus récent
-    if [ -f "$txt" ] && { [ ! -f "$wav" ] || [ "$txt" -nt "$wav" ]; }; then
-        espeak-ng -v fr+f3 -s 115 -p 40 "$(cat "$txt")" -w "$wav" 2>/dev/null || true
-    fi
-
-    # Si voix désactivée depuis le portail, lecture directe du .wav espeak
+    # Si voix désactivée depuis le portail : espeak direct
     if [ "${VOICE_ENABLED:-true}" = "false" ]; then
+        if [ -f "$txt" ] && { [ ! -f "$wav" ] || [ "$txt" -nt "$wav" ]; }; then
+            espeak-ng -v fr+f3 -s 115 -p 40 "$(cat "$txt")" -w "$wav" 2>/dev/null || true
+        fi
         [ -f "$wav" ] && play_wav "$wav"
         return
     fi
 
-    # Tenter Orpheus (voix naturelle) si le service est actif OU si l'endpoint répond
-    local _use_orpheus=false
-    systemctl is-active --quiet picoport.service 2>/dev/null && _use_orpheus=true
-    # Fallback direct : tester l'endpoint sans dépendance au nom du service
-    if ! $_use_orpheus; then
-        curl -s -o /dev/null -w "%{http_code}" --max-time 2 \
-            "http://localhost:${ORPHEUS_PORT:-5005}/docs" 2>/dev/null | grep -q "200" \
-            && _use_orpheus=true
-    fi
-
-    if $_use_orpheus && [ -f "$txt" ]; then
+    # Orpheus en premier (disponibilité vérifiée une fois par cycle)
+    if [ "${_CYCLE_ORPHEUS:-false}" = "true" ] && [ -f "$txt" ]; then
         local live_wav
-        live_wav=$(bash "$TTS_SH" "$(cat "$txt")" "${ORPHEUS_VOICE:-pierre}" 2>/dev/null | tail -1)
+        live_wav=$(bash "$TTS_SH" "$(cat "$txt")" "${ORPHEUS_VOICE:-amelie}" 2>/dev/null | tail -1)
         if [ -f "$live_wav" ]; then
-            # Remplacer le .wav espeak par la version Orpheus (voix persistée)
             mv "$live_wav" "$wav" 2>/dev/null || { play_wav "$live_wav"; rm -f "$live_wav"; return; }
             play_wav "$wav"
             return
         fi
     fi
 
+    # Fallback espeak — régénère si le .txt est plus récent (texte modifié depuis le portail)
+    if [ -f "$txt" ] && { [ ! -f "$wav" ] || [ "$txt" -nt "$wav" ]; }; then
+        espeak-ng -v fr+f3 -s 115 -p 40 "$(cat "$txt")" -w "$wav" 2>/dev/null || true
+    fi
     [ -f "$wav" ] && play_wav "$wav"
 }
 
@@ -219,10 +212,29 @@ main() {
         if [[ "$sol_m" =~ ^(0|15|30|45)$ ]] && [ "$elapsed" -ge 840 ]; then
             last_announce=$now
 
+            # Vérifier Orpheus UNE FOIS par cycle (évite espeak/Orpheus dans le même cycle)
+            _CYCLE_ORPHEUS=false
+            if systemctl is-active --quiet picoport.service 2>/dev/null; then
+                if curl -s -o /dev/null -w "%{http_code}" --max-time 2 \
+                    "http://localhost:${ORPHEUS_PORT:-5005}/docs" 2>/dev/null | grep -q "200"; then
+                    _CYCLE_ORPHEUS=true
+                else
+                    # Tentative de connexion (tunnel P2P Orpheus)
+                    local _user_home; _user_home=$(getent passwd "${SOUNDSPOT_USER:-pi}" | cut -d: -f6)
+                    local _orpheus_sh="${_user_home}/.zen/Astroport.ONE/IA/orpheus.me.sh"
+                    [ -x "$_orpheus_sh" ] && sudo -u "$SOUNDSPOT_USER" bash "$_orpheus_sh" \
+                        >/dev/null 2>&1 && sleep 8
+                    curl -s -o /dev/null -w "%{http_code}" --max-time 2 \
+                        "http://localhost:${ORPHEUS_PORT:-5005}/docs" 2>/dev/null | grep -q "200" \
+                        && _CYCLE_ORPHEUS=true
+                fi
+            fi
+            ss_debug "Orpheus cycle=${_CYCLE_ORPHEUS}"
+
             if is_dj_active; then
                 ss_debug "DJ actif sur Icecast — annonce ignorée"
             else
-                ss_info "annonce h${sol_h}:$(printf '%02d' "$sol_m") mode=${CLOCK_MODE:-bells}"
+                ss_info "annonce h${sol_h}:$(printf '%02d' "$sol_m") mode=${CLOCK_MODE:-bells} orpheus=${_CYCLE_ORPHEUS}"
 
                 # 1. Bip 429.62 Hz — inhibé si BELLS_ENABLED=false
                 if [ "${BELLS_ENABLED:-true}" = "true" ]; then

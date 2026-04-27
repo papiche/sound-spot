@@ -95,4 +95,12 @@ EOF
     local USER_HOME=$(getent passwd "$SOUNDSPOT_USER" | cut -d: -f6)
     chmod g+x "$USER_HOME" 2>/dev/null || true
     chmod g+rx "$USER_HOME/.zen" "$USER_HOME/.zen/tmp" 2>/dev/null || true
+
+    # Droits d'écriture www-data sur les messages du clocher (textes + wav)
+    chown -R www-data:www-data "$INSTALL_DIR/wav" 2>/dev/null || \
+        chmod g+rw "$INSTALL_DIR/wav" 2>/dev/null || true
+    log "Droits www-data sur wav/ configurés"
+
+    # Scripts portal/api/apps exécutables
+    chmod +x "$INSTALL_DIR/portal/api/apps/messages/run.sh" 2>/dev/null || true
 }

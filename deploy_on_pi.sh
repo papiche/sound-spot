@@ -568,35 +568,38 @@ if [ "$SOUNDSPOT_MODE" != "2" ]; then
     # Générer les pages HTML statiques via generate-html.py
     if [ -d "$PINOUT_DIR" ] && [ -f "$PINOUT_DIR/generate-html.py" ]; then
         log "Génération des pages Pinout.xyz (generate-html.py)..."
-        # Dépendances : python3-markdown + python3-yaml (PyYAML) suffisent pour generate-html.py
-        # (libsass/Flask ne sont nécessaires que pour serve.py/mkcss.py, pas pour la génération)
+        # Dépendances : python3-markdown + python3-yaml suffisent (Flask/sass non requis)
         apt-get install -y -q python3 python3-markdown python3-yaml 2>/dev/null || true
 
         # Patcher resource_url pour servir sous /pinout/ (chemins absolus → /pinout/resources/)
-        # Annulé au prochain git pull et repatché à chaque déploiement : intentionnel
         sudo -u "$SOUNDSPOT_USER" sed -i \
             's|resource_url: /resources/|resource_url: /pinout/resources/|' \
             "$PINOUT_DIR/src/en/settings.yaml" 2>/dev/null || true
 
-        sudo -u "$SOUNDSPOT_USER" bash -c \
-            "cd '$PINOUT_DIR' && python3 generate-html.py en" \
-            && log "Pinout.xyz HTML généré ✓" \
-            || { warn "generate-html.py échoué — pinout indisponible"; }
+        if sudo -u "$SOUNDSPOT_USER" bash -c "cd '$PINOUT_DIR' && python3 generate-html.py en" 2>&1; then
+            log "Pinout.xyz HTML généré ✓"
+        else
+            warn "generate-html.py échoué — vérifier python3-markdown python3-yaml"
+        fi
 
-        # Copier les assets statiques dans output/en/ pour serving autonome
-        sudo -u "$SOUNDSPOT_USER" bash -c \
-            "cp -r '$PINOUT_DIR/resources' '$PINOUT_DIR/phatstack' '$PINOUT_DIR/output/en/'" \
-            && log "Assets Pinout copiés ✓"
+        # Copier les assets statiques dans output/en/ (phatstack optionnel selon version du repo)
+        sudo -u "$SOUNDSPOT_USER" bash -c "
+            [ -d '$PINOUT_DIR/resources' ] && cp -r '$PINOUT_DIR/resources' '$PINOUT_DIR/output/en/' 2>/dev/null
+            [ -d '$PINOUT_DIR/phatstack' ] && cp -r '$PINOUT_DIR/phatstack' '$PINOUT_DIR/output/en/' 2>/dev/null
+            true
+        " && log "Assets Pinout copiés ✓"
     fi
 
-    # Lien symbolique portail : /opt/soundspot/portal/pinout → output/en/
-    # (pas la racine du repo — la racine contient generate-html.py, pas les pages)
+    # Copie directe dans portal/pinout/ — évite les chaînes de symlinks inaccessibles à www-data
     PORTAL_PINOUT="$INSTALL_DIR/portal/pinout"
     if [ -d "$PINOUT_DIR/output/en" ]; then
-        ln -sfn "$PINOUT_DIR/output/en" "$PORTAL_PINOUT"
-        log "Lien portail /pinout/ → output/en/ ✓"
+        rm -rf "$PORTAL_PINOUT"
+        mkdir -p "$PORTAL_PINOUT"
+        cp -r "$PINOUT_DIR/output/en/"* "$PORTAL_PINOUT/" 2>/dev/null || true
+        chmod -R a+rX "$PORTAL_PINOUT/"
+        log "Pinout.xyz copié → portal/pinout/ ✓  (http://$(hostname -I | awk '{print $1}')/pinout/)"
     elif [ -d "$PINOUT_DIR" ]; then
-        warn "output/en/ absent — génération peut-être échouée"
+        warn "output/en/ absent — génération Pinout échouée (vérifier logs ci-dessus)"
     fi
 
 fi

@@ -65,6 +65,9 @@ else
     ss_warn() { echo -e "\e[33m[WARN]\e[0m [\$_SS_SERVICE] \$*"; }
 fi
 
+# Clé IPNS secondaire MySwarm (initialisée par swarm_sync.sh) — lue sans secrets
+CHAN=$(ipfs key list -l 2>/dev/null | grep "MySwarm_${IPFSNODEID}" | awk '{print $1}' || echo "")
+
 # --- CONFIGURATION DES PORTS ALTERNATIFS (Logique DRAGON) ---
 # Calcule un offset unique (0-499) pour cette station pour éviter les collisions entre voisins
 NODE_OFFSET=$(( $(echo -n "$IPFSNODEID" | cksum | awk '{print $1}') % 500 ))
@@ -202,18 +205,25 @@ while true; do
         fi
     fi
 
+    myIP=$(hostname -I | awk '{print $1}')
+    G1PUB_CACHED=$(cat "$MY_NODE_DIR/G1PUB" 2>/dev/null || echo "")
+    # Rafraîchir CHAN si swarm_sync.sh vient de créer la clé
+    [ -z "$CHAN" ] && CHAN=$(ipfs key list -l 2>/dev/null | grep "MySwarm_${IPFSNODEID}" | awk '{print $1}' || echo "")
+
     cat > "$MY_NODE_DIR/12345.json" << EOF
 {
     "version": "picoport-0.5-dragon",
     "created": $MOATS,
-    "node_info": {
-        "id":       "$IPFSNODEID",
-        "hostname": "$(hostname)",
-        "type":     "soundspot",
-        "captain":  ""
-    },
     "hostname":      "$(hostname)",
     "ipfsnodeid":    "$IPFSNODEID",
+    "myIP":          "$myIP",
+    "astroport":     "http://$myIP:12345",
+    "relay":         "ws://127.0.0.1:9999",
+    "u.spot":        "http://$myIP:54321",
+    "g1station":     "/ipns/$IPFSNODEID",
+    "g1swarm":       "/ipns/$CHAN",
+    "g1pub":         "$G1PUB_CACHED",
+    "type":          "soundspot",
     "captain":       "",
     "NODEHEX":       "$NODEHEX",
     "SSHPUB":        "$(cat ~/.ssh/id_ed25519.pub 2>/dev/null || echo '')",

@@ -1,127 +1,117 @@
-
 #!/bin/bash
-# =========================================================================
-#  update.sh — Mise à jour dynamique SoundSpot (Synchronisé avec le code)
-#  G1FabLab / UPlanet ẐEN — zicmama.com
-# =========================================================================
+# update.sh — Mise à jour rapide du portail et du backend SoundSpot sur le Pi en cours
+#             Sans réinstallation complète (pas de systemd, pas de packages)
+#
+# Usage :
+#   sudo bash update.sh              # portail + backend + picoport
+#   sudo bash update.sh --pinout     # + régénération de la page pinout
+
 set -euo pipefail
 
-# ── Couleurs ─────────────────────────────────────────────────────
-R='\033[0;31m'; G='\033[0;32m'; Y='\033[1;33m'; C='\033[0;36m'; W='\033[1;37m'; N='\033[0m'
+INSTALL_DIR="${INSTALL_DIR:-/opt/soundspot}"
+SOUNDSPOT_USER="${SOUNDSPOT_USER:-pi}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# ── Couleurs ──────────────────────────────────────────────────
+G='\033[0;32m'; Y='\033[1;33m'; C='\033[0;36m'; N='\033[0m'
 log()  { echo -e "${G}▶${N} $*"; }
 warn() { echo -e "${Y}⚠${N}  $*"; }
-err()  { echo -e "${R}✗${N}  $*" >&2; exit 1; }
 hdr()  { echo -e "\n${C}━━━  $*  ━━━${N}"; }
 
-[ "$(id -u)" -ne 0 ] && err "Ce script doit être lancé avec sudo : sudo bash $0"
-
-# ── Chemins ──────────────────────────────────────────────────────
-INSTALL_DIR="/opt/soundspot"
-CONF_FILE="${INSTALL_DIR}/soundspot.conf"
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-SRC_DIR="${SCRIPT_DIR}/src"
-
-[ ! -f "$CONF_FILE" ] && err "SoundSpot non installé dans ${INSTALL_DIR}."
-
-# Charger la config
-. "$CONF_FILE"
-SOUNDSPOT_USER="${SOUNDSPOT_USER:-pi}"
-SOUNDSPOT_UID=$(id -u "${SOUNDSPOT_USER}")
-
-hdr "Mise à jour SoundSpot Dynamique"
-
-# ════════════════════════════════════════════════════════════════
-#  1. Extraction des dépendances depuis le code source
-# ════════════════════════════════════════════════════════════════
-log "Extraction des dépendances depuis le code source..."
-
-PKGS=""
-
-# Détection du mode (Master ou Satellite) via la présence de hostapd
-if [ -f /etc/hostapd/hostapd.conf ]; then
-    log "  Mode détecté : Maître"
-    # Extrait les paquets entre 'apt_retry install' et 'zram-tools' dans install_soundspot.sh
-    PKGS=$(sed -n '/apt_retry install/,/zram-tools/p' "${SRC_DIR}/install_soundspot.sh" \
-           | grep -v "apt_retry" | tr -d '\\' | xargs)
-else
-    log "  Mode détecté : Satellite"
-    # Extrait la variable PKGS dans install_satellite.sh
-    PKGS=$(grep -oP '(?<=PKGS=").*?(?=")' "${SRC_DIR}/install_satellite.sh")
+# ── Vérifications ─────────────────────────────────────────────
+if [ "$(id -u)" -ne 0 ]; then
+    warn "Ce script doit être lancé en root (sudo bash update.sh)"
+    exit 1
 fi
 
-# Si Picoport est activé, on ajoute ses dépendances spécifiques
-if [ "${PICOPORT_ENABLED:-false}" = "true" ]; then
-    log "  Ajout des dépendances Picoport..."
-    PICO_PKGS=$(grep -oP '(?<=for _pkg in ).*?(?=; do)' "${SRC_DIR}/picoport/install_picoport.sh" | tr -d '"')
-    PKGS="$PKGS $PICO_PKGS"
-fi
+[ -d "$SCRIPT_DIR/src/portal" ]  || { warn "Répertoire src/portal introuvable — lancez depuis la racine du dépôt"; exit 1; }
+[ -d "$INSTALL_DIR" ]            || { warn "$INSTALL_DIR inexistant — faites d'abord l'installation complète"; exit 1; }
 
-# Nettoyage et dédoublonnage de la liste
-PKGS_LIST=$(echo "$PKGS" | tr ' ' '\n' | sort -u | xargs)
-
-if [ -n "$PKGS_LIST" ]; then
-    log "Installation/Mise à jour des paquets : ${W}${PKGS_LIST}${N}"
-    apt-get update -qq
-    apt-get install -y -q --no-install-recommends $PKGS_LIST
-else
-    warn "Aucun paquet trouvé à installer."
-fi
-
-# ════════════════════════════════════════════════════════════════
-#  2. Synchronisation du Code (Backend + Frontend)
-# ════════════════════════════════════════════════════════════════
-log "Synchronisation des fichiers..."
-
-# Backend
-mkdir -p "$INSTALL_DIR/backend/audio" "$INSTALL_DIR/backend/video" "$INSTALL_DIR/backend/system"
-cp -r "${SRC_DIR}/backend/audio/"* "${INSTALL_DIR}/backend/audio/" 2>/dev/null || true
-cp -r "${SRC_DIR}/backend/video/"* "${INSTALL_DIR}/backend/video/" 2>/dev/null || true
-cp -r "${SRC_DIR}/backend/system/"* "${INSTALL_DIR}/backend/system/" 2>/dev/null || true
-
-# Daemons et scripts racines
-find "${SRC_DIR}/backend" -maxdepth 2 -type f \( -name "*.py" -o -name "*.sh" \) -exec cp {} "${INSTALL_DIR}/" \; 2>/dev/null || true
-cp "${SCRIPT_DIR}/check.sh" "${INSTALL_DIR}/check.sh" 2>/dev/null || true
-chmod +x "${INSTALL_DIR}/"*.sh "${INSTALL_DIR}/backend/"*/*.sh 2>/dev/null || true
-
-# Portail (Frontend)
-if [ -L "${INSTALL_DIR}/portal" ]; then
-    log "  Mode DEV (symlink) conservé."
-else
-    cp -r "${SRC_DIR}/portal/"* "${INSTALL_DIR}/portal/" 2>/dev/null || true
-    chown -R www-data:www-data "${INSTALL_DIR}/portal/"
-fi
-
-# ════════════════════════════════════════════════════════════════
-#  3. Mise à jour des services Systemd
-# ════════════════════════════════════════════════════════════════
-log "Régénération des unités Systemd..."
-
-# Export des variables pour envsubst
-export INSTALL_DIR SOUNDSPOT_USER SOUNDSPOT_UID SPOT_IP IFACE_AP IFACE_WAN SNAPCAST_PORT SPOT_NAME WIFI_CHANNEL
-
-for svc_template in "${SRC_DIR}/config/services/"*.service; do
-    svc_name=$(basename "$svc_template")
-    # On applique les variables actuelles aux fichiers .service
-    envsubst '${INSTALL_DIR} ${SOUNDSPOT_USER} ${SOUNDSPOT_UID} ${SPOT_IP} ${IFACE_AP} ${IFACE_WAN} ${SNAPCAST_PORT} ${SPOT_NAME} ${WIFI_CHANNEL}' \
-        < "$svc_template" > "/etc/systemd/system/${svc_name}"
+WITH_PINOUT=false
+for arg in "$@"; do
+    [ "$arg" = "--pinout" ] && WITH_PINOUT=true
 done
 
-systemctl daemon-reload
+# ── Portail (portal/) ─────────────────────────────────────────
+hdr "Mise à jour du portail"
+rsync -a --delete \
+    --exclude='pinout/' \
+    "$SCRIPT_DIR/src/portal/" "$INSTALL_DIR/portal/"
+chmod -R a+rX "$INSTALL_DIR/portal/"
+log "portal/ synchronisé"
 
-# ════════════════════════════════════════════════════════════════
-#  4. Redémarrage des services
-# ════════════════════════════════════════════════════════════════
-log "Redémarrage des services..."
+# ── Backend audio ─────────────────────────────────────────────
+hdr "Mise à jour du backend"
+rsync -a --delete \
+    "$SCRIPT_DIR/src/backend/" "$INSTALL_DIR/backend/"
+chmod -R a+rX "$INSTALL_DIR/backend/"
+find "$INSTALL_DIR/backend/" -name "*.sh" -exec chmod +x {} \;
+log "backend/ synchronisé"
 
-SERVICES="soundspot-ap hostapd dnsmasq soundspot-firewall icecast2 soundspot-decoder snapserver soundspot-client soundspot-idle picoport upassport soundspot-swarm-sync soundspot-state bt-autoconnect"
+# ── Picoport ──────────────────────────────────────────────────
+hdr "Mise à jour de picoport"
+rsync -a --delete \
+    "$SCRIPT_DIR/src/picoport/" "$INSTALL_DIR/picoport/"
+chmod -R a+rX "$INSTALL_DIR/picoport/"
+find "$INSTALL_DIR/picoport/" -name "*.sh" -exec chmod +x {} \;
+log "picoport/ synchronisé"
 
-for svc in $SERVICES; do
-    if systemctl is-enabled --quiet "$svc" 2>/dev/null; then
-        systemctl restart "$svc"
-        echo -e "  ${G}✓${N} $svc"
+# ── Pinout (optionnel) ────────────────────────────────────────
+if $WITH_PINOUT; then
+    hdr "Régénération de la page Pinout"
+    PINOUT_REPO="$(eval echo ~${SOUNDSPOT_USER})/.zen/workspace/Pinout.xyz"
+    PORTAL_PINOUT="$INSTALL_DIR/portal/pinout"
+
+    if [ ! -d "$PINOUT_REPO" ]; then
+        warn "Dépôt Pinout.xyz absent : $PINOUT_REPO"
+        warn "Clonez-le d'abord : sudo -u $SOUNDSPOT_USER git clone https://github.com/pinout-xyz/Pinout.xyz $PINOUT_REPO"
+    else
+        cd "$PINOUT_REPO"
+
+        if [ -f "generate-html.py" ]; then
+            sudo -u "$SOUNDSPOT_USER" python3 generate-html.py 2>&1 | tail -5 \
+                || warn "generate-html.py a retourné une erreur (non fatal)"
+        fi
+
+        if [ -d "output/en" ]; then
+            rm -rf "$PORTAL_PINOUT"
+            mkdir -p "$PORTAL_PINOUT"
+            cp -r output/en/* "$PORTAL_PINOUT/"
+
+            if [ -d "resources" ]; then
+                cp -r resources "$PORTAL_PINOUT/"
+                log "resources/ copié"
+            fi
+
+            if [ -d "phatstack" ]; then
+                cp -r phatstack "$PORTAL_PINOUT/"
+                log "phatstack/ copié"
+            fi
+
+            chmod -R a+rX "$PORTAL_PINOUT/"
+            log "Pinout → $PORTAL_PINOUT"
+        else
+            warn "output/en/ absent — génération peut-être échouée"
+        fi
     fi
-done
+fi
 
-systemctl reload lighttpd 2>/dev/null || true
+# ── Permissions wav/ ──────────────────────────────────────────
+if [ -d "$INSTALL_DIR/wav" ]; then
+    chown -R www-data:www-data "$INSTALL_DIR/wav"
+    chmod -R ug+rw "$INSTALL_DIR/wav"
+    log "wav/ permissions corrigées (www-data)"
+fi
 
-hdr "SoundSpot mis à jour avec succès !"
+# ── Rechargement lighttpd ─────────────────────────────────────
+hdr "Rechargement lighttpd"
+if systemctl is-active --quiet lighttpd 2>/dev/null; then
+    systemctl reload lighttpd && log "lighttpd rechargé" || warn "reload lighttpd échoué"
+else
+    warn "lighttpd non actif — démarrage..."
+    systemctl start lighttpd || warn "Impossible de démarrer lighttpd"
+fi
+
+echo ""
+log "Mise à jour terminée."
+$WITH_PINOUT && log "Pinout disponible sur http://192.168.10.1/pinout/" || true

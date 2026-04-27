@@ -95,54 +95,24 @@ while true; do
     NODE_DIR="$HOME/.zen/tmp/${IPFSNODEID}"
     mkdir -p "$NODE_DIR"
 
-    # 🚨 CRITIQUE : Le marqueur de survie cherché par is_astroport_node
+    # Marqueur de survie + identités publiques (inclus dans la balise IPNS de picoport.sh)
     echo "${MOATS}" > "$NODE_DIR/_MySwarm.moats"
-
-    # Export des identités publiques pour le radar
     G1PUB=$(python3 "$ASTRO_TOOLS/keygen" -t duniter "$SECRET1${UPLANETNAME}" "$SECRET2${UPLANETNAME}" 2>/dev/null)
     echo "$G1PUB" > "$NODE_DIR/G1PUB"
     echo "$(hostname)" > "$NODE_DIR/name"
     echo "🌿 Light" > "$NODE_DIR/power"
 
-    # Génération de la balise
-    cat > "$NODE_DIR/12345.json" <<EOF
-{
-    "version": "picoport-12345-v2",
-    "created": "$MOATS",
-    "hostname": "$(hostname)",
-    "ipfsnodeid": "$IPFSNODEID",
-    "myIP": "$myIP",
-    "astroport": "http://$myIP:12345",
-    "relay": "ws://127.0.0.1:9999",
-    "u.spot": "http://$myIP:54321",
-    "g1station": "/ipns/$IPFSNODEID",
-    "g1swarm": "/ipns/$CHAN",
-    "type": "soundspot",
-    "services": { "audio": "active" }
-}
-EOF
-
-    # Service HTTP brut via Socat pour rétrocompatibilité
-    cat > "$HTTP_RES" <<EOF
-HTTP/1.1 200 OK
-Content-Type: application/json
-Access-Control-Allow-Origin: *
-Connection: close
-
-$(cat "$NODE_DIR/12345.json")
-EOF
-
+    # Service HTTP socat port 12345 — sert le JSON écrit par picoport.sh
+    if [ -f "$NODE_DIR/12345.json" ]; then
+        printf 'HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\nConnection: close\r\n\r\n' \
+            > "$HTTP_RES"
+        cat "$NODE_DIR/12345.json" >> "$HTTP_RES"
+    fi
     if ! pgrep -f "socat TCP4-LISTEN:12345" > /dev/null; then
         socat TCP4-LISTEN:12345,reuseaddr,fork SYSTEM:"cat $HTTP_RES" &
     fi
 
-    # 🚨 PUBLICATION : On publie le contenu du dossier (comme _12345.sh)
-    MYCACHE=$(ipfs --timeout 180s add -rwq "$NODE_DIR"/* | tail -n 1)
-    if [[ -n "$MYCACHE" ]]; then
-        (ipfs name publish --lifetime=24h --ttl=1h /ipfs/${MYCACHE} >/dev/null 2>&1 &)
-    fi
-
-    # Rafraîchissement du Swarm local
+    # Rafraîchissement du Swarm local (picoport.sh publie l'IPNS)
     PEERS=$(ipfs swarm peers | grep -oP 'p2p/\K.*' | head -n 5)
     for p in $PEERS; do
         TMP_SWARM="/tmp/swarm_$p"

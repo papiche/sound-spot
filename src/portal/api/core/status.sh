@@ -21,6 +21,17 @@ BATT_VOLT=$(cat /dev/shm/battery_voltage 2>/dev/null || echo "0")
 BATT_CUR=$(cat /dev/shm/battery_current  2>/dev/null || echo "0")
 BATT_POW=$(cat /dev/shm/battery_power    2>/dev/null || echo "0")
 
+# États des services systemd
+_svc() { systemctl is-active "$1" 2>/dev/null || echo "inactive"; }
+SVC_SNAPSERVER=$(_svc snapserver)
+SVC_DECODER=$(_svc soundspot-decoder)
+SVC_CLIENT=$(_svc soundspot-client)
+SVC_IDLE=$(_svc soundspot-idle)
+SVC_ICECAST=$(_svc icecast2)
+SVC_LIGHTTPD=$(_svc lighttpd)
+SVC_PICOPORT=$(_svc picoport)
+SVC_BT_REACTIVE=$(_svc soundspot-bt-reactive)
+
 cat <<JSON
 {
   "spot_name": "${SPOT_NAME}",
@@ -37,6 +48,16 @@ cat <<JSON
   "batt_pct": ${BATT_PCT},
   "batt_volt": ${BATT_VOLT},
   "batt_cur": ${BATT_CUR},
-  "batt_pow": ${BATT_POW}
+  "batt_pow": ${BATT_POW},
+  "services": {
+    "snapserver":        "${SVC_SNAPSERVER}",
+    "soundspot-decoder": "${SVC_DECODER}",
+    "soundspot-client":  "${SVC_CLIENT}",
+    "soundspot-idle":    "${SVC_IDLE}",
+    "icecast2":          "${SVC_ICECAST}",
+    "lighttpd":          "${SVC_LIGHTTPD}",
+    "picoport":          "${SVC_PICOPORT}",
+    "soundspot-bt-reactive": "${SVC_BT_REACTIVE}"
+  }
 }
 JSON
