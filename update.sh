@@ -95,6 +95,16 @@ if $WITH_PINOUT; then
 
             chmod -R a+rX "$PORTAL_PINOUT/"
             log "Pinout → $PORTAL_PINOUT"
+
+            # Snippet lighttpd : URLs propres /pinout/sdio → /pinout/sdio.html
+            cat > /etc/lighttpd/conf-available/90-pinout.conf <<'LCONF'
+url.rewrite-once += (
+    "^/pinout/([^/.]+)$" => "/pinout/$1.html"
+)
+LCONF
+            ln -sf /etc/lighttpd/conf-available/90-pinout.conf \
+                   /etc/lighttpd/conf-enabled/90-pinout.conf 2>/dev/null || true
+            log "lighttpd : règle pinout URL rewrite activée"
         else
             warn "output/en/ absent — génération peut-être échouée"
         fi
