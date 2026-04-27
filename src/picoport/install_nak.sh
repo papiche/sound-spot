@@ -36,7 +36,7 @@ except Exception:
     pass
 " 2>/dev/null)
 
-if[ -n "$BIN_URL" ]; then
+if [ -n "$BIN_URL" ]; then
     echo "▶ Téléchargement depuis : $BIN_URL"
     wget -q --show-progress "$BIN_URL" -O /tmp/nak_dl
     install -m 755 /tmp/nak_dl /usr/local/bin/nak
