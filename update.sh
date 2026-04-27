@@ -96,14 +96,25 @@ if $WITH_PINOUT; then
             chmod -R a+rX "$PORTAL_PINOUT/"
             log "Pinout → $PORTAL_PINOUT"
 
-            # Snippet lighttpd : URLs propres /pinout/sdio → /pinout/sdio.html
-            cat > /etc/lighttpd/conf-available/90-pinout.conf <<'LCONF'
-url.rewrite-once += (
-    "^/pinout/([^/.]+)$" => "/pinout/$1.html"
-)
-LCONF
-            ln -sf /etc/lighttpd/conf-available/90-pinout.conf \
-                   /etc/lighttpd/conf-enabled/90-pinout.conf 2>/dev/null || true
+            # Patcher lighttpd.conf : URLs propres /pinout/sdio → /pinout/sdio.html
+            python3 - <<'PYEOF'
+import sys
+f = '/etc/lighttpd/lighttpd.conf'
+try:
+    t = open(f).read()
+    if 'pinout' in t:
+        print('lighttpd.conf : règle pinout déjà présente')
+        sys.exit(0)
+    needle = '"^/(generate_204|hotspot-detect.html|ncsi.txt|success.txt).*$" => "/index.sh"'
+    replace = needle + ',\n    "^/pinout/([^/.]+)$" => "/pinout/$1.html"'
+    if needle in t:
+        open(f, 'w').write(t.replace(needle, replace, 1))
+        print('lighttpd.conf patché : règle pinout ajoutée')
+    else:
+        print('WARN : séquence cible introuvable dans lighttpd.conf — ajout manuel requis', file=sys.stderr)
+except Exception as e:
+    print(f'WARN : {e}', file=sys.stderr)
+PYEOF
             log "lighttpd : règle pinout URL rewrite activée"
         else
             warn "output/en/ absent — génération peut-être échouée"
