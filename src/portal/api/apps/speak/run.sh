@@ -1,6 +1,9 @@
 #!/bin/bash
 # /opt/soundspot/portal/api/apps/speak/run.sh — Laisse un organe distant utiliser la Bouche
 
+_SS_SERVICE="portal-speak-app"
+source "${INSTALL_DIR:-/opt/soundspot}/backend/system/log.sh" 2>/dev/null || true
+
 read -r -n "${CONTENT_LENGTH:-0}" POST_DATA 2>/dev/null || true
 
 TEXT=$(printf '%s' "$POST_DATA" | grep -oP '(?<=text=)[^&]+' | head -1 | urldecode)

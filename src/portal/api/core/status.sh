@@ -2,6 +2,9 @@
 # api/core/status.sh — État du système SoundSpot
 # Appelé par api.sh (hérite des exports : SPOT_NAME, SPOT_IP, ICECAST_PORT, …)
 
+_SS_SERVICE="portal-status"
+source "${INSTALL_DIR:-/opt/soundspot}/backend/system/log.sh" 2>/dev/null || true
+
 VOICE_ENABLED="${VOICE_ENABLED:-true}"
 BELLS_ENABLED="${BELLS_ENABLED:-true}"
 DJ_ACTIVE="false"

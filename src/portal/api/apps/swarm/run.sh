@@ -10,6 +10,9 @@
 # Prérequis : Picoport activé + astrosystemctl disponible
 # Hérite des exports de api.sh.
 
+_SS_SERVICE="portal-swarm"
+source "${INSTALL_DIR:-/opt/soundspot}/backend/system/log.sh" 2>/dev/null || true
+
 SWARM_DIR="${HOME}/.zen/tmp/swarm"
 
 if [ ! -d "$SWARM_DIR" ]; then

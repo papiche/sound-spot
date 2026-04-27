@@ -54,16 +54,12 @@ fi
 
 # --- CHARGEMENT DES LOGS ---
 _SS_SERVICE="picoport"
-LOG_LIB="/opt/soundspot/log.sh"
-
-if [ -f "$LOG_LIB" ]; then
-    source "$LOG_LIB"
-else
-    # Fallback si la lib est absente
-    ss_info() { echo -e "\e[32m[INFO]\e[0m [\$_SS_SERVICE] \$*"; }
-    ss_debug() { echo -e "\e[36m[DEBUG]\e[0m [\$_SS_SERVICE] \$*"; }
-    ss_warn() { echo -e "\e[33m[WARN]\e[0m [\$_SS_SERVICE] \$*"; }
-fi
+source /opt/soundspot/backend/system/log.sh 2>/dev/null || {
+    ss_info()  { echo "[INFO]  [picoport] $*"; }
+    ss_debug() { echo "[DEBUG] [picoport] $*"; }
+    ss_warn()  { echo "[WARN]  [picoport] $*"; }
+    ss_error() { echo "[ERROR] [picoport] $*" >&2; }
+}
 
 # Clé IPNS secondaire MySwarm (initialisée par swarm_sync.sh) — lue sans secrets
 CHAN=$(ipfs key list -l 2>/dev/null | grep "MySwarm_${IPFSNODEID}" | awk '{print $1}' || echo "")

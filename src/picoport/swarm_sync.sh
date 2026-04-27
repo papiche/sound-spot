@@ -2,6 +2,9 @@
 # src/picoport/swarm_sync.sh — Service de visibilité Picoport (Port 12345)
 # Version conforme Astroport.ONE (Clés déterministes + SSH Bootstrap)
 
+_SS_SERVICE="swarm-sync"
+source "/opt/soundspot/backend/system/log.sh" 2>/dev/null || true
+
 source /opt/soundspot/soundspot.conf 2>/dev/null || true
 source "$HOME/.astro/bin/activate" 2>/dev/null || true
 

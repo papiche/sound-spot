@@ -19,6 +19,7 @@ B='\033[0;34m'
 
 LIGHTTPD_LOG="/var/log/lighttpd/error.log"
 ACCESS_LOG="/var/log/lighttpd/access.log"
+SOUNDSPOT_LOG="/var/log/sound-spot.log"
 
 MODE="all"
 for arg in "$@"; do
@@ -69,10 +70,14 @@ filter() {
 # ── Sources disponibles ───────────────────────────────────────
 SOURCES=()
 
+if [ -f "$SOUNDSPOT_LOG" ]; then
+    SOURCES+=("$SOUNDSPOT_LOG")
+else
+    echo -e "${Y}⚠${N}  $SOUNDSPOT_LOG absent (sudo bash update.sh requis)"
+fi
+
 if [ -f "$LIGHTTPD_LOG" ]; then
     SOURCES+=("$LIGHTTPD_LOG")
-else
-    echo -e "${Y}⚠${N}  $LIGHTTPD_LOG absent (lighttpd non installé ?)"
 fi
 
 if [ -f "$ACCESS_LOG" ]; then

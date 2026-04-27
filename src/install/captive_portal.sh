@@ -28,10 +28,10 @@ www-data ALL=(${SOUNDSPOT_USER}) NOPASSWD: /bin/bash ${INSTALL_DIR}/backend/audi
 SUDOEOF
     chmod 0440 /etc/sudoers.d/soundspot-www
 
-    # Fichier de log portail (CGI + API)
-    touch /var/log/soundspot-portal.log
-    chown www-data:www-data /var/log/soundspot-portal.log
-    chmod 640 /var/log/soundspot-portal.log
+    # Accès en écriture de www-data au log centralisé SoundSpot
+    touch /var/log/sound-spot.log
+    chown root:www-data /var/log/sound-spot.log
+    chmod 664 /var/log/sound-spot.log
 
     # Configuration lighttpd
     cat > /etc/lighttpd/lighttpd.conf <<EOF

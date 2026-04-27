@@ -20,6 +20,9 @@
 # Hérite des exports de api.sh.
 
 # ── Relay local (tunnel IPFS P2P vers strfry distant) ────────
+_SS_SERVICE="portal-nostr"
+source "${INSTALL_DIR:-/opt/soundspot}/backend/system/log.sh" 2>/dev/null || true
+
 RELAY="ws://127.0.0.1:9999"
 
 # ── Lire le body POST ────────────────────────────────────────

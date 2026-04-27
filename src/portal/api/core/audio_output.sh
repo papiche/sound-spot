@@ -3,6 +3,9 @@
 # GET  → liste JSON [{name, label, active}, …]
 # POST sink=<name> → change la sortie par défaut + redémarre soundspot-client
 
+_SS_SERVICE="portal-audio"
+source "${INSTALL_DIR:-/opt/soundspot}/backend/system/log.sh" 2>/dev/null || true
+
 INSTALL_DIR="${INSTALL_DIR:-/opt/soundspot}"
 source "$INSTALL_DIR/soundspot.conf" 2>/dev/null || true
 SET_SCRIPT="$INSTALL_DIR/backend/system/set_audio_output.sh"

@@ -25,9 +25,12 @@ echo "Access-Control-Allow-Origin: *"
 echo "Cache-Control: no-cache"
 echo ""
 
+_SS_SERVICE="portal-api"
+source "${INSTALL_DIR}/backend/system/log.sh" 2>/dev/null || true
+export _SS_SERVICE
+
 ACTION=$(echo "$QUERY_STRING" | grep -oP '(?<=action=)[a-zA-Z0-9_]+' | head -1)
-echo "[$(date '+%Y-%m-%dT%H:%M:%S')] [api] action=${ACTION} method=${REQUEST_METHOD:-GET} ip=${REMOTE_ADDR:-?}" \
-    >> /var/log/soundspot-portal.log 2>/dev/null || true
+ss_info "action=${ACTION} method=${REQUEST_METHOD:-GET} ip=${REMOTE_ADDR:-?}"
 
 CORE="${INSTALL_DIR}/portal/api/core/${ACTION}.sh"
 APP="${INSTALL_DIR}/portal/api/apps/${ACTION}/run.sh"

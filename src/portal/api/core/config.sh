@@ -6,6 +6,9 @@
 # Hérite des exports de api.sh.
 
 # Vérifier si yt-dlp est disponible (conditionne l'affichage du module YouTube)
+_SS_SERVICE="portal-config"
+source "${INSTALL_DIR:-/opt/soundspot}/backend/system/log.sh" 2>/dev/null || true
+
 YT_DLP_AVAILABLE="false"
 command -v yt-dlp &>/dev/null && YT_DLP_AVAILABLE="true"
 

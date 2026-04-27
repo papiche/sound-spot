@@ -14,8 +14,9 @@
 
 WAV_DIR="${INSTALL_DIR:-/opt/soundspot}/wav"
 TTS_SH="${INSTALL_DIR:-/opt/soundspot}/backend/audio/tts.sh"
-PORTAL_LOG="/var/log/soundspot-portal.log"
-_log() { echo "[$(date '+%Y-%m-%dT%H:%M:%S')] [messages] $*" >> "$PORTAL_LOG" 2>/dev/null || true; }
+_SS_SERVICE="portal-messages"
+source "${INSTALL_DIR:-/opt/soundspot}/backend/system/log.sh" 2>/dev/null || true
+_log() { ss_info "$*"; }
 
 # ── Lecture des paramètres ───────────────────────────────────
 CMD=$(echo "$QUERY_STRING" | grep -oP '(?<=cmd=)[a-zA-Z0-9_]+' | head -1)
@@ -91,7 +92,7 @@ if [ "${CMD}" = "tts_now" ]; then
             -o "$TMP_WAV" \
             -H "Content-Type: application/json" \
             -d "{\"model\":\"orpheus\",\"input\":${JSON_TXT},\"voice\":\"${VOICE}\",\"response_format\":\"wav\",\"speed\":1.0}" \
-            "http://localhost:${ORPHEUS_PORT}/v1/audio/speech" 2>>"$PORTAL_LOG" \
+            "http://localhost:${ORPHEUS_PORT}/v1/audio/speech" 2>/dev/null \
             && [ -s "$TMP_WAV" ]; then
             mv "$TMP_WAV" "$wav"
             chown www-data:www-data "$wav" 2>/dev/null || true
@@ -107,7 +108,7 @@ if [ "${CMD}" = "tts_now" ]; then
     fi
 
     # Fallback espeak
-    if espeak-ng -v fr+f3 -s 115 -p 40 "$TXT_CONTENT" -w "$wav" 2>>"$PORTAL_LOG"; then
+    if espeak-ng -v fr+f3 -s 115 -p 40 "$TXT_CONTENT" -w "$wav" 2>/dev/null; then
         chown www-data:www-data "$wav" 2>/dev/null || true
         _log "ok source=espeak wav=$wav"
         jq -n --arg id "$ID" --arg url "$WAV_URL" \

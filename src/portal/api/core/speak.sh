@@ -8,6 +8,9 @@
 # Sécurité : seul le maître (SPOT_IP) peut déclencher la parole.
 # Voix : si Picoport actif → Orpheus (pierre/amelie), sinon espeak-ng.
 
+_SS_SERVICE="portal-speak"
+source "${INSTALL_DIR:-/opt/soundspot}/backend/system/log.sh" 2>/dev/null || true
+
 SPEAK_QUEUE="/dev/shm/soundspot_speak_queue"
 SPEAK_LOCK="/dev/shm/soundspot_speak.lock"
 MAX_TEXT_LEN=200

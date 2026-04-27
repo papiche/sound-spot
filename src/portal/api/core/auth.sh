@@ -3,6 +3,9 @@
 # Ajoute l'IP cliente dans ipset soundspot_auth (timeout 900s).
 # Hérite des exports de api.sh.
 
+_SS_SERVICE="portal-auth"
+source "${INSTALL_DIR:-/opt/soundspot}/backend/system/log.sh" 2>/dev/null || true
+
 CLIENT_IP="$REMOTE_ADDR"
 
 # Validation stricte du format IPv4 (prévient l'injection dans ipset)

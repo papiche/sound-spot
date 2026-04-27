@@ -20,6 +20,9 @@
 # Hérite des exports de api.sh (SPOT_NAME, SPOT_IP, INSTALL_DIR, urldecode).
 
 # ── Lecture des paramètres ───────────────────────────────────
+_SS_SERVICE="portal-admin"
+source "${INSTALL_DIR:-/opt/soundspot}/backend/system/log.sh" 2>/dev/null || true
+
 CMD=$(echo "$QUERY_STRING" | grep -oP '(?<=cmd=)[a-zA-Z0-9_]+' | head -1)
 PASS_GET=$(echo "$QUERY_STRING" | grep -oP '(?<=pass=)[^&]+' | head -1 | urldecode)
 

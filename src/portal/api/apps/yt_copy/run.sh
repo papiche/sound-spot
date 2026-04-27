@@ -11,6 +11,9 @@
 # Hérite des exports de api.sh.
 
 # ── Vérification des prérequis ────────────────────────────────
+_SS_SERVICE="portal-ytcopy"
+source "${INSTALL_DIR:-/opt/soundspot}/backend/system/log.sh" 2>/dev/null || true
+
 for _cmd in yt-dlp jq curl; do
     if ! command -v "$_cmd" &>/dev/null; then
         jq -n --arg cmd "$_cmd" '{"error":"missing_dependency","cmd":$cmd,"hint":"sudo apt install $cmd"}'

@@ -2,6 +2,9 @@
 # decoder.sh — Lit le flux Ogg de Mixxx via Icecast,
 # le décode en PCM 48 kHz s16le et l'écrit dans le snapfifo.
 # ffmpeg est tolérant aux coupures : il attend et relance automatiquement.
+_SS_SERVICE="decoder"
+source "/opt/soundspot/backend/system/log.sh" 2>/dev/null || true
+
 FIFO="/dev/shm/snapfifo"
 # FIFO créé par systemd-tmpfiles (soundspot-fifos.conf) avec droits audio corrects.
 # On attend qu'il existe avant de démarrer (garantit l'ordre même sur premier boot).

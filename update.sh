@@ -161,13 +161,10 @@ if [ -d "$INSTALL_DIR/wav" ]; then
     log "wav/ permissions corrigées (www-data)"
 fi
 
-# ── Fichier de log portail ────────────────────────────────────
-if [ ! -f /var/log/soundspot-portal.log ]; then
-    touch /var/log/soundspot-portal.log
-    chown www-data:www-data /var/log/soundspot-portal.log
-    chmod 640 /var/log/soundspot-portal.log
-    log "Créé /var/log/soundspot-portal.log"
-fi
+# ── Accès www-data au log centralisé ─────────────────────────
+touch /var/log/sound-spot.log
+chown root:www-data /var/log/sound-spot.log
+chmod 664 /var/log/sound-spot.log
 
 # ── Alias /wav/ dans lighttpd.conf si absent ──────────────────
 LCONF=/etc/lighttpd/lighttpd.conf
