@@ -93,33 +93,39 @@ if $WITH_PINOUT; then
                 log "phatstack/ copié"
             fi
 
+            # Aplatir pinout/pinout/*.html → pinout/[nom]/index.html
+            # (évite toute règle URL rewrite dans lighttpd)
+            if [ -d "$PORTAL_PINOUT/pinout" ]; then
+                for f in "$PORTAL_PINOUT/pinout/"*.html; do
+                    [ -f "$f" ] || continue
+                    name=$(basename "$f" .html)
+                    mkdir -p "$PORTAL_PINOUT/$name"
+                    cp "$f" "$PORTAL_PINOUT/$name/index.html"
+                done
+                log "pages pinout aplaties dans $PORTAL_PINOUT/"
+            fi
+
             chmod -R a+rX "$PORTAL_PINOUT/"
             log "Pinout → $PORTAL_PINOUT"
 
-            # Patcher lighttpd.conf : réécrire le bloc url.rewrite-once entier (évite les doublons)
+            # Nettoyer toute règle pinout résiduelle dans lighttpd.conf
             python3 - <<'PYEOF'
 import re, sys
 f = '/etc/lighttpd/lighttpd.conf'
 try:
     t = open(f).read()
-    correct = '"^/pinout/([^/.]+)$" => "/pinout/pinout/$1.html"'
-    if correct in t and t.count(correct) == 1:
-        print('lighttpd.conf : règle pinout déjà correcte')
+    if 'pinout' not in t:
         sys.exit(0)
     block = re.search(r'url\.rewrite-once\s*=\s*\(.*?\n\)', t, re.DOTALL)
     if block:
         new = ('url.rewrite-once = (\n'
-               '    "^/(generate_204|hotspot-detect.html|ncsi.txt|success.txt).*$" => "/index.sh",\n'
-               '    "^/pinout/([^/.]+)$" => "/pinout/pinout/$1.html"\n'
+               '    "^/(generate_204|hotspot-detect.html|ncsi.txt|success.txt).*$" => "/index.sh"\n'
                ')')
         open(f, 'w').write(t[:block.start()] + new + t[block.end():])
-        print('lighttpd.conf patché : bloc url.rewrite-once mis à jour')
-    else:
-        print('WARN : bloc url.rewrite-once introuvable', file=sys.stderr)
+        print('lighttpd.conf : règle pinout supprimée')
 except Exception as e:
     print(f'WARN : {e}', file=sys.stderr)
 PYEOF
-            log "lighttpd : règle pinout URL rewrite activée"
         else
             warn "output/en/ absent — génération peut-être échouée"
         fi

@@ -596,6 +596,15 @@ if [ "$SOUNDSPOT_MODE" != "2" ]; then
         rm -rf "$PORTAL_PINOUT"
         mkdir -p "$PORTAL_PINOUT"
         cp -r "$PINOUT_DIR/output/en/"* "$PORTAL_PINOUT/" 2>/dev/null || true
+        # Aplatir pinout/pinout/*.html → pinout/[nom]/index.html (URLs sans extension ni réécriture)
+        if [ -d "$PORTAL_PINOUT/pinout" ]; then
+            for _f in "$PORTAL_PINOUT/pinout/"*.html; do
+                [ -f "$_f" ] || continue
+                _name=$(basename "$_f" .html)
+                mkdir -p "$PORTAL_PINOUT/$_name"
+                cp "$_f" "$PORTAL_PINOUT/$_name/index.html"
+            done
+        fi
         chmod -R a+rX "$PORTAL_PINOUT/"
         log "Pinout.xyz copié → portal/pinout/ ✓  (http://$(hostname -I | awk '{print $1}')/pinout/)"
     elif [ -d "$PINOUT_DIR" ]; then
