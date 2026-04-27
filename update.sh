@@ -68,8 +68,13 @@ if $WITH_PINOUT; then
     else
         cd "$PINOUT_REPO"
 
+        # Patcher resource_url pour servir sous /pinout/ (chemins absolus → /pinout/resources/)
+        sudo -u "$SOUNDSPOT_USER" sed -i \
+            's|resource_url: /resources/|resource_url: /pinout/resources/|' \
+            "src/en/settings.yaml" 2>/dev/null || true
+
         if [ -f "generate-html.py" ]; then
-            sudo -u "$SOUNDSPOT_USER" python3 generate-html.py 2>&1 | tail -5 \
+            sudo -u "$SOUNDSPOT_USER" python3 generate-html.py en 2>&1 | tail -5 \
                 || warn "generate-html.py a retourné une erreur (non fatal)"
         fi
 
