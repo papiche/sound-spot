@@ -96,25 +96,26 @@ if $WITH_PINOUT; then
             chmod -R a+rX "$PORTAL_PINOUT/"
             log "Pinout → $PORTAL_PINOUT"
 
-            # Patcher lighttpd.conf : URLs propres /pinout/sdio → /pinout/sdio.html
+            # Patcher lighttpd.conf : réécrire le bloc url.rewrite-once entier (évite les doublons)
             python3 - <<'PYEOF'
-import sys
+import re, sys
 f = '/etc/lighttpd/lighttpd.conf'
 try:
     t = open(f).read()
     correct = '"^/pinout/([^/.]+)$" => "/pinout/pinout/$1.html"'
-    if correct in t:
+    if correct in t and t.count(correct) == 1:
         print('lighttpd.conf : règle pinout déjà correcte')
         sys.exit(0)
-    # Corriger une ancienne règle avec mauvais chemin cible
-    t = t.replace('"^/pinout/([^/.]+)$" => "/pinout/$1.html"', correct)
-    needle = '"^/(generate_204|hotspot-detect.html|ncsi.txt|success.txt).*$" => "/index.sh"'
-    replace = needle + ',\n    "^/pinout/([^/.]+)$" => "/pinout/pinout/$1.html"'
-    if needle in t:
-        open(f, 'w').write(t.replace(needle, replace, 1))
-        print('lighttpd.conf patché : règle pinout ajoutée')
+    block = re.search(r'url\.rewrite-once\s*=\s*\(.*?\n\)', t, re.DOTALL)
+    if block:
+        new = ('url.rewrite-once = (\n'
+               '    "^/(generate_204|hotspot-detect.html|ncsi.txt|success.txt).*$" => "/index.sh",\n'
+               '    "^/pinout/([^/.]+)$" => "/pinout/pinout/$1.html"\n'
+               ')')
+        open(f, 'w').write(t[:block.start()] + new + t[block.end():])
+        print('lighttpd.conf patché : bloc url.rewrite-once mis à jour')
     else:
-        print('WARN : séquence cible introuvable dans lighttpd.conf — ajout manuel requis', file=sys.stderr)
+        print('WARN : bloc url.rewrite-once introuvable', file=sys.stderr)
 except Exception as e:
     print(f'WARN : {e}', file=sys.stderr)
 PYEOF
