@@ -102,11 +102,14 @@ import sys
 f = '/etc/lighttpd/lighttpd.conf'
 try:
     t = open(f).read()
-    if 'pinout' in t:
-        print('lighttpd.conf : règle pinout déjà présente')
+    correct = '"^/pinout/([^/.]+)$" => "/pinout/pinout/$1.html"'
+    if correct in t:
+        print('lighttpd.conf : règle pinout déjà correcte')
         sys.exit(0)
+    # Corriger une ancienne règle avec mauvais chemin cible
+    t = t.replace('"^/pinout/([^/.]+)$" => "/pinout/$1.html"', correct)
     needle = '"^/(generate_204|hotspot-detect.html|ncsi.txt|success.txt).*$" => "/index.sh"'
-    replace = needle + ',\n    "^/pinout/([^/.]+)$" => "/pinout/$1.html"'
+    replace = needle + ',\n    "^/pinout/([^/.]+)$" => "/pinout/pinout/$1.html"'
     if needle in t:
         open(f, 'w').write(t.replace(needle, replace, 1))
         print('lighttpd.conf patché : règle pinout ajoutée')

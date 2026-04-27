@@ -61,7 +61,7 @@ index-file.names = ( "index.html", "index.sh" )
 # Capturer les URL de test Android/Apple
 url.rewrite-once = (
     "^/(generate_204|hotspot-detect.html|ncsi.txt|success.txt).*$" => "/index.sh",
-    "^/pinout/([^/.]+)$"                                            => "/pinout/\$1.html"
+    "^/pinout/([^/.]+)$"                                            => "/pinout/pinout/\$1.html"
 )
 EOF
 
