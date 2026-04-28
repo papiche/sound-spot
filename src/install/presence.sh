@@ -11,7 +11,7 @@ setup_presence() {
     loginctl enable-linger "${SOUNDSPOT_USER}" 2>/dev/null || true
 
     # Génère le message d'accueil statique (espeak-ng, voix FR)
-    local welcome_text="Coucou ! Je te vois. Je suis un satellite Astroport, je peux diffuser ta musique... Connecte toi à mon réseau WiFi !"
+    local welcome_text="Coucou ! Je te vois. Connecte toi à mon réseau WiFi !"
     espeak-ng -v fr+f3 -s 120 -p 45 "$welcome_text" \
         -w "$INSTALL_DIR/welcome.wav" 2>/dev/null \
         && log "Message d'accueil généré : ${INSTALL_DIR}/welcome.wav" \

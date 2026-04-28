@@ -186,8 +186,6 @@ if [ -d "$INSTALL_DIR/wav" ]; then
     log "wav/ permissions blindées (groupe soundspot)"
 fi
 
-
-
 # ── Accès www-data au log centralisé ─────────────────────────
 touch /var/log/sound-spot.log
 chown root:www-data /var/log/sound-spot.log
