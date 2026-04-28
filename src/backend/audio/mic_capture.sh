@@ -13,18 +13,34 @@ BANDPASS="${MIC_BANDPASS:-false}"
 
 [ -p "$FIFO" ] || mkfifo -m 0660 "$FIFO"
 
+# 1. Recherche dynamique du micro
+# On cherche les patterns connus dans arecord -l
+# card 3: Q91 [Q9-1], device 0 ... -> on veut le '3'
+CARD_ID=$(arecord -l | grep -Ei "Q91|W-KING|USB Audio|seeed|respeaker" | head -n 1 | cut -d' ' -f2 | tr -d ':')
+
+if [ -z "$CARD_ID" ]; then
+    # Fallback si rien n'est trouvé, on prend la carte 0 par défaut
+    MIC_ALSA_DEV="hw:0,0"
+    echo "WARN: Aucun micro spécifique détecté, essai sur hw:0,0" >&2
+else
+    MIC_ALSA_DEV="hw:${CARD_ID},0"
+    echo "INFO: Micro détecté automatiquement sur ${MIC_ALSA_DEV}" >&2
+fi
+
 # Détection automatique du périphérique USB audio si non défini
 if [ -z "$MIC_DEV" ]; then
-    MIC_DEV=$(arecord -l 2>/dev/null \
-        | awk '/USB/{match($0,/card ([0-9]+)/,c); match($0,/device ([0-9]+)/,d); if(c[1]!="" && d[1]!="") print "hw:"c[1]","d[1]; exit}')
+    log "Recherche d'un périphérique audio..."
+    # Cherche ReSpeaker d'abord, puis USB
+    MIC_DEV=$(arecord -l | grep -Ei "seeed|respeaker|USB" | head -n1 | awk '{print "hw:"$2",0"}')
 fi
 
 if [ -z "$MIC_DEV" ]; then
-    echo "mic_capture: aucun micro USB détecté (arecord -l)" >&2
+    ss_error "Aucun micro trouvé (arecord -l est vide). Le stream Mic sera silencieux."
     exit 1
+else
+    ss_info "Micro sélectionné : $MIC_DEV"
 fi
 
-echo "mic_capture: périphérique → $MIC_DEV" >&2
 
 # Construction du pipeline ffmpeg selon passe-bande
 if [ "$BANDPASS" = "true" ]; then

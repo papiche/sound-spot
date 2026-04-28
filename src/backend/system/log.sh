@@ -52,6 +52,28 @@ ss_log() {
     [ "$level" = "ERROR" ] && printf '%s\n' "$entry" >&2
     return 0
 }
+# ... (garder le début existant)
+
+ss_alert() {
+    local msg="$*"
+    ss_error "ALERT VOCALE: $msg"
+    
+    # 1. Un petit son d'erreur système (400Hz, très court)
+    (
+        USER_ID=$(id -u pi 2>/dev/null || echo 1000)
+        export XDG_RUNTIME_DIR="/run/user/${USER_ID}"
+        # Bip d'alerte via ffplay ou aplay
+        {
+          # Synthèse d'un bip d'alerte "glitch"
+          ffmpeg -f lavfi -i "sine=frequency=400:duration=0.1" -f wav - | aplay -q 2>/dev/null
+          sleep 0.1
+          ffmpeg -f lavfi -i "sine=frequency=200:duration=0.2" -f wav - | aplay -q 2>/dev/null
+        } &
+
+        # 2. Annonce robotique (espeak-ng est local, fiable hors-ligne)
+        espeak-ng -v fr+f3 -s 130 -p 30 "Alerte système : $msg" 2>/dev/null | aplay -q 2>/dev/null
+    ) &
+}
 
 ss_info()  { ss_log INFO  "${_SS_SERVICE:-soundspot}" "$@"; }
 ss_warn()  { ss_log WARN  "${_SS_SERVICE:-soundspot}" "$@"; }

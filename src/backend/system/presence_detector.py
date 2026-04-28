@@ -279,6 +279,8 @@ def _start_audio_listener(cooldown_ref):
 
     def _audio_cb(indata, frames, time_info, status):
         vol = float(_np_audio.linalg.norm(indata)) / max(1, len(indata) ** 0.5)
+        if random.random() < 0.01:
+            log.debug(f"Niveau micro réel : {vol:.4f} (Seuil : {AUDIO_THR})")
         if vol > AUDIO_THR:
             now = time.monotonic()
             if now - cooldown_ref[0] > COOLDOWN_S:

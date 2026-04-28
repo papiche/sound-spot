@@ -35,8 +35,8 @@ fi
 
 export SOUNDSPOT_USER="${SUDO_USER:-pi}"
 export SOUNDSPOT_UID=$(id -u "${SOUNDSPOT_USER}" 2>/dev/null || echo "1000")
-log "Utilisateur audio : ${W}${SOUNDSPOT_USER}${N} (UID ${SOUNDSPOT_UID})"
-sudo usermod -aG audio ${SOUNDSPOT_USER}
+log "Utilisateur video,render,audio,input : ${W}${SOUNDSPOT_USER}${N} (UID ${SOUNDSPOT_UID})"
+sudo usermod -aG video,render,audio,input ${SOUNDSPOT_USER}
 
 if [[ $SCRIPT_DIR != "/home/$SOUNDSPOT_USER/.zen/workspace/sound-spot" ]]; then
     echo "... PLEASE RESPECT ~/.zen CODE LOCATION ... 

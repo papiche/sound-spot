@@ -19,6 +19,26 @@ HB_SCRIPT="$HOME/.zen/Astroport.ONE/tools/heartbox_analysis.sh"
 
 mkdir -p "$MY_NODE_DIR" "$SWARM_DIR"
 
+announce_fail() {
+    espeak-ng -v fr+f3 -s 140 "Erreur picoport : $1" | aplay -q 2>/dev/null &
+}
+
+# Vérifier IPFS
+if ! ipfs id >/dev/null 2>&1; then
+    ss_error "IPFS ne répond pas"
+    announce_fail "Le système de fichier interplanétaire est arrêté ou est mal configuré."
+fi
+
+# Vérifier Swarm
+PEERS=$(ipfs swarm peers | wc -l)
+if [ "$PEERS" -eq 0 ]; then
+    ss_warn "Nœud isolé"
+    # On ne fait une alerte vocale que si ça dure (ex: après 5 min)
+    if [ ! -f /tmp/swarm_fail_start ]; then touch /tmp/swarm_fail_start; fi
+else
+    rm -f /tmp/swarm_fail_start
+fi
+
 # ── NOSTR Identity (Y-Level) ────────────────────────────────────────────────
 # Dérive ou charge le HEX NOSTR depuis secret.june / secret.nostr.
 # Publié dans MY_NODE_DIR/HEX → téléchargé par la constellation via swarm IPNS.

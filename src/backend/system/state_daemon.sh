@@ -28,11 +28,13 @@ while true; do
     if [ -f "${PORTAL}/status.json" ]; then
         DJ_ACTIVE=$(jq -r '.dj_active // "false"' "${PORTAL}/status.json")
         if [ "$DJ_ACTIVE" = "true" ]; then
-            # Test de flux : on essaie de lire 1 octet avec un timeout de 1s
             if ! timeout 1 dd if=/dev/shm/snapfifo bs=1 count=1 >/dev/null 2>&1; then
-                ss_warn "Watchdog: Flux DJ actif mais aucun flux dans la FIFO (FFmpeg gelé ?)"
+                ss_warn "Watchdog: Silence détecté"
+                espeak-ng -v fr+f3 "Flux audio gelé. Tentative de redémarrage du décodeur." | aplay -q 2>/dev/null &
                 systemctl restart soundspot-decoder
             fi
         fi
     fi
+
+
 done
