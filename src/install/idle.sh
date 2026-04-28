@@ -8,14 +8,11 @@ setup_idle() {
     hdr "Clocher numérique (annonces sans DJ)"
     local wav_dir="$INSTALL_DIR/wav"
 
-    # ── Répertoire wav/ ─────────────────────────────────────────
     mkdir -p "$wav_dir"
-    log "Répertoire $wav_dir créé"
-    sudo chown -R www-data:soundspot /opt/soundspot/wav
-    # Donner les droits de lecture/écriture/exécution au groupe
-    sudo chmod -R 775 /opt/soundspot/wav
-    # S'assurer que les futurs fichiers créés héritent du groupe (Setgid)
-    sudo chmod g+s /opt/soundspot/wav
+    # L'utilisateur de runtime (pi) doit être propriétaire, groupe soundspot pour le web
+    chown -R ${SOUNDSPOT_USER}:soundspot "$wav_dir"
+    chmod -R 775 "$wav_dir"
+    chmod g+s "$wav_dir" # Bit Setgid : les nouveaux fichiers héritent du groupe soundspot
 
     # ── Script principal ─────────────────────────────────────────
     install_template "idle_announcer.sh" "$INSTALL_DIR/idle_announcer.sh"

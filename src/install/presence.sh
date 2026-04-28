@@ -63,5 +63,6 @@ setup_presence() {
     else
         warn "battery_monitor.py absent — monitoring batterie non installé"
     fi
-    
+    log "Installation des dépendances batterie dans le venv..."
+    sudo -u "$SOUNDSPOT_USER" "$ASTRO_VENV/bin/pip" install --quiet pi-ina219 RPi.GPIO
     }

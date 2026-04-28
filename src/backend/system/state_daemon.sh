@@ -23,13 +23,20 @@ while true; do
     fi
     sleep "$INTERVAL"
     # Watchdog Décodeur
-    if [ "$(cat /opt/soundspot/portal/status.json | jq .dj_active)" = "true" ]; then
-        # Vérifier si la FIFO a été modifiée il y a moins de 10s
-        LAST_MOD=$(stat -c %Y /dev/shm/snapfifo)
-        NOW=$(date +%s)
-        if [ $((NOW - LAST_MOD)) -gt 10 ]; then
-             ss_warn "Watchdog: FFmpeg gelé (FIFO inactive), restart decoder..."
-             systemctl restart soundspot-decoder
+
+    # Vérification sécurisée du watchdog
+    if [ -f "${PORTAL}/status.json" ]; then
+        DJ_ACTIVE=$(jq -r '.dj_active // "false"' "${PORTAL}/status.json")
+        if [ "$DJ_ACTIVE" = "true" ]; then
+            if [ "$(cat /opt/soundspot/portal/status.json | jq .dj_active)" = "true" ]; then
+                # Vérifier si la FIFO a été modifiée il y a moins de 10s
+                LAST_MOD=$(stat -c %Y /dev/shm/snapfifo)
+                NOW=$(date +%s)
+                if [ $((NOW - LAST_MOD)) -gt 10 ]; then
+                    ss_warn "Watchdog: FFmpeg gelé (FIFO inactive), restart decoder..."
+                    systemctl restart soundspot-decoder
+                fi
+            fi
         fi
     fi
 done

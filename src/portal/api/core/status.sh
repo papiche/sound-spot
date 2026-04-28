@@ -35,6 +35,15 @@ SVC_LIGHTTPD=$(_svc lighttpd)
 SVC_PICOPORT=$(_svc picoport)
 SVC_BT_REACTIVE=$(_svc soundspot-bt-reactive)
 
+# Fonction pour nettoyer les chaînes pour JSON (enlève caractères de contrôle)
+clean_json() {
+    echo -n "$1" | tr -d '\000-\031' | sed 's/"/\\"/g'
+}
+
+BT_CONNECTED_RAW=$(bluetoothctl devices Connected 2>/dev/null | grep "Device " | awk '{print $2}' | paste -sd' ' - || echo "")
+BT_CONNECTED=$(clean_json "$BT_CONNECTED_RAW")
+
+
 jq -n \
   --arg spot_name "$SPOT_NAME" \
   --arg spot_ip "$SPOT_IP" \
