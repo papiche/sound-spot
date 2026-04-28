@@ -28,6 +28,17 @@ _SS_SERVICE="soundspot-mic"
     ss_error() { echo "[ERROR] [soundspot-mic] $*" >&2; }
 }
 
+# ── Auto-détection env PipeWire (fallback si soundspot-mic.service non redeployé) ──
+# Cas normal : service tourne en tant que SOUNDSPOT_USER avec PULSE_SERVER injecté.
+# Cas legacy : service tourne en root (ancien .service), on reconstruit l'env.
+if [ -z "${PULSE_SERVER:-}" ]; then
+    _ss_uid=$(id -u "${SOUNDSPOT_USER:-pi}" 2>/dev/null || echo "1000")
+    export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/${_ss_uid}}"
+    export PULSE_SERVER="unix:/run/user/${_ss_uid}/pulse/native"
+    ss_warn "PULSE_SERVER auto-détecté → ${PULSE_SERVER}"
+    ss_warn "Pour supprimer cet avertissement : sudo systemctl daemon-reload && sudo systemctl restart soundspot-mic"
+fi
+
 # ── Diagnostic micro ALSA (information seulement — PipeWire gère l'accès) ──
 CARD_ID=$(arecord -l 2>/dev/null | grep -Ei "Q91|W-KING|USB Audio|seeed|respeaker" | head -n 1 | cut -d' ' -f2 | tr -d ':')
 if [ -n "$CARD_ID" ]; then
