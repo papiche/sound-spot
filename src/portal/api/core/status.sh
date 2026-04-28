@@ -35,32 +35,54 @@ SVC_LIGHTTPD=$(_svc lighttpd)
 SVC_PICOPORT=$(_svc picoport)
 SVC_BT_REACTIVE=$(_svc soundspot-bt-reactive)
 
-cat <<JSON
-{
-  "spot_name": "${SPOT_NAME}",
-  "spot_ip": "${SPOT_IP}",
-  "snapcast_port": ${SNAPCAST_PORT},
-  "icecast_port": ${ICECAST_PORT},
-  "dj_active": ${DJ_ACTIVE},
-  "clock_mode": "${CLOCK_MODE}",
-  "voice_enabled": ${VOICE_ENABLED},
-  "bells_enabled": ${BELLS_ENABLED},
-  "picoport_active": ${PICOPORT_ACTIVE},
-  "cpu_load": "${CPU_LOAD}",
-  "mem_free_kb": ${MEM_FREE},
-  "batt_pct": ${BATT_PCT},
-  "batt_volt": ${BATT_VOLT},
-  "batt_cur": ${BATT_CUR},
-  "batt_pow": ${BATT_POW},
-  "services": {
-    "snapserver":        "${SVC_SNAPSERVER}",
-    "soundspot-decoder": "${SVC_DECODER}",
-    "soundspot-client":  "${SVC_CLIENT}",
-    "soundspot-idle":    "${SVC_IDLE}",
-    "icecast2":          "${SVC_ICECAST}",
-    "lighttpd":          "${SVC_LIGHTTPD}",
-    "picoport":          "${SVC_PICOPORT}",
-    "soundspot-bt-reactive": "${SVC_BT_REACTIVE}"
-  }
-}
-JSON
+jq -n \
+  --arg spot_name "$SPOT_NAME" \
+  --arg spot_ip "$SPOT_IP" \
+  --argjson snapcast_port "$SNAPCAST_PORT" \
+  --argjson icecast_port "$ICECAST_PORT" \
+  --argjson dj_active "$DJ_ACTIVE" \
+  --arg clock_mode "$CLOCK_MODE" \
+  --argjson voice_enabled "$VOICE_ENABLED" \
+  --argjson bells_enabled "$BELLS_ENABLED" \
+  --argjson picoport_active "$PICOPORT_ACTIVE" \
+  --arg cpu_load "$CPU_LOAD" \
+  --argjson mem_free_kb "$MEM_FREE" \
+  --argjson batt_pct "${BATT_PCT:-0}" \
+  --argjson batt_volt "${BATT_VOLT:-0}" \
+  --argjson batt_cur "${BATT_CUR:-0}" \
+  --argjson batt_pow "${BATT_POW:-0}" \
+  --arg svc_snapserver "$SVC_SNAPSERVER" \
+  --arg svc_decoder "$SVC_DECODER" \
+  --arg svc_client "$SVC_CLIENT" \
+  --arg svc_idle "$SVC_IDLE" \
+  --arg svc_icecast "$SVC_ICECAST" \
+  --arg svc_lighttpd "$SVC_LIGHTTPD" \
+  --arg svc_picoport "$SVC_PICOPORT" \
+  --arg svc_bt_reactive "$SVC_BT_REACTIVE" \
+  '{
+    spot_name: $spot_name,
+    spot_ip: $spot_ip,
+    snapcast_port: $snapcast_port,
+    icecast_port: $icecast_port,
+    dj_active: $dj_active,
+    clock_mode: $clock_mode,
+    voice_enabled: $voice_enabled,
+    bells_enabled: $bells_enabled,
+    picoport_active: $picoport_active,
+    cpu_load: $cpu_load,
+    mem_free_kb: $mem_free_kb,
+    batt_pct: $batt_pct,
+    batt_volt: $batt_volt,
+    batt_cur: $batt_cur,
+    batt_pow: $batt_pow,
+    services: {
+      snapserver: $svc_snapserver,
+      "soundspot-decoder": $svc_decoder,
+      "soundspot-client": $svc_client,
+      "soundspot-idle": $svc_idle,
+      icecast2: $svc_icecast,
+      lighttpd: $svc_lighttpd,
+      picoport: $svc_picoport,
+      "soundspot-bt-reactive": $svc_bt_reactive
+    }
+  }'
