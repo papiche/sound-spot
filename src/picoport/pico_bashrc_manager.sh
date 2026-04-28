@@ -181,6 +181,10 @@ pico-power() {
         echo "   (heartbox_analysis.json absent — IPFS en cours de démarrage ?)"
     fi
 }
+
+## activate ~/.astro python venv
+[[ -f $HOME/.astro/bin/activate ]] && source $HOME/.astro/bin/activate
+
 # <<< PICOPORT ALIASES END <<<
 EOF
 
