@@ -13,6 +13,15 @@ BANDPASS="${MIC_BANDPASS:-false}"
 
 [ -p "$FIFO" ] || mkfifo -m 0660 "$FIFO"
 
+_SS_SERVICE="soundspot-mic"
+[ -f /opt/soundspot/soundspot.conf ] && source /opt/soundspot/soundspot.conf
+[ -f /opt/soundspot/log.sh ] && source /opt/soundspot/log.sh || {
+    # Fallback si absent
+    log() { echo "[INFO] $*"; }
+    ss_info() { echo "[INFO] $*"; }
+    ss_error() { echo "[ERROR] $*" >&2; }
+}
+
 # 1. Recherche dynamique du micro
 # On cherche les patterns connus dans arecord -l
 # card 3: Q91 [Q9-1], device 0 ... -> on veut le '3'

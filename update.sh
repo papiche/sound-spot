@@ -8,7 +8,7 @@
 
 set -euo pipefail
 
-INSTALL_DIR="${INSTALL_DIR:-/opt/soundspot}"
+INSTALL_DIR="${INSTALL_DIR:-$INSTALL_DIR}"
 SOUNDSPOT_USER="${SOUNDSPOT_USER:-pi}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -175,10 +175,18 @@ fi
 
 # ── Permissions wav/ ──────────────────────────────────────────
 if [ -d "$INSTALL_DIR/wav" ]; then
-    chown -R www-data:www-data "$INSTALL_DIR/wav"
-    chmod -R ug+rw "$INSTALL_DIR/wav"
-    log "wav/ permissions corrigées (www-data)"
+    # On s'assure que le groupe soundspot existe
+    getent group soundspot >/dev/null || groupadd soundspot
+    
+    # On remet tout au propre : groupe soundspot + écriture groupe
+    chown -R root:soundspot "$INSTALL_DIR/wav"
+    chmod -R 775 "$INSTALL_DIR/wav"
+    chmod g+s "$INSTALL_DIR/wav" # Heritage du groupe pour les nouveaux fichiers
+    
+    log "wav/ permissions blindées (groupe soundspot)"
 fi
+
+
 
 # ── Accès www-data au log centralisé ─────────────────────────
 touch /var/log/sound-spot.log
@@ -193,7 +201,7 @@ f = '/etc/lighttpd/lighttpd.conf'
 t = open(f).read()
 t = t.replace(
     'index-file.names',
-    'alias.url = ( "/wav/" => "/opt/soundspot/wav/" )\n\nindex-file.names'
+    'alias.url = ( "/wav/" => "$INSTALL_DIR/wav/" )\n\nindex-file.names'
 )
 open(f,'w').write(t)
 print('lighttpd : alias /wav/ ajouté')
