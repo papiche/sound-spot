@@ -192,6 +192,8 @@ flowchart LR
     class BT_M,DAC_S out;
 ```
 
+Note sur l'IA : Le RPi Master (Bouche/Oreilles) ne traite pas l'IA localement. Il envoie la capture au Swarm UPlanet via un tunnel P2P chiffré. Le calcul (LLM/Vision) est effectué par un Brain-Node (PC avec GPU) et la réponse revient au Master pour être lue.
+
 ### 3. Signalisation et Automatisations (Nostr & API)
 
 SoundSpot utilise NOSTR pour deux choses très différentes : la gestion de la **flotte locale** (Kind 9 éphémère / GitOps distribué) pour l'extinction, et l'interaction avec le **monde extérieur** (Kind 1 pour le Jukebox et les signaux de survie).

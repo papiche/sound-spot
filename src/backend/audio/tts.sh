@@ -71,6 +71,14 @@ _cache_store() {
     fi
 }
 
+_cache_purge() {
+    # Garde les 100 fichiers les plus récents
+    local count=$(ls -1 "$CACHE_DIR"/*.wav 2>/dev/null | wc -l)
+    if [ "$count" -gt 100 ]; then
+        ls -tr "$CACHE_DIR"/*.wav | head -n -100 | xargs rm -f
+    fi
+}
+
 # ── Localiser orpheus.me.sh via le home de SOUNDSPOT_USER ───────────
 _user_home=$(getent passwd "$SOUNDSPOT_USER" | cut -d: -f6 2>/dev/null || echo "/home/$SOUNDSPOT_USER")
 ORPHEUS_SH="${_user_home}/.zen/Astroport.ONE/IA/orpheus.me.sh"
@@ -156,6 +164,7 @@ if _picoport_active; then
 
         if _generate_orpheus && [ -s "$OUTFILE" ]; then
             _cache_store
+            _cache_purge
             trap - EXIT
             echo "$OUTFILE"
             exit 0
@@ -169,6 +178,7 @@ _cache_check
 
 if _generate_espeak && [ -s "$OUTFILE" ]; then
     _cache_store
+    _cache_purge
     trap - EXIT
     echo "$OUTFILE"
     exit 0

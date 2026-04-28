@@ -245,5 +245,15 @@ hdr "Installation terminée ✓"
 echo -e "${G}SoundSpot est prêt !${N}"
 echo -e "Utilisez la commande ${C}check${N} (alias) pour vérifier l'état des services."
 echo -e "Le nœud va redémarrer dans 10s..."
+
+hdr "Optimisation RAM (ZRAM)"
+cat > /etc/default/zramswap <<EOF
+ALGORITHM=lz4
+SIZE=256
+PRIORITY=100
+EOF
+systemctl restart zramswap
+log "ZRAM configuré (256Mo compressés) ✓"
+
 sleep 10
 reboot

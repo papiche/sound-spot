@@ -28,13 +28,9 @@ while true; do
     if [ -f "${PORTAL}/status.json" ]; then
         DJ_ACTIVE=$(jq -r '.dj_active // "false"' "${PORTAL}/status.json")
         if [ "$DJ_ACTIVE" = "true" ]; then
-            # On vérifie si la FIFO reçoit des données (taille évolue)
-            # Plus fiable que la date de modification sur certains FS
-            CHECK1=$(stat -c %s /dev/shm/snapfifo)
-            sleep 2
-            CHECK2=$(stat -c %s /dev/shm/snapfifo)
-            if [ "$CHECK1" -eq "$CHECK2" ]; then
-                ss_warn "Watchdog: Flux DJ actif mais silence détecté dans la FIFO (FFmpeg gelé ?)"
+            # Test de flux : on essaie de lire 1 octet avec un timeout de 1s
+            if ! timeout 1 dd if=/dev/shm/snapfifo bs=1 count=1 >/dev/null 2>&1; then
+                ss_warn "Watchdog: Flux DJ actif mais aucun flux dans la FIFO (FFmpeg gelé ?)"
                 systemctl restart soundspot-decoder
             fi
         fi

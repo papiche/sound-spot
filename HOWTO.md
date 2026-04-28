@@ -119,7 +119,7 @@ ssh pi@soundspot-sat.local   # hostname configuré dans l'Imager
 git clone https://github.com/papiche/sound-spot
 cd sound-spot
 sudo bash deploy_on_pi.sh --satellite
-# → hostname du maître : soundspot.local
+→ Appuyez sur ENTRÉE : le satellite détectera automatiquement le Master.
 ```
 
 Le satellite se connecte au réseau **qo-op** (même canal WiFi que le maître),

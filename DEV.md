@@ -87,6 +87,12 @@ C'est le backend "Lourd" (FastAPI), conçu pour les interactions complexes avec 
 * **Exemple d'utilisation :** Le financement participatif (`/api/crowdfunding`), la génération d'avatars (`/robohash`), les envois de Ẑen.
 * **Avantage :** Puissance de Python, validation Pydantic, gestion native des WebSockets et de la cryptographie avancée.
 
+Pour tester vos modifications d'API sans passer par le navigateur, utilisez l'alias :
+
+```ss-api nom_de_votre_action```
+
+Cela simule un appel CGI complet et formate la sortie JSON.
+
 ---
 
 ## 📝 Résumé de la philosophie de dev
