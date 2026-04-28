@@ -163,9 +163,9 @@ EOF
         fi
         
         log "Copie de la clé vers le Raspberry Pi (pi@$SPOT_IP)..."
-        info "Si le système vous demande 'Are you sure you want to continue connecting', tapez 'yes' en toutes lettres."
+        info "L'empreinte SSH sera acceptée automatiquement (StrictHostKeyChecking=accept-new)."
         info "Veuillez entrer le mot de passe du Pi si on vous le demande."
-        ssh-copy-id "pi@$SPOT_IP" || warn "La copie a échoué. Le flux direct nécessitera un mot de passe."
+        ssh-copy-id -o StrictHostKeyChecking=accept-new "pi@$SPOT_IP" || warn "La copie a échoué. Le flux direct nécessitera un mot de passe."
     fi
 }
 
@@ -257,14 +257,14 @@ if [ "$STREAM_MODE" == "2" ]; then
     echo -e "${G}▶${N} Mode DIRECT : Vérification de l'accès SSH..."
     info "Une confirmation d'empreinte (fingerprint) peut apparaître ci-dessous :"
     
-    # On lance un test SSH synchrone. L'utilisateur peut répondre 'yes' tranquillement.
-    if ! ssh -o ConnectTimeout=5 "pi@$SPOT_IP" "echo '[SSH OK]'"; then
-        err "Échec de la connexion SSH. Avez-vous accepté la clé ? (Relancez avec --reset pour reconfigurer)"
+    # Test SSH synchrone — empreinte acceptée automatiquement si inconnue.
+    if ! ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=accept-new "pi@$SPOT_IP" "echo '[SSH OK]'"; then
+        err "Échec de la connexion SSH. Vérifiez que le Pi est allumé. (--reset pour reconfigurer)"
     fi
     # ─────────────────────────────────────────────────────────────────
 
     echo -e "${G}▶${N} Capture du son vers le RPi..."
-    parec -d @DEFAULT_SINK@.monitor --format=s16le --rate=48000 --channels=2 | ssh "pi@$SPOT_IP" "cat > /dev/shm/snapfifo" &
+    parec -d @DEFAULT_SINK@.monitor --format=s16le --rate=48000 --channels=2 | ssh -o StrictHostKeyChecking=accept-new "pi@$SPOT_IP" "cat > /dev/shm/snapfifo" &
     PAREC_PID=$!
     echo -e "${Y}   INFO : Le son du PC est diffusé instantanément sur SoundSpot !${N}"
 else

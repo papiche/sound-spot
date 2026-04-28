@@ -536,7 +536,7 @@
 
 <script>
 'use strict';
-let CFG = {}, clockMode = 'bells', voiceEnabled = true, bellsEnabled = true, chart, chartData = { labels: [], series: [[]] };
+let CFG = {}, clockMode = 'bells', voiceEnabled = true, bellsEnabled = true, ttsEngine = 'espeak', chart, chartData = { labels: [], series: [[]] };
 
 function showTab(id, btn) {
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
@@ -606,8 +606,12 @@ async function loadConfig() {
     voiceEnabled = CFG.voice_enabled !== false;
     bellsEnabled = CFG.bells_enabled !== false;
     updateClockUI();
-    updateVoiceUI();
     updateBellsUI();
+    // ttsEngine mis à jour par loadStatus() — appel immédiat pour initialiser
+    fetch('/api.sh?action=status').then(r=>r.json()).then(d => {
+      if (d.tts_engine) { ttsEngine = d.tts_engine; }
+      updateVoiceUI();
+    }).catch(() => updateVoiceUI());
     loadConfigTab();
   } catch(e) { console.error('Config failed', e); }
 }
@@ -657,6 +661,10 @@ async function loadStatus() {
     }
     if (typeof d.voice_enabled !== 'undefined' && d.voice_enabled !== voiceEnabled) {
       voiceEnabled = d.voice_enabled;
+      updateVoiceUI();
+    }
+    if (d.tts_engine && d.tts_engine !== ttsEngine) {
+      ttsEngine = d.tts_engine;
       updateVoiceUI();
     }
     if (typeof d.bells_enabled !== 'undefined' && d.bells_enabled !== bellsEnabled) {
@@ -731,7 +739,8 @@ async function toggleBells() {
 
 function updateVoiceUI() {
   const active = voiceEnabled !== false;
-  const lbl  = active ? '🔊 Activée' : '🔇 Coupée';
+  const engineLbl = ttsEngine === 'orpheus' ? '🎤 Humain (UPlanet connecté)' : '🤖 Robot (Local)';
+  const lbl  = active ? engineLbl : '🔇 Coupée';
   const btxt = active ? 'Couper les voix' : 'Activer les voix';
   ['voice-lbl','cfg-voice-lbl'].forEach(id => { const e=document.getElementById(id); if(e) e.textContent=lbl; });
   ['adm-btn-voice'].forEach(id => { const e=document.getElementById(id); if(e) e.textContent=btxt; });

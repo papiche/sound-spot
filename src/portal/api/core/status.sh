@@ -15,6 +15,14 @@ HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 1 \
 PICOPORT_ACTIVE="false"
 systemctl is-active --quiet picoport.service 2>/dev/null && PICOPORT_ACTIVE="true"
 
+# Moteur TTS actif : "orpheus" si Picoport actif ET Orpheus répond, sinon "espeak"
+TTS_ENGINE="espeak"
+if [ "$PICOPORT_ACTIVE" = "true" ]; then
+    _orpheus_http=$(curl -s -o /dev/null -w "%{http_code}" --max-time 1 \
+        "http://localhost:${ORPHEUS_PORT:-5005}/docs" 2>/dev/null || echo "000")
+    [ "$_orpheus_http" = "200" ] && TTS_ENGINE="orpheus"
+fi
+
 CPU_LOAD=$(cut -d' ' -f1 /proc/loadavg 2>/dev/null || echo "0")
 MEM_FREE=$(awk '/MemAvailable/{print $2}' /proc/meminfo 2>/dev/null || echo "0")
 
@@ -45,6 +53,7 @@ BT_CONNECTED=$(clean_json "$BT_CONNECTED_RAW")
 
 
 jq -n \
+  --arg tts_engine "$TTS_ENGINE" \
   --arg spot_name "$SPOT_NAME" \
   --arg spot_ip "$SPOT_IP" \
   --argjson snapcast_port "$SNAPCAST_PORT" \
@@ -69,6 +78,7 @@ jq -n \
   --arg svc_picoport "$SVC_PICOPORT" \
   --arg svc_bt_reactive "$SVC_BT_REACTIVE" \
   '{
+    tts_engine: $tts_engine,
     spot_name: $spot_name,
     spot_ip: $spot_ip,
     snapcast_port: $snapcast_port,

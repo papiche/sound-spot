@@ -1,11 +1,16 @@
 [Unit]
 Description=SoundSpot — Capture micro USB → Snapcast stream Mic
-After=snapserver.service
+# Dépend de snapserver ET du service PipeWire utilisateur (partage micro)
+After=snapserver.service soundspot-client-master.service
 BindsTo=snapserver.service
 
 [Service]
 Type=simple
+# IMPORTANT : doit tourner en tant que SOUNDSPOT_USER pour accéder à PipeWire/PulseAudio
+User=${SOUNDSPOT_USER}
 EnvironmentFile=${INSTALL_DIR}/soundspot.conf
+Environment="XDG_RUNTIME_DIR=/run/user/${SOUNDSPOT_UID}"
+Environment="PULSE_SERVER=unix:/run/user/${SOUNDSPOT_UID}/pulse/native"
 ExecStart=${INSTALL_DIR}/backend/audio/mic_capture.sh
 Restart=always
 RestartSec=5

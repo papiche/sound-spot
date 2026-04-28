@@ -1,67 +1,67 @@
 #!/bin/bash
-# mic_capture.sh — Capture le micro USB et l'envoie dans le FIFO Snapcast
+# mic_capture.sh — Capture le micro et l'envoie dans le FIFO Snapcast
 # Produit un 2ème stream "SoundSpot_Mic" pour l'ambiance live.
 #
-# Détection automatique du périphérique USB audio (card "USB") ou
-# fallback sur la variable d'env MIC_ALSA_DEV.
-# Passe-bande optionnel : MIC_BANDPASS=true active un filtre 300-3400 Hz
-# pour la téléphonie / voix (économise de la bande passante Snapcast).
+# Accès micro via PulseAudio/PipeWire (source par défaut = "default").
+# Cela permet le PARTAGE du micro avec sounddevice (presence_detector,
+# mon-oeil) sans conflit "Device or resource busy".
+#
+# Le service soundspot-mic.service doit tourner en tant que SOUNDSPOT_USER
+# avec XDG_RUNTIME_DIR et PULSE_SERVER correctement positionnés
+# (voir soundspot-mic.service).
+#
+# Variables d'env :
+#   MIC_PULSE_SRC   Source PulseAudio/PipeWire (défaut: "default")
+#   MIC_BANDPASS    true → filtre passe-bande 300-3400 Hz (voix téléphonique)
 
 FIFO="/dev/shm/snapfifo_mic"
-MIC_DEV="${MIC_ALSA_DEV:-}"
 BANDPASS="${MIC_BANDPASS:-false}"
+MIC_SRC="${MIC_PULSE_SRC:-default}"
 
 [ -p "$FIFO" ] || mkfifo -m 0660 "$FIFO"
 
 _SS_SERVICE="soundspot-mic"
 [ -f /opt/soundspot/soundspot.conf ] && source /opt/soundspot/soundspot.conf
-[ -f /opt/soundspot/log.sh ] && source /opt/soundspot/log.sh || {
-    # Fallback si absent
-    log() { echo "[INFO] $*"; }
-    ss_info() { echo "[INFO] $*"; }
-    ss_error() { echo "[ERROR] $*" >&2; }
+[ -f /opt/soundspot/backend/system/log.sh ] && source /opt/soundspot/backend/system/log.sh || {
+    ss_info()  { echo "[INFO ] [soundspot-mic] $*"; }
+    ss_warn()  { echo "[WARN ] [soundspot-mic] $*" >&2; }
+    ss_error() { echo "[ERROR] [soundspot-mic] $*" >&2; }
 }
 
-# 1. Recherche dynamique du micro
-# On cherche les patterns connus dans arecord -l
-# card 3: Q91 [Q9-1], device 0 ... -> on veut le '3'
-CARD_ID=$(arecord -l | grep -Ei "Q91|W-KING|USB Audio|seeed|respeaker" | head -n 1 | cut -d' ' -f2 | tr -d ':')
-
-if [ -z "$CARD_ID" ]; then
-    # Fallback si rien n'est trouvé, on prend la carte 0 par défaut
-    MIC_ALSA_DEV="hw:0,0"
-    echo "WARN: Aucun micro spécifique détecté, essai sur hw:0,0" >&2
+# ── Diagnostic micro ALSA (information seulement — PipeWire gère l'accès) ──
+CARD_ID=$(arecord -l 2>/dev/null | grep -Ei "Q91|W-KING|USB Audio|seeed|respeaker" | head -n 1 | cut -d' ' -f2 | tr -d ':')
+if [ -n "$CARD_ID" ]; then
+    ss_info "Micro USB détecté : carte ALSA ${CARD_ID} — accès partagé via PipeWire"
 else
-    MIC_ALSA_DEV="hw:${CARD_ID},0"
-    echo "INFO: Micro détecté automatiquement sur ${MIC_ALSA_DEV}" >&2
+    ss_info "Aucun micro USB spécifique détecté — utilisation de la source PipeWire par défaut"
 fi
 
-# Détection automatique du périphérique USB audio si non défini
-if [ -z "$MIC_DEV" ]; then
-    log "Recherche d'un périphérique audio..."
-    # Cherche ReSpeaker d'abord, puis USB
-    MIC_DEV=$(arecord -l | grep -Ei "seeed|respeaker|USB" | head -n1 | awk '{print "hw:"$2",0"}')
-fi
-
-if [ -z "$MIC_DEV" ]; then
-    ss_error "Aucun micro trouvé (arecord -l est vide). Le stream Mic sera silencieux."
+# ── Vérification que PipeWire/PulseAudio est joignable ─────────────────
+if ! pactl info >/dev/null 2>&1; then
+    ss_error "PipeWire/PulseAudio inaccessible (PULSE_SERVER=${PULSE_SERVER:-non défini})"
+    ss_error "Vérifier : XDG_RUNTIME_DIR et PULSE_SERVER dans soundspot-mic.service"
     exit 1
-else
-    ss_info "Micro sélectionné : $MIC_DEV"
 fi
 
+ss_info "Source PipeWire : ${MIC_SRC} — FIFO : ${FIFO}"
 
-# Construction du pipeline ffmpeg selon passe-bande
+# ── Filtre passe-bande optionnel ────────────────────────────────────────
 if [ "$BANDPASS" = "true" ]; then
     FILTERS="-af highpass=f=300,lowpass=f=3400"
+    ss_info "Filtre passe-bande 300-3400 Hz activé"
 else
     FILTERS=""
 fi
 
+# ── Boucle de capture (redémarre automatiquement en cas de coupure) ────
+ss_info "Démarrage capture micro (ffmpeg pulse → snapfifo_mic)"
 while true; do
-    ffmpeg -hide_banner -loglevel error \
-        -f alsa -ar 48000 -ac 1 -i "$MIC_DEV" \
+    ffmpeg -hide_banner -loglevel warning \
+        -f pulse -ar 48000 -ac 1 -i "$MIC_SRC" \
         $FILTERS \
-        -f s16le -ar 48000 -ac 2 pipe:1 > "$FIFO" 2>/dev/null
-    sleep 1
+        -f s16le -ar 48000 -ac 2 pipe:1 > "$FIFO" 2>&1 | \
+        while IFS= read -r line; do ss_warn "ffmpeg: $line"; done
+    EXIT_CODE=${PIPESTATUS[0]}
+    ss_warn "ffmpeg mic terminé (code ${EXIT_CODE}) — redémarrage dans 2s"
+    sleep 2
 done

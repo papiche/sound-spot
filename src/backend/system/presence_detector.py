@@ -71,6 +71,10 @@ TTS_CMD = os.getenv(
     os.path.join(INSTALL_DIR, "backend/audio/tts.sh"),
 )
 
+# Partage du dernier frame capturé pour mon-oeil.py (évite le conflit caméra)
+FRAME_SHARE_PATH     = os.getenv("PRESENCE_SHARE_FRAME",    "/dev/shm/latest_frame.jpg")
+FRAME_SHARE_INTERVAL = int(os.getenv("PRESENCE_SHARE_INTERVAL", "30"))  # toutes les N frames analysées
+
 # ── Messages d'accueil amusants (choix aléatoire) ────────────────────
 MESSAGES = [
     "Tiens, quelqu'un est dans le coin. Bienvenue !",
@@ -182,6 +186,21 @@ def release_camera(cam_type, cam):
 
 
 # ── Détection visuelle ────────────────────────────────────────────────
+def _save_shared_frame(frame):
+    """Écrit le frame courant dans /dev/shm pour partage avec mon-oeil.py (lecture seule caméra)."""
+    tmp = FRAME_SHARE_PATH + ".tmp"
+    try:
+        cv2.imwrite(tmp, frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
+        os.replace(tmp, FRAME_SHARE_PATH)
+        log.debug("Frame partagé écrit → %s", FRAME_SHARE_PATH)
+    except Exception as exc:
+        log.debug("Écriture frame partagé impossible : %s", exc)
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+
+
 def detect_motion(frame1, frame2):
     """Différentiel de pixels — CPU < 5 % sur Pi Zero 2W."""
     if not _NP_OK:
@@ -364,6 +383,7 @@ def main():
     last_trigger = 0.0
     frame_count  = 0
     frame_sleep  = 1.0 / CAMERA_FPS
+    _share_count = 0
 
     log.info(
         "Boucle active — cooldown=%ds  analyse 1/%d frames (~toutes les %.1fs)",
@@ -413,6 +433,12 @@ def main():
                 _audio_shared_last[0] = now
 
             prev_frame = frame.copy()
+
+            # Partage périodique du frame pour mon-oeil.py (accès unique à la caméra)
+            _share_count += 1
+            if _share_count % FRAME_SHARE_INTERVAL == 0:
+                _save_shared_frame(frame)
+
             time.sleep(frame_sleep)
     finally:
         if _audio_stream:
