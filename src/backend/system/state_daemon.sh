@@ -28,14 +28,14 @@ while true; do
     if [ -f "${PORTAL}/status.json" ]; then
         DJ_ACTIVE=$(jq -r '.dj_active // "false"' "${PORTAL}/status.json")
         if [ "$DJ_ACTIVE" = "true" ]; then
-            if [ "$(cat /opt/soundspot/portal/status.json | jq .dj_active)" = "true" ]; then
-                # Vérifier si la FIFO a été modifiée il y a moins de 10s
-                LAST_MOD=$(stat -c %Y /dev/shm/snapfifo)
-                NOW=$(date +%s)
-                if [ $((NOW - LAST_MOD)) -gt 10 ]; then
-                    ss_warn "Watchdog: FFmpeg gelé (FIFO inactive), restart decoder..."
-                    systemctl restart soundspot-decoder
-                fi
+            # On vérifie si la FIFO reçoit des données (taille évolue)
+            # Plus fiable que la date de modification sur certains FS
+            CHECK1=$(stat -c %s /dev/shm/snapfifo)
+            sleep 2
+            CHECK2=$(stat -c %s /dev/shm/snapfifo)
+            if [ "$CHECK1" -eq "$CHECK2" ]; then
+                ss_warn "Watchdog: Flux DJ actif mais silence détecté dans la FIFO (FFmpeg gelé ?)"
+                systemctl restart soundspot-decoder
             fi
         fi
     fi

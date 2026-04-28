@@ -38,7 +38,7 @@ EOF
     exit 0
 }
 
-GROUPS=()
+SELECTED_GROUPS=()
 JSON_MODE=false
 MAX_FILE_SIZE=0
 
@@ -46,7 +46,7 @@ MAX_FILE_SIZE=0
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --install|--backend|--frontend|--apps|--picoport|--config|--dev|--all)
-            GROUPS+=("$1") ;;
+            SELECTED_GROUPS+=("$1") ;;
         --json) JSON_MODE=true ;;
         --maxfilesize) MAX_FILE_SIZE="$2"; shift ;;
         --maxfilesize=*) MAX_FILE_SIZE="${1#*=}" ;;
@@ -55,7 +55,7 @@ while [[ $# -gt 0 ]]; do
     shift
 done
 
-[ ${#GROUPS[@]} -eq 0 ] && show_help
+[ ${#SELECTED_GROUPS[@]} -eq 0 ] && show_help
 
 # ── Tableau de déduplication ───────────────────────────────────────────────
 declare -A FILES_LIST
@@ -63,23 +63,22 @@ declare -A FILES_LIST
 # Fonction pour ajouter intelligemment des fichiers ou des dossiers
 add_target() {
     local target="$1"
-    
-    # Si le globbing échoue (ex: *.md qui ne trouve rien), le texte littéral arrive ici
-    [ ! -e "$target" ] && return 0
 
-    # Si c'est un dossier, on cherche récursivement les fichiers texte
+    # Avec set -e, "[ ! -e ] && return 0" retourne 1 quand la cible EXISTE
+    # (le test échoue, && court-circuite) → le script quitterait immédiatement.
+    # "[ -e ] || return 0" est équivalent et compatible set -e.
+    [ -e "$target" ] || return 0
+
     if [ -d "$target" ]; then
         while IFS= read -r f; do
-            # Exclusion des dossiers cachés (ex: .git) et fichiers binaires/audio
-            if [[ ! "$f" =~ /\.[^/]+$ ]] && [[ ! "$f" =~ \.(wav|png|jpg|mp3|zip|gz|tar|pyc)$ ]]; then
-                # Vérification rapide si c'est bien du texte
+            # Exclure fichiers cachés (.git/, etc.) et binaires connus
+            if [[ ! "$f" =~ /\.[^/]+ ]] && \
+               [[ ! "$f" =~ \.(wav|mp3|ogg|flac|png|jpg|gif|webp|ico|ttf|otf|woff2?|zip|gz|tar|pyc)$ ]]; then
                 if grep -Iq . "$f" 2>/dev/null; then
                     FILES_LIST["$f"]=1
                 fi
             fi
         done < <(find "$target" -type f 2>/dev/null)
-        
-    # Si c'est un fichier direct
     elif [ -f "$target" ]; then
         if grep -Iq . "$target" 2>/dev/null; then
             FILES_LIST["$target"]=1
@@ -88,7 +87,7 @@ add_target() {
 }
 
 # ── Routage des Groupes ────────────────────────────────────────────────────
-for GROUP in "${GROUPS[@]}"; do
+for GROUP in "${SELECTED_GROUPS[@]}"; do
     case "$GROUP" in
         --install)
             echo "Cible : Installation & Déploiement" >&2

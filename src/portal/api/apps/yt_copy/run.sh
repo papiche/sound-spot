@@ -60,7 +60,7 @@ TITLE=$(yt-dlp --print title --no-warnings --no-playlist -- "$TARGET" 2>/dev/nul
 TITLE="${TITLE:-unknown}"
 
 # Téléchargement du fichier audio
-yt-dlp \
+yt-dlp --max-filesize 50M --match-filter "duration < 600" \
     --no-warnings \
     --embed-thumbnail --add-metadata \
     --no-playlist \
