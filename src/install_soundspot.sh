@@ -40,6 +40,7 @@ export PRESENCE_COOLDOWN="${PRESENCE_COOLDOWN:-30}"
 export INSTALL_DIR="/opt/soundspot"
 export SOUNDSPOT_USER="${SOUNDSPOT_USER:-${SUDO_USER:-pi}}"
 export SOUNDSPOT_UID=$(id -u "${SOUNDSPOT_USER}" 2>/dev/null || echo "1000")
+export USER_HOME=$(getent passwd "${SOUNDSPOT_USER}" | cut -d: -f6 2>/dev/null || echo "/home/${SOUNDSPOT_USER}")
 export PRESENCE_ENABLED="${PRESENCE_ENABLED:-false}"
 export PICOPORT_ENABLED="${PICOPORT_ENABLED:-true}"
 export LOG_LEVEL="${LOG_LEVEL:-WARN}"
@@ -65,7 +66,7 @@ apt_retry install -y --no-install-recommends \
     avahi-daemon \
     iptables-persistent netfilter-persistent \
     python3 python3-opencv python3-picamera2 \
-    python3-markdown python3-websocket \
+    python3-markdown python3-websocket python3-dbus python3-gi\
     espeak-ng jq \
     curl wget ffmpeg unzip \
     iw wireless-tools socat gettext-base rsyslog \
@@ -151,7 +152,8 @@ fi
 
 # Service mon-oeil (Cerveau IA / Golem) — activé sur Master RPi4
 install_template mon-oeil.service \
-    /etc/systemd/system/mon-oeil.service
+    /etc/systemd/system/mon-oeil.service \
+    '${INSTALL_DIR} ${SOUNDSPOT_USER} ${SOUNDSPOT_UID} ${USER_HOME}'
 systemctl enable mon-oeil
 log "mon-oeil.service activé (IA Golem — tunnel Ollama P2P)"
 
@@ -214,6 +216,15 @@ GOEOF
     systemctl enable soundspot-fleet-relay soundspot-fleet
     log "Fleet relay (port 9999) + fleet listener activés"
 fi
+
+hdr "Optimisation Disque/Swap"
+# Désactiver le swap fichier par défaut de Debian/PiOS
+dphys-swapfile swapoff 2>/dev/null || true
+systemctl disable dphys-swapfile 2>/dev/null || true
+# Vérifier ZRAM
+echo "PERCENT=60" > /etc/default/zramswap
+systemctl restart zramswap
+log "Swap sur SD désactivé, ZRAM 60% activé."
 
 # ── Fichier de configuration final ──────────────────────────
 hdr "Finalisation"

@@ -17,6 +17,8 @@
 #   OUTFILE : chemin WAV de sortie (défaut: /dev/shm/tts_<nano>.wav)
 #
 # Retourne le chemin du WAV généré sur stdout. Exit 0 si succès.
+# Le fichier reste après succès — le caller est responsable du nettoyage.
+# En cas d'échec, le fichier temporaire est supprimé automatiquement.
 
 [ -f /opt/soundspot/soundspot.conf ] && source /opt/soundspot/soundspot.conf
 
@@ -25,11 +27,49 @@ VOICE="${2:-${ORPHEUS_VOICE:-pierre}}"
 OUTFILE="${3:-/dev/shm/tts_$(date +%s%N).wav}"
 ORPHEUS_PORT="${ORPHEUS_PORT:-5005}"
 SOUNDSPOT_USER="${SOUNDSPOT_USER:-pi}"
+CACHE_DIR="/opt/soundspot/cache_tts"
 
 if [ -z "$TEXT" ]; then
     echo "tts.sh: TEXT vide" >&2
     exit 1
 fi
+
+# ── Nettoyage automatique sur échec (désactivé sur succès via trap -) ─
+trap 'rm -f "$OUTFILE" "${OUTFILE}.norm.wav"' EXIT
+
+# ── Cache MD5 : évite de régénérer les phrases répétitives ───────────
+mkdir -p "$CACHE_DIR" 2>/dev/null || true
+
+_cache_key() {
+    printf '%s' "${TEXT}${VOICE}" | md5sum | cut -d' ' -f1
+}
+
+_cache_check() {
+    local key cached
+    key=$(_cache_key)
+    cached="${CACHE_DIR}/${key}_${VOICE}.wav"
+    if [ -f "$cached" ] && [ -s "$cached" ]; then
+        cp "$cached" "$OUTFILE"
+        echo "$OUTFILE"
+        trap - EXIT
+        exit 0
+    fi
+}
+
+_cache_store() {
+    local key cached
+    key=$(_cache_key)
+    cached="${CACHE_DIR}/${key}_${VOICE}.wav"
+    cp "$OUTFILE" "$cached" 2>/dev/null || true
+    # Limiter le cache à 60 fichiers (LRU par date d'accès)
+    local count
+    count=$(find "$CACHE_DIR" -name "*.wav" 2>/dev/null | wc -l)
+    if [ "$count" -gt 60 ]; then
+        find "$CACHE_DIR" -name "*.wav" -printf '%A@ %p\n' 2>/dev/null \
+            | sort -n | head -n $((count - 60)) \
+            | cut -d' ' -f2- | xargs rm -f 2>/dev/null || true
+    fi
+}
 
 # ── Localiser orpheus.me.sh via le home de SOUNDSPOT_USER ───────────
 _user_home=$(getent passwd "$SOUNDSPOT_USER" | cut -d: -f6 2>/dev/null || echo "/home/$SOUNDSPOT_USER")
@@ -64,18 +104,10 @@ _generate_orpheus() {
         "http://localhost:${ORPHEUS_PORT}/v1/audio/speech" 2>/dev/null
 
     if [ -s "$OUTFILE" ]; then
-        ss_info "Normalisation audio Orpheus (speechnorm)..."
-        
-        # 1. Nettoyage des basses fréquences (bruit de fond) 
-        # 2. speechnorm : remonte le niveau moyen de la voix intelligemment
-        # e=12 : expansion max (pour les voix faibles)
-        # p=0.9 : niveau cible des crêtes
-        ffmpeg -i "$OUTFILE" -af "highpass=f=80, speechnorm=e=12:p=0.9" -y "${OUTFILE}.norm.wav" >/dev/null 2>&1
-        
-        # Remplacement du fichier original
-        if [ -f "${OUTFILE}.norm.wav" ]; then
-            mv "${OUTFILE}.norm.wav" "$OUTFILE"
-        fi
+        # Nettoyage basses fréquences + normalisation volume voix
+        ffmpeg -i "$OUTFILE" -af "highpass=f=80, speechnorm=e=12:p=0.9" \
+            -y "${OUTFILE}.norm.wav" >/dev/null 2>&1
+        [ -f "${OUTFILE}.norm.wav" ] && mv "${OUTFILE}.norm.wav" "$OUTFILE"
     fi
 }
 
@@ -84,8 +116,6 @@ _generate_espeak() {
 }
 
 # ── Annonce de première connexion constellation ──────────────────────
-# Un flag /dev/shm/orpheus_announced disparaît au reboot → ré-annonce
-# à chaque allumage si Picoport est opérationnel.
 _constellation_announce() {
     local flag="/dev/shm/orpheus_announced"
     [ -f "$flag" ] && return 0
@@ -112,18 +142,21 @@ _generate_orpheus_for() {
 
 # ── Logique principale ───────────────────────────────────────────────
 if _picoport_active; then
-    # S'assurer qu'Orpheus est joignable (connexion auto si besoin)
+    # Vérifier le cache avant tout appel réseau
+    _cache_check
+
     if ! _orpheus_alive; then
         _orpheus_connect
         sleep 2
     fi
 
     if _orpheus_alive; then
-        # Première connexion de la session → annonce constellation
         intro=$(_constellation_announce)
         [ -n "$intro" ] && echo "$intro"
 
-        if _generate_orpheus; then
+        if _generate_orpheus && [ -s "$OUTFILE" ]; then
+            _cache_store
+            trap - EXIT
             echo "$OUTFILE"
             exit 0
         fi
@@ -131,8 +164,15 @@ if _picoport_active; then
     fi
 fi
 
-# Fallback espeak-ng
-_generate_espeak && echo "$OUTFILE" && exit 0
+# Fallback espeak-ng (aussi vérifié dans le cache)
+_cache_check
+
+if _generate_espeak && [ -s "$OUTFILE" ]; then
+    _cache_store
+    trap - EXIT
+    echo "$OUTFILE"
+    exit 0
+fi
 
 echo "tts.sh: échec total de la synthèse vocale" >&2
 exit 1

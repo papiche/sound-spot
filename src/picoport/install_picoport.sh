@@ -117,8 +117,10 @@ sudo -u "$SOUNDSPOT_USER" bash -c "
         done
         
         # 3. Optimisation extrême pour RPi Zero (Low RAM)
-        ipfs config --json Swarm.ConnMgr.HighWater 50
-        ipfs config --json Swarm.ConnMgr.LowWater 20
+        ipfs config --json Swarm.ConnMgr.HighWater 25
+        ipfs config --json Swarm.ConnMgr.LowWater 5
+        ipfs config --json Swarm.ConnMgr.GracePeriod "1m"
+        ipfs config --json Datastore.BloomFilterSize 32768 # Réduit l'empreinte mémoire
         ipfs config Datastore.StorageMax '2GB'
         ipfs config Routing.Type 'dhtclient'
         ipfs config --bool AutoConf.Enabled false

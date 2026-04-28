@@ -143,6 +143,14 @@ case "${CMD:-status}" in
         fi
         ;;
 
+    reset_audio)
+        # Relance toute la chaîne de son de zéro
+        sudo systemctl --user -u ${SOUNDSPOT_USER} restart pipewire wireplumber
+        sleep 2
+        sudo systemctl restart snapserver soundspot-decoder soundspot-client
+        jq -n '{"status":"ok","message":"Chaîne audio réinitialisée"}'
+        ;;
+
     *)
         jq -n --arg cmd "${CMD:-}" \
             '{"error":"unknown_cmd","cmd":$cmd,
