@@ -8,7 +8,7 @@
 
 set -euo pipefail
 
-INSTALL_DIR="${INSTALL_DIR:-$INSTALL_DIR}"
+INSTALL_DIR="${INSTALL_DIR:-/opt/soundspot}"
 SOUNDSPOT_USER="${SOUNDSPOT_USER:-pi}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
