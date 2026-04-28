@@ -33,45 +33,45 @@ SUDOEOF
     chown root:www-data /var/log/sound-spot.log
     chmod 664 /var/log/sound-spot.log
 
-    # Configuration lighttpd
+    # Configuration lighttpd — optimisée Pi Zero 2W
+    # mod_accesslog retiré : évite un write SD par requête (trop cher sur petite machine)
     cat > /etc/lighttpd/lighttpd.conf <<EOF
 server.modules = (
     "mod_access",
     "mod_alias",
     "mod_redirect",
     "mod_rewrite",
-    "mod_cgi",
-    "mod_accesslog"
+    "mod_cgi"
 )
 server.document-root        = "/var/www/html"
 server.upload-dirs          = ( "/var/cache/lighttpd/uploads" )
 server.errorlog             = "/var/log/lighttpd/error.log"
-accesslog.filename          = "/var/log/lighttpd/access.log"
-accesslog.format            = "%t %h \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\""
 server.pid-file             = "/var/run/lighttpd.pid"
 server.username             = "www-data"
 server.groupname            = "www-data"
 server.port                 = 80
 server.follow-symlink       = "enable"
+server.max-connections      = 16
+server.max-keep-alive-requests = 4
+server.max-keep-alive-idle  = 5
 include_shell "/usr/share/lighttpd/create-mime.conf.pl"
 cgi.assign                  = ( ".sh" => "/bin/bash" )
 
 # Servir directement si l'hôte est une adresse IP ou le nom local du RPi.
 # Sinon (domaine externe capturé par PREROUTING), rediriger vers le portail.
-# Cela permet de tester le portail depuis qo-op (http://soundspot.local/ ou http://<IP wlan0>/)
 \$HTTP["host"] !~ "^([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+|soundspot(\.local)?|raspberrypi(\.local)?)$" {
-    url.redirect = ( ".*" => "http://${SPOT_IP}/index.sh" )
+    url.redirect = ( ".*" => "http://${SPOT_IP}/" )
 }
 
-# Assigner index.html en priorité (SPA statique), puis index.sh (fallback CGI)
-index-file.names = ( "index.html", "index.sh" )
+# Page d'accueil : index.html (SPA), fallback api.sh (CGI)
+index-file.names = ( "index.html", "api.sh" )
 
 # Exposer les fichiers wav (previews TTS depuis le portail)
 alias.url = ( "/wav/" => "${INSTALL_DIR}/wav/" )
 
-# Capturer les URL de test Android/Apple
+# Captiver les URL de test Android/Apple → api.sh répond en JSON
 url.rewrite-once = (
-    "^/(generate_204|hotspot-detect.html|ncsi.txt|success.txt).*$" => "/index.sh"
+    "^/(generate_204|hotspot-detect.html|ncsi.txt|success.txt).*$" => "/api.sh"
 )
 EOF
 

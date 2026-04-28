@@ -1,5 +1,5 @@
 #!/bin/bash
-# /opt/soundspot/jukebox_player.sh
+# /opt/soundspot/backend/audio/jukebox_player.sh
 
 [ -f /opt/soundspot/soundspot.conf ] && source /opt/soundspot/soundspot.conf
 SOUNDSPOT_USER="${SOUNDSPOT_USER:-pi}"

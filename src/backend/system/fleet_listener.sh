@@ -28,7 +28,7 @@ else
     source /run/soundspot_master.env 2>/dev/null || true
     RELAY_HOST="${MASTER_RESOLVED:-${MASTER_HOST:-soundspot.local}}"
 fi
-FLEET_PORT="${FLEET_RELAY_PORT:-29999}"
+FLEET_PORT="${FLEET_RELAY_PORT:-9999}"
 RELAY="ws://${RELAY_HOST}:${FLEET_PORT}"
 
 logger -t fleet_listener "Écoute flotte → ${RELAY} (Amiral: ${AMIRAL_HEX:0:16}…)"

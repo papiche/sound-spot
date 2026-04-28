@@ -1,6 +1,6 @@
 [Unit]
 Description=SoundSpot — Monitoring batterie solaire (INA219)
-After=soundspot-presence.service
+After=soundspot-client-master.service
 
 [Service]
 Type=simple

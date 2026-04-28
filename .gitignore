@@ -11,6 +11,9 @@
 src/wav/
 wav/
 
+# Scripts générés par dj_mixxx_setup.sh — spécifiques au PC DJ, pas dans le dépôt
+zicmama_play.sh
+
 # Configurations de déploiement locales (contiennent mots de passe, MACs BT)
 soundspot.conf
 *.conf.local

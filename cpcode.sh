@@ -43,15 +43,16 @@ JSON_MODE=false
 MAX_FILE_SIZE=0
 
 # ── Parsing des arguments ──────────────────────────────────────────────────
-for arg in "$@"; do
-    case "$arg" in
-        --install|--backend|--frontend|--apps|--picoport|--config|--dev|--all) 
-            GROUPS+=("$arg") ;;
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --install|--backend|--frontend|--apps|--picoport|--config|--dev|--all)
+            GROUPS+=("$1") ;;
         --json) JSON_MODE=true ;;
         --maxfilesize) MAX_FILE_SIZE="$2"; shift ;;
-        --maxfilesize=*) MAX_FILE_SIZE="${arg#*=}" ;;
+        --maxfilesize=*) MAX_FILE_SIZE="${1#*=}" ;;
         --help|-h) show_help ;;
     esac
+    shift
 done
 
 [ ${#GROUPS[@]} -eq 0 ] && show_help
@@ -103,10 +104,6 @@ for GROUP in "${GROUPS[@]}"; do
             echo "Cible : Backend (Audio, Video, System)" >&2
             add_target "src/backend"
             add_target "monitor"
-            add_target "src/backend/system/bt_manage.sh"
-            add_target "src/backend/system/bt_update.sh"
-            add_target "src/backend/system/log.sh"
-            add_target "code_reload.sh"
             ;;
         --frontend)
             echo "Cible : Frontend (Portail Captif)" >&2

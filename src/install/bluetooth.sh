@@ -23,13 +23,8 @@ setup_bluetooth() {
         /etc/systemd/system/bt-autoconnect.service \
         '${INSTALL_DIR} ${SOUNDSPOT_UID}'
 
-    install_template bt-connect.sh      "$INSTALL_DIR/bt-connect.sh"
-    chmod +x "$INSTALL_DIR/bt-connect.sh"
-
-    install_template bt-combine-sinks.sh "$INSTALL_DIR/bt-combine-sinks.sh"
-    chmod +x "$INSTALL_DIR/bt-combine-sinks.sh"
-
     # Script de gestion quotidienne BT + volume
+    # Copié à la racine de INSTALL_DIR car référencé tel quel dans sudoers www-data.
     cp "$SCRIPT_DIR/backend/system/bt_manage.sh" "$INSTALL_DIR/bt_manage.sh"
     [ -f "$INSTALL_DIR/bt_manage.sh" ] && chmod +x "$INSTALL_DIR/bt_manage.sh" \
         && log "bt_manage.sh installé (connexion, volume)"

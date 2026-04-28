@@ -22,6 +22,7 @@ source "$SCRIPT_DIR/install/snapserver.sh"
 source "$SCRIPT_DIR/install/snapclient.sh"
 source "$SCRIPT_DIR/install/channel_sync.sh"
 source "$SCRIPT_DIR/install/presence.sh"
+source "$SCRIPT_DIR/install/battery.sh"
 source "$SCRIPT_DIR/install/idle.sh"
 source "$SCRIPT_DIR/install/jukebox.sh"
 
@@ -126,6 +127,7 @@ setup_snapserver     # Serveur synchro
 setup_snapclient master # Client local sur BT
 setup_channel_sync   # Synchro WiFi radio
 setup_presence       # Caméra + Welcome.wav
+setup_battery        # Batterie INA219 (indépendant caméra)
 setup_idle           # Clocher numérique
 setup_jukebox        # Nostr Jukebox
 
