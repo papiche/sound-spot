@@ -44,9 +44,12 @@ if [ -z "$ADMIN_PASS" ]; then
 fi
 
 if [ -z "$PASS" ] || [ "$PASS" != "$ADMIN_PASS" ]; then
+    ss_warn "auth failed cmd=${CMD:-?} ip=${REMOTE_ADDR:-?}"
     jq -n '{"error":"unauthorized","hint":"Mot de passe requis (10 derniers caractères UPLANETNAME)"}'
     exit 0
 fi
+
+ss_info "cmd=${CMD:-status} ip=${REMOTE_ADDR:-?}"
 
 # ── Commandes ────────────────────────────────────────────────
 case "${CMD:-status}" in
@@ -144,10 +147,11 @@ case "${CMD:-status}" in
         ;;
 
     reset_audio)
-        # Relance toute la chaîne de son de zéro
-        sudo systemctl --user -u ${SOUNDSPOT_USER} restart pipewire wireplumber
-        sleep 2
-        sudo systemctl restart snapserver soundspot-decoder soundspot-client
+        ss_info "reset_audio: restart audio chain"
+        sudo systemctl restart soundspot-decoder snapserver 2>/dev/null || true
+        sleep 1
+        sudo systemctl restart soundspot-client 2>/dev/null || true
+        sudo "${INSTALL_DIR}/bt_manage.sh" connect 2>/dev/null || true
         jq -n '{"status":"ok","message":"Chaîne audio réinitialisée"}'
         ;;
 

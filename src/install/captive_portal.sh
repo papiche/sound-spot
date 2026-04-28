@@ -18,6 +18,7 @@ www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart snapserver
 www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart icecast2
 www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart soundspot-bt-reactive
 www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop soundspot-client
+www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart soundspot-client
 www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop snapserver
 www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop soundspot-decoder
 www-data ALL=(ALL) NOPASSWD: /opt/soundspot/backend/system/set_audio_output.sh *

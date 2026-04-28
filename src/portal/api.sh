@@ -10,6 +10,11 @@ export CLOCK_MODE="${CLOCK_MODE:-bells}"
 export INSTALL_DIR="${INSTALL_DIR:-/opt/soundspot}"
 export SOUNDSPOT_USER="${SOUNDSPOT_USER:-pi}"
 export ORPHEUS_PORT="${ORPHEUS_PORT:-5005}"
+export BT_MACS="${BT_MACS:-}"
+export BT_MAC="${BT_MAC:-}"
+export VOICE_ENABLED="${VOICE_ENABLED:-true}"
+export BELLS_ENABLED="${BELLS_ENABLED:-true}"
+export SOUNDSPOT_UID="${SOUNDSPOT_UID:-1000}"
 
 # urldecode — pur Bash, remplace python3 -c "urllib.parse..." (~200ms sur Pi Zero)
 # Utilisation : urldecode "str%20enc%2B" OU echo "str" | urldecode

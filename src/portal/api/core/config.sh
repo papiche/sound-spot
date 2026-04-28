@@ -20,7 +20,9 @@ command -v jq &>/dev/null && JQ_AVAILABLE="true"
 PORTAL_VERSION=$(git -C "${INSTALL_DIR}" describe --tags --always 2>/dev/null || echo "dev")
 
 _HOSTNAME=$(hostname 2>/dev/null || echo "soundspot")
-_WAN_IP=$(ip route get 1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="src") print $(i+1)}' | head -1 || echo "")
+# Priorité : IP directe de wlan0 (liaison qo-op), fallback route-based
+_WAN_IP=$(ip -4 addr show wlan0 2>/dev/null | awk '/inet /{print $2}' | cut -d/ -f1 | head -1)
+[ -z "$_WAN_IP" ] && _WAN_IP=$(ip route get 1.1.1.1 2>/dev/null | grep -oP '(?<=src )[0-9.]+' | head -1)
 _BT_MACS="${BT_MACS:-${BT_MAC:-}}"
 
 jq -n \

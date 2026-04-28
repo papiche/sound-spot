@@ -165,7 +165,6 @@
         <span>Serveur : <code class="val" id="cfg-ip2">…</code>  Port : <code class="val" id="cfg-port2">…</code></span>
       </div>
     </div>
-    <button onclick="fixAudio()" class="btn btn-outline" style="margin-top:8px">🛠 Relancer l'Audio</button>
     <a id="lnk-mixer" href="#" target="_blank" class="btn btn-outline" style="margin-top:8px">🎛 Console de Mixage (Volume) →</a>
   </div>
 
@@ -179,16 +178,11 @@
   <div class="card">
     <h2>⏰ Clocher Numérique</h2>
     <div class="ibox">
-      <div class="irow"><span class="lbl">Bip + Cloches</span>   <span class="val" id="bells-lbl">…</span></div>
+      <div class="irow"><span class="lbl">Bip + Cloches</span>    <span class="val" id="bells-lbl">…</span></div>
       <div class="irow"><span class="lbl">Coups (heure pile)</span><span class="val" id="clock-lbl">…</span></div>
       <div class="irow"><span class="lbl">Messages &amp; heure</span><span class="val" id="voice-lbl">…</span></div>
     </div>
-    <div class="row" style="margin-top:6px">
-      <button onclick="toggleBells()" id="btn-bells" class="btn btn-outline btn-sm">…</button>
-      <button onclick="toggleClock()" id="btn-clock" class="btn btn-outline btn-sm">…</button>
-      <button onclick="toggleVoice()" id="btn-voice" class="btn btn-outline btn-sm">…</button>
-    </div>
-    <p style="font-size:.78rem;color:var(--muted);margin-top:6px">Effectif immédiatement, sans redémarrage.</p>
+    <p style="font-size:.78rem;color:var(--muted);margin-top:6px">Réglages disponibles dans l'onglet ⚙ Config.</p>
   </div>
 
   <details id="det-audio" style="display:none">
@@ -420,21 +414,17 @@
       <div class="irow"><span class="lbl">Port Snapcast</span>  <span class="val" id="cn-snap">…</span></div>
       <div class="irow"><span class="lbl">Port Icecast</span>   <span class="val" id="cn-ice">…</span></div>
     </div>
-    <button onclick="fixAudioCfg()" class="btn btn-outline btn-sm" style="margin-top:8px">🔄 Reconnecter l'audio</button>
+    <p style="font-size:.78rem;color:var(--muted);margin-top:6px">Reconnexion disponible dans 🔒 Administration.</p>
   </div>
 
   <div class="card">
     <h2>🎛 Voix &amp; Clocher</h2>
     <div class="ibox">
-      <div class="irow"><span class="lbl">Bip + Cloches</span>   <span class="val" id="cfg-bells-lbl">…</span></div>
+      <div class="irow"><span class="lbl">Bip + Cloches</span>    <span class="val" id="cfg-bells-lbl">…</span></div>
       <div class="irow"><span class="lbl">Coups (heure pile)</span><span class="val" id="cfg-clock-lbl">…</span></div>
-      <div class="irow"><span class="lbl">Voix (annonces)</span><span class="val" id="cfg-voice-lbl">…</span></div>
+      <div class="irow"><span class="lbl">Voix (annonces)</span>   <span class="val" id="cfg-voice-lbl">…</span></div>
     </div>
-    <div class="row" style="margin-top:8px">
-      <button onclick="toggleBells()" id="cfg-btn-bells" class="btn btn-outline btn-sm">…</button>
-      <button onclick="toggleClock()" id="cfg-btn-clock" class="btn btn-outline btn-sm">…</button>
-      <button onclick="toggleVoice()" id="cfg-btn-voice" class="btn btn-outline btn-sm">…</button>
-    </div>
+    <p style="font-size:.78rem;color:var(--muted);margin-top:6px">Réglages protégés — voir 🔒 Administration.</p>
   </div>
 
   <div class="card">
@@ -469,14 +459,35 @@
       <p style="font-size:.75rem;color:var(--muted);margin-top:4px">10 derniers caractères de UPLANETNAME</p>
     </div>
     <div id="adm-panel" style="display:none">
-      <div class="irow"><span class="lbl">MACs configurés</span><span class="val" id="adm-bt-macs">—</span></div>
-      <div class="irow"><span class="lbl">Connectés</span><span class="val" id="adm-bt-connected">—</span></div>
-      <div class="irow" style="gap:8px;flex-wrap:wrap">
+
+      <p style="font-size:.8rem;font-weight:700;color:var(--muted);margin:8px 0 4px;text-transform:uppercase;letter-spacing:.06em">Bluetooth</p>
+      <div class="ibox" style="margin:0 0 8px">
+        <div class="irow"><span class="lbl">MACs configurés</span><span class="val" id="adm-bt-macs">—</span></div>
+        <div class="irow"><span class="lbl">Connectés</span>       <span class="val" id="adm-bt-connected">—</span></div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
         <button class="btn btn-sm" onclick="admBtScan()">Scanner (10s)</button>
         <button class="btn btn-sm btn-outline" onclick="admBtRefresh()">Actualiser</button>
-        <button class="btn btn-red btn-sm" onclick="admAudioReset()">🔥 RESET AUDIO TOTAL</button>
       </div>
-      <div id="adm-bt-results" style="margin-top:8px"></div>
+      <div id="adm-bt-results" style="margin-bottom:10px"></div>
+
+      <p style="font-size:.8rem;font-weight:700;color:var(--muted);margin:8px 0 4px;text-transform:uppercase;letter-spacing:.06em">Audio</p>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
+        <button class="btn btn-sm btn-outline" onclick="fixAudio()">🔄 Reconnecter audio</button>
+        <button class="btn btn-red btn-sm" onclick="admAudioReset()">🔥 Reset audio total</button>
+      </div>
+
+      <p style="font-size:.8rem;font-weight:700;color:var(--muted);margin:8px 0 4px;text-transform:uppercase;letter-spacing:.06em">Clocher &amp; Voix</p>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+        <button onclick="toggleBells()" id="adm-btn-bells" class="btn btn-outline btn-sm">…</button>
+        <button onclick="toggleClock()" id="adm-btn-clock" class="btn btn-outline btn-sm">…</button>
+        <button onclick="toggleVoice()" id="adm-btn-voice" class="btn btn-outline btn-sm">…</button>
+      </div>
+
+      <details style="margin-top:4px">
+        <summary style="font-size:.8rem;color:var(--muted)">🐛 Debug log</summary>
+        <pre id="adm-debug" style="font-size:.7rem;color:var(--muted);padding:8px;max-height:180px;overflow:auto;white-space:pre-wrap;margin-top:4px"></pre>
+      </details>
     </div>
   </div>
 
@@ -690,7 +701,7 @@ function updateClockUI() {
   const lbl  = active ? '🔔 Activées' : '🔇 Silencieuses';
   const btxt = active ? 'Désactiver les cloches' : 'Activer les cloches';
   ['clock-lbl','cfg-clock-lbl'].forEach(id => { const e=document.getElementById(id); if(e) e.textContent=lbl; });
-  ['btn-clock','cfg-btn-clock'].forEach(id => { const e=document.getElementById(id); if(e) e.textContent=btxt; });
+  ['adm-btn-clock'].forEach(id => { const e=document.getElementById(id); if(e) e.textContent=btxt; });
 }
 
 function updateBellsUI() {
@@ -698,7 +709,7 @@ function updateBellsUI() {
   const lbl  = active ? '🔔 Actifs' : '🔕 Coupés';
   const btxt = active ? 'Couper ding & cloches' : 'Activer ding & cloches';
   ['bells-lbl','cfg-bells-lbl'].forEach(id => { const e=document.getElementById(id); if(e) e.textContent=lbl; });
-  ['btn-bells','cfg-btn-bells'].forEach(id => { const e=document.getElementById(id); if(e) e.textContent=btxt; });
+  ['adm-btn-bells'].forEach(id => { const e=document.getElementById(id); if(e) e.textContent=btxt; });
 }
 
 async function toggleBells() {
@@ -723,7 +734,7 @@ function updateVoiceUI() {
   const lbl  = active ? '🔊 Activée' : '🔇 Coupée';
   const btxt = active ? 'Couper les voix' : 'Activer les voix';
   ['voice-lbl','cfg-voice-lbl'].forEach(id => { const e=document.getElementById(id); if(e) e.textContent=lbl; });
-  ['btn-voice','cfg-btn-voice'].forEach(id => { const e=document.getElementById(id); if(e) e.textContent=btxt; });
+  ['adm-btn-voice'].forEach(id => { const e=document.getElementById(id); if(e) e.textContent=btxt; });
 }
 
 async function toggleVoice() {
@@ -765,8 +776,6 @@ async function fixAudio() {
   try { await fetch('/api.sh?action=audio_fix'); toast('✅ Service reconnecté'); }
   catch(e) { toast('Erreur', false); }
 }
-
-async function fixAudioCfg() { fixAudio(); }
 
 function loadConfigTab() {
   if (!CFG.spot_name) return;
@@ -913,19 +922,35 @@ loadConfig().then(() => {
 // ═══ ADMINISTRATION BT ═══
 let admPass = null;
 
+function admDbg(msg) {
+  const el = document.getElementById('adm-debug');
+  if (!el) return;
+  const ts = new Date().toLocaleTimeString();
+  el.textContent = '[' + ts + '] ' + msg + '\n' + el.textContent;
+}
+
+async function admFetch(url, opts) {
+  const r = await fetch(url, opts);
+  const text = await r.text();
+  admDbg((opts?.method === 'POST' ? 'POST' : 'GET') + ' ' + url.replace(/pass=[^&]+/, 'pass=***') + ' → ' + text.substring(0, 120));
+  try { return JSON.parse(text); }
+  catch(e) { throw new Error('Réponse non-JSON: ' + text.substring(0, 80)); }
+}
+
 async function admLogin() {
   const p = document.getElementById('adm-pass-input').value.trim();
   if (!p) return;
   try {
-    const r = await fetch('/api.sh?action=admin&cmd=status&pass=' + encodeURIComponent(p));
-    const d = await r.json();
+    const d = await admFetch('/api.sh?action=admin&cmd=status&pass=' + encodeURIComponent(p));
     if (d.error === 'unauthorized') { toast('Mot de passe incorrect', false); return; }
+    if (d.error) { toast('Erreur: ' + d.error, false); return; }
     admPass = p;
     document.getElementById('adm-login').style.display = 'none';
     document.getElementById('adm-panel').style.display = '';
     admApplyStatus(d);
+    updateBellsUI(); updateClockUI(); updateVoiceUI();
     toast('Administration déverrouillée');
-  } catch(e) { toast('Erreur réseau', false); }
+  } catch(e) { toast(e.message, false); admDbg('admLogin erreur: ' + e); }
 }
 
 function admApplyStatus(d) {
@@ -935,10 +960,11 @@ function admApplyStatus(d) {
 
 async function admBtRefresh() {
   if (!admPass) return;
-  const r = await fetch('/api.sh?action=admin&cmd=status&pass=' + encodeURIComponent(admPass));
-  const d = await r.json();
-  if (d.error) { toast('Session expirée', false); admPass = null; return; }
-  admApplyStatus(d);
+  try {
+    const d = await admFetch('/api.sh?action=admin&cmd=status&pass=' + encodeURIComponent(admPass));
+    if (d.error) { toast('Session expirée', false); admPass = null; return; }
+    admApplyStatus(d);
+  } catch(e) { toast(e.message, false); }
 }
 
 async function admBtScan() {
@@ -946,9 +972,8 @@ async function admBtScan() {
   const btn = document.querySelector('#adm-panel button');
   btn.disabled = true; btn.textContent = 'Scan…';
   try {
-    const r = await fetch('/api.sh?action=admin&cmd=bt_scan&pass=' + encodeURIComponent(admPass));
-    const d = await r.json();
-    if (!d.devices) { toast('Erreur scan', false); return; }
+    const d = await admFetch('/api.sh?action=admin&cmd=bt_scan&pass=' + encodeURIComponent(admPass));
+    if (!d.devices) { toast('Erreur scan: ' + (d.error || '?'), false); return; }
     const div = document.getElementById('adm-bt-results');
     div.innerHTML = d.devices.length ? d.devices.map(dev =>
       `<div class="irow" style="flex-wrap:wrap;gap:6px">
@@ -960,44 +985,60 @@ async function admBtScan() {
           : `<button class="btn btn-sm btn-outline" onclick="admBtAdd('${dev.mac}')">+ Config</button>`}
       </div>`
     ).join('') : '<p style="color:var(--muted);font-size:.85rem">Aucun appareil trouvé</p>';
-  } catch(e) { toast('Erreur réseau', false); }
+  } catch(e) { toast(e.message, false); }
   finally { btn.disabled = false; btn.textContent = 'Scanner (10s)'; }
 }
 
 async function admBtConnect(mac) {
   if (!admPass) return;
   toast('Connexion en cours…');
-  const r = await fetch('/api.sh?action=admin', {
-    method: 'POST',
-    headers: {'Content-Type':'application/x-www-form-urlencoded'},
-    body: `cmd=bt_connect&mac=${mac}&pass=${encodeURIComponent(admPass)}`
-  });
-  const d = await r.json();
-  toast(d.error ? 'Erreur connexion' : `${mac} → reconnexion lancée`, !d.error);
+  try {
+    const d = await admFetch('/api.sh?action=admin', {
+      method: 'POST',
+      headers: {'Content-Type':'application/x-www-form-urlencoded'},
+      body: `cmd=bt_connect&mac=${mac}&pass=${encodeURIComponent(admPass)}`
+    });
+    toast(d.error ? 'Erreur: ' + d.error : `${mac} → reconnexion lancée`, !d.error);
+  } catch(e) { toast(e.message, false); }
 }
 
 async function admBtAdd(mac) {
   if (!admPass) return;
-  const r = await fetch('/api.sh?action=admin', {
-    method: 'POST',
-    headers: {'Content-Type':'application/x-www-form-urlencoded'},
-    body: `cmd=bt_add&mac=${mac}&pass=${encodeURIComponent(admPass)}`
-  });
-  const d = await r.json();
-  toast(d.error ? 'Erreur' : `${mac} ajouté à la config`, !d.error);
-  if (!d.error) admBtRefresh();
+  try {
+    const d = await admFetch('/api.sh?action=admin', {
+      method: 'POST',
+      headers: {'Content-Type':'application/x-www-form-urlencoded'},
+      body: `cmd=bt_add&mac=${mac}&pass=${encodeURIComponent(admPass)}`
+    });
+    toast(d.error ? 'Erreur: ' + d.error : `${mac} ajouté`, !d.error);
+    if (!d.error) admBtRefresh();
+  } catch(e) { toast(e.message, false); }
 }
 
 async function admBtRemove(mac) {
   if (!admPass) return;
-  const r = await fetch('/api.sh?action=admin', {
-    method: 'POST',
-    headers: {'Content-Type':'application/x-www-form-urlencoded'},
-    body: `cmd=bt_remove&mac=${mac}&pass=${encodeURIComponent(admPass)}`
-  });
-  const d = await r.json();
-  toast(d.error ? 'Erreur' : `${mac} retiré`, !d.error);
-  if (!d.error) admBtRefresh();
+  try {
+    const d = await admFetch('/api.sh?action=admin', {
+      method: 'POST',
+      headers: {'Content-Type':'application/x-www-form-urlencoded'},
+      body: `cmd=bt_remove&mac=${mac}&pass=${encodeURIComponent(admPass)}`
+    });
+    toast(d.error ? 'Erreur: ' + d.error : `${mac} retiré`, !d.error);
+    if (!d.error) admBtRefresh();
+  } catch(e) { toast(e.message, false); }
+}
+
+async function admAudioReset() {
+  if (!admPass) return;
+  toast('🔥 Reset audio…');
+  try {
+    const d = await admFetch('/api.sh?action=admin', {
+      method: 'POST',
+      headers: {'Content-Type':'application/x-www-form-urlencoded'},
+      body: `cmd=reset_audio&pass=${encodeURIComponent(admPass)}`
+    });
+    toast(d.error ? 'Erreur: ' + d.error : '✅ Audio réinitialisé', !d.error);
+  } catch(e) { toast(e.message, false); }
 }
 
 // ═══ MESSAGES DU CLOCHER ═══
