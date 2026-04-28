@@ -82,7 +82,7 @@ MESSAGES = [
     "Vous avez trouvé notre spot. Bien joué. La musique est offerte.",
     "Bonjour ! Ce son voyage via Snapcast jusqu'à vos oreilles en direct.",
     "Présence détectée. Je ne suis plus seul dans ce nœud du réseau.",
-    "Le Golem vous salue. Vous êtes chez les aficionados du son libre.",
+    "Le Satellite vous salue. Vous êtes chez les aficionados du son libre.",
     "Bienvenue ! Ce nœud fait partie d'un réseau coopératif décentralisé.",
     "Restez, la prochaine annonce sera dans quelques minutes.",
 ]

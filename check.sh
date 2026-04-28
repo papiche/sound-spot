@@ -460,8 +460,8 @@ else
     ok "Aucune erreur récente dans journald"
 fi
 
-# ── 10. Golem Health ────────────────────────────────────────────
-hdr "Golem Health"
+# ── 10. Satellite Health ────────────────────────────────────────────
+hdr "Satellite Health"
 
 # Vérification de l'espace disque (pour éviter que les logs bloquent le système)
 DISK_USAGE=$(df / --output=pcent | tail -1 | tr -dc '0-9')

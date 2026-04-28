@@ -102,7 +102,7 @@ def audio_callback(indata, frames, time_info, status):
             threading.Thread(target=capture_and_process, daemon=True).start()
 
 def main():
-    logging.info("🚀 Réveil du Golem Sensoriel...")
+    logging.info("🚀 Réveil du Satellite Sensoriel...")
     
     # 1. Test Dépendances
     if not shutil.which("libcamera-still"):

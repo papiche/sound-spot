@@ -152,12 +152,12 @@ else
     log "Micro USB non détecté — soundspot-mic désactivé (activer manuellement si besoin)"
 fi
 
-# Service mon-oeil (Cerveau IA / Golem) — activé sur Master RPi4
+# Service mon-oeil (Cerveau IA / Satellite) — activé sur Master RPi4
 install_template mon-oeil.service \
     /etc/systemd/system/mon-oeil.service \
     '${INSTALL_DIR} ${SOUNDSPOT_USER} ${SOUNDSPOT_UID} ${USER_HOME}'
 systemctl enable mon-oeil
-log "mon-oeil.service activé (IA Golem — tunnel Ollama P2P)"
+log "mon-oeil.service activé (IA Satellite — tunnel Ollama P2P)"
 
 # ── Installation Picoport ────────────────────────────────────
 if [ "$PICOPORT_ENABLED" = "true" ]; then

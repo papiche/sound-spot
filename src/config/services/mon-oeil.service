@@ -1,5 +1,5 @@
 [Unit]
-Description=SoundSpot — Golem Distribué (Œil & Oreilles)
+Description=SoundSpot — Satellite Distribué (Œil & Oreilles)
 After=network-online.target picoport.service
 Wants=picoport.service
 
