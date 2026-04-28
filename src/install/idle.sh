@@ -11,6 +11,11 @@ setup_idle() {
     # ── Répertoire wav/ ─────────────────────────────────────────
     mkdir -p "$wav_dir"
     log "Répertoire $wav_dir créé"
+    sudo chown -R www-data:soundspot /opt/soundspot/wav
+    # Donner les droits de lecture/écriture/exécution au groupe
+    sudo chmod -R 775 /opt/soundspot/wav
+    # S'assurer que les futurs fichiers créés héritent du groupe (Setgid)
+    sudo chmod g+s /opt/soundspot/wav
 
     # ── Script principal ─────────────────────────────────────────
     install_template "idle_announcer.sh" "$INSTALL_DIR/idle_announcer.sh"

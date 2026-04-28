@@ -62,11 +62,25 @@ _generate_orpheus() {
         -H "Content-Type: application/json" \
         -d "{\"model\":\"orpheus\",\"input\":${json_text},\"voice\":\"${VOICE}\",\"response_format\":\"wav\",\"speed\":1.0}" \
         "http://localhost:${ORPHEUS_PORT}/v1/audio/speech" 2>/dev/null
-    [ -s "$OUTFILE" ]
+
+    if [ -s "$OUTFILE" ]; then
+        ss_info "Normalisation audio Orpheus (speechnorm)..."
+        
+        # 1. Nettoyage des basses fréquences (bruit de fond) 
+        # 2. speechnorm : remonte le niveau moyen de la voix intelligemment
+        # e=12 : expansion max (pour les voix faibles)
+        # p=0.9 : niveau cible des crêtes
+        ffmpeg -i "$OUTFILE" -af "highpass=f=80, speechnorm=e=12:p=0.9" -y "${OUTFILE}.norm.wav" >/dev/null 2>&1
+        
+        # Remplacement du fichier original
+        if [ -f "${OUTFILE}.norm.wav" ]; then
+            mv "${OUTFILE}.norm.wav" "$OUTFILE"
+        fi
+    fi
 }
 
 _generate_espeak() {
-    espeak-ng -v fr+f3 -s 115 -p 40 "$TEXT" -w "$OUTFILE" 2>/dev/null
+    espeak-ng -v fr+f3 -a 80 -s 115 -p 40 "$TEXT" -w "$OUTFILE" 2>/dev/null
 }
 
 # ── Annonce de première connexion constellation ──────────────────────

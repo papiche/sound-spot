@@ -67,7 +67,7 @@ apt_retry install -y --no-install-recommends \
     python3 python3-opencv python3-picamera2 \
     python3-markdown python3-websocket \
     espeak-ng jq \
-    curl wget ffmpeg \
+    curl wget ffmpeg unzip \
     iw wireless-tools socat gettext-base rsyslog \
     zram-tools 
     ## keep z ram packet last (for update.sh)

@@ -48,6 +48,25 @@ chmod -R a+rX "$INSTALL_DIR/backend/"
 find "$INSTALL_DIR/backend/" -name "*.sh" -exec chmod +x {} \;
 log "backend/ synchronisé"
 
+# ── Snapweb ───────────────────────────────────────────────────
+if [ ! -d "/usr/share/snapserver/snapweb" ] || [ -z "$(ls -A /usr/share/snapserver/snapweb 2>/dev/null)" ]; then
+    hdr "Mise à jour de Snapweb"
+    log "Téléchargement et installation de Snapweb..."
+    mkdir -p /usr/share/snapserver/snapweb
+    wget -qO /tmp/snapweb.zip https://github.com/snapcast/snapweb/releases/download/v0.9.3/snapweb.zip || true
+    if [ -s /tmp/snapweb.zip ]; then
+        if command -v unzip >/dev/null 2>&1; then
+            unzip -qo /tmp/snapweb.zip -d /usr/share/snapserver/snapweb/ || true
+        else
+            python3 -m zipfile -e /tmp/snapweb.zip /usr/share/snapserver/snapweb/ || true
+        fi
+        rm -f /tmp/snapweb.zip
+        log "Snapweb installé avec succès."
+    else
+        warn "Échec du téléchargement de Snapweb."
+    fi
+fi
+
 # ── Picoport ──────────────────────────────────────────────────
 hdr "Mise à jour de picoport"
 rsync -a --delete \

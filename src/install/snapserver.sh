@@ -38,6 +38,20 @@ EOF
     systemctl restart snapserver
     log "Snapserver configuré (pipe PCM, port ${SNAPCAST_PORT})"
 
+    # Installation de Snapweb
+    if [ ! -d "/usr/share/snapserver/snapweb" ]; then
+        log "Téléchargement et installation de Snapweb..."
+        mkdir -p /usr/share/snapserver/snapweb
+        wget -qO /tmp/snapweb.zip https://github.com/snapcast/snapweb/releases/download/v0.9.3/snapweb.zip || true
+        if [ -s /tmp/snapweb.zip ]; then
+            unzip -qo /tmp/snapweb.zip -d /usr/share/snapserver/snapweb/ 2>/dev/null || python3 -m zipfile -e /tmp/snapweb.zip /usr/share/snapserver/snapweb/ || true
+            rm -f /tmp/snapweb.zip
+            log "Snapweb installé dans /usr/share/snapserver/snapweb"
+        else
+            warn "Échec du téléchargement de Snapweb"
+        fi
+    fi
+
     hdr "Décodeur Icecast → Snapcast (ffmpeg)"
 
     install_template decoder.sh "$INSTALL_DIR/decoder.sh"

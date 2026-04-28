@@ -73,34 +73,31 @@ say() {
 # Priorité : Orpheus → espeak fallback.
 play_message_file() {
     local n="$1"
-    local id; id=$(printf '%02d' "$n")
+    local id=$(printf '%02d' "$n")
     local wav="$WAV_DIR/message_${id}.wav"
     local txt="$WAV_DIR/message_${id}.txt"
 
-    # Si voix désactivée depuis le portail : espeak direct
-    if [ "${VOICE_ENABLED:-true}" = "false" ]; then
-        if [ -f "$txt" ] && { [ ! -f "$wav" ] || [ "$txt" -nt "$wav" ]; }; then
-            espeak-ng -v fr+f3 -s 115 -p 40 "$(cat "$txt")" -w "$wav" 2>/dev/null || true
-        fi
-        [ -f "$wav" ] && play_wav "$wav"
-        return
-    fi
+    # 1. Si Orpheus est vivant, on tente systématiquement de régénérer 
+    # si le fichier actuel est un espeak (basé sur la taille ou l'absence)
+    if [ "${_CYCLE_ORPHEUS:-false}" = "true" ]; then
+        # Récupérer le propriétaire actuel du wav
+        local owner=$(stat -c '%U' "$wav" 2>/dev/null || echo "none")
 
-    # Orpheus en premier (disponibilité vérifiée une fois par cycle)
-    if [ "${_CYCLE_ORPHEUS:-false}" = "true" ] && [ -f "$txt" ]; then
-        local live_wav
-        live_wav=$(bash "$TTS_SH" "$(cat "$txt")" "${ORPHEUS_VOICE:-amelie}" 2>/dev/null | tail -1)
-        if [ -f "$live_wav" ]; then
-            mv "$live_wav" "$wav" 2>/dev/null || { play_wav "$live_wav"; rm -f "$live_wav"; return; }
-            play_wav "$wav"
-            return
+        # Si le propriétaire est encore www-data, c'est une voix espeak (basse qualité)
+        # On tente une "promotion" vers Orpheus (propriétaire pi)
+        if [ "$owner" = "www-data" ] || [ ! -f "$wav" ]; then
+            ss_info "Tentative de promotion Orpheus pour $id (owner actuel: $owner)"
+            
+            # On force un test Orpheus ici, même si le cycle a dit non au début
+            local live_wav=$(bash "$TTS_SH" "$(cat "$txt")" "${ORPHEUS_VOICE:-pierre}" 2>/dev/null | tail -1)
+            
+            if [ -f "$live_wav" ]; then
+                mv "$live_wav" "$wav" && ss_info "Promotion réussie pour $id"
+            fi
         fi
     fi
-
-    # Fallback espeak — régénère si le .txt est plus récent (texte modifié depuis le portail)
-    if [ -f "$txt" ] && { [ ! -f "$wav" ] || [ "$txt" -nt "$wav" ]; }; then
-        espeak-ng -v fr+f3 -s 115 -p 40 "$(cat "$txt")" -w "$wav" 2>/dev/null || true
-    fi
+    
+    # 2. Lecture finale
     [ -f "$wav" ] && play_wav "$wav"
 }
 
@@ -123,7 +120,7 @@ regen_orpheus_wavs_bg() {
     local port="${ORPHEUS_PORT:-5005}"
     local voice="${ORPHEUS_VOICE:-pierre}"
     local waited=0
-    while [ $waited -lt 600 ]; do
+    while [ $waited -lt 1800 ]; do
         if curl -s -o /dev/null -w "%{http_code}" --max-time 2 \
             "http://localhost:${port}/docs" 2>/dev/null | grep -q "200"; then
             ss_info "Orpheus disponible — régénération de tous les messages en ${voice}"
