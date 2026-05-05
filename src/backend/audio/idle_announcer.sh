@@ -77,27 +77,25 @@ play_message_file() {
     local wav="$WAV_DIR/message_${id}.wav"
     local txt="$WAV_DIR/message_${id}.txt"
 
-    # 1. Si Orpheus est vivant, on tente systématiquement de régénérer 
-    # si le fichier actuel est un espeak (basé sur la taille ou l'absence)
-    if [ "${_CYCLE_ORPHEUS:-false}" = "true" ]; then
-        # Récupérer le propriétaire actuel du wav
-        local owner=$(stat -c '%U' "$wav" 2>/dev/null || echo "none")
+    # Vérifier le propriétaire actuel
+    local owner=$(stat -c '%U' "$wav" 2>/dev/null || echo "none")
 
-        # Si le propriétaire est encore www-data, c'est une voix espeak (basse qualité)
-        # On tente une "promotion" vers Orpheus (propriétaire pi)
-        if [ "$owner" = "www-data" ] || [ ! -f "$wav" ]; then
-            ss_info "Tentative de promotion Orpheus pour $id (owner actuel: $owner)"
-            
-            # On force un test Orpheus ici, même si le cycle a dit non au début
-            local live_wav=$(bash "$TTS_SH" "$(cat "$txt")" "${ORPHEUS_VOICE:-pierre}" 2>/dev/null | tail -1)
-            
-            if [ -f "$live_wav" ]; then
-                mv "$live_wav" "$wav" && ss_info "Promotion réussie pour $id"
-            fi
+    # Si Orpheus est vivant ET (le fichier appartient à www-data OU est absent)
+    if [ "${_CYCLE_ORPHEUS:-false}" = "true" ] && { [ "$owner" = "www-data" ] || [ ! -f "$wav" ]; }; then
+        ss_info "Promotion Orpheus pour message_$id (Source: $owner)"
+        
+        # On génère en temporaire via pi
+        local live_wav=$(bash "$TTS_SH" "$(cat "$txt")" "${ORPHEUS_VOICE:-pierre}" 2>/dev/null | tail -1)
+        
+        if [ -f "$live_wav" ]; then
+            # En écrasant le fichier, pi (qui lance ce script) en devient le propriétaire
+            mv -f "$live_wav" "$wav"
+            # On s'assure que le groupe est soundspot pour que le portail puisse encore le lire
+            chown pi:soundspot "$wav"
+            chmod 664 "$wav"
         fi
     fi
     
-    # 2. Lecture finale
     [ -f "$wav" ] && play_wav "$wav"
 }
 

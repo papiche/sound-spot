@@ -51,7 +51,7 @@ orpheus_alive() {
 gen_espeak() {
     local txt="$1" out="$2"
     espeak-ng -v fr+f3 -s 115 -p 40 "$txt" -w "$out" 2>/dev/null \
-        && chown www-data:www-data "$out" 2>/dev/null || true
+        && chown www-data:soundspot "$out" 2>/dev/null || true
     [ -f "$out" ] && log "espeak-ng → $out" || warn "espeak-ng échoué"
 }
 
@@ -73,7 +73,7 @@ gen_orpheus() {
         "http://localhost:${ORPHEUS_PORT}/v1/audio/speech" 2>/dev/null \
         && [ -s "$tmp" ]; then
         mv "$tmp" "$out"
-        chown www-data:www-data "$out" 2>/dev/null || true
+        chown www-data:soundspot "$out" 2>/dev/null || true
         log "Orpheus ($voice) → $out"
         return 0
     fi

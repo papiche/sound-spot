@@ -9,13 +9,38 @@ IPFSNODEID=$(ipfs id -f="<id>")
 MY_NODE_DIR="$TMP_DIR/$IPFSNODEID"
 SWARM_DIR="$TMP_DIR/swarm"
 
-# Services à exposer (Nom:PortLocal)
+# ── Logs (chargés EN PREMIER — requis par les vérifications IPFS suivantes) ──
+_SS_SERVICE="picoport"
+source /opt/soundspot/backend/system/log.sh 2>/dev/null || {
+    ss_info()  { echo "[INFO]  [picoport] $*"; }
+    ss_debug() { echo "[DEBUG] [picoport] $*"; }
+    ss_warn()  { echo "[WARN]  [picoport] $*"; }
+    ss_error() { echo "[ERROR] [picoport] $*" >&2; }
+}
+
+# Services à exposer (Nom:PortLocal) — upassport exposé seulement si actif localement
 MY_SERVICES="icecast:8111 snapcast:1704 upassport:54321 ssh:22"
 
 # ── heartbox_analysis.sh (Astroport.ONE light install) ──────────────────────
-# Fournit capacities.power_score, capacities.crypto_score, provider_ready…
-# Cohérent avec astrosystemctl list-remote et le format 12345.json du swarm.
 HB_SCRIPT="$HOME/.zen/Astroport.ONE/tools/heartbox_analysis.sh"
+
+# ── Chemins UPlanet media pipeline (upload2ipfs.sh + publish_nostr_video.sh) ─
+# Permet aux apps du portail (yt_copy, etc.) d'utiliser le système UPlanet complet.
+UPLOAD_SCRIPT=""
+PUBLISH_SCRIPT=""
+ASTRO_TOOLS="$HOME/.zen/Astroport.ONE/tools"
+for _p in \
+    "$HOME/.zen/UPassport/upload2ipfs.sh" \
+    "/opt/soundspot/picoport/upload2ipfs.sh"; do
+    [ -f "$_p" ] && { UPLOAD_SCRIPT="$_p"; break; }
+done
+[ -f "$ASTRO_TOOLS/publish_nostr_video.sh" ] && \
+    PUBLISH_SCRIPT="$ASTRO_TOOLS/publish_nostr_video.sh"
+
+# Écrire les chemins en RAM pour les apps CGI (www-data)
+mkdir -p /dev/shm/soundspot_env
+[ -n "$UPLOAD_SCRIPT"  ] && echo "$UPLOAD_SCRIPT"  > /dev/shm/soundspot_env/upload2ipfs_path
+[ -n "$PUBLISH_SCRIPT" ] && echo "$PUBLISH_SCRIPT" > /dev/shm/soundspot_env/publish_nostr_path
 
 mkdir -p "$MY_NODE_DIR" "$SWARM_DIR"
 
@@ -33,18 +58,13 @@ fi
 PEERS=$(ipfs swarm peers | wc -l)
 if [ "$PEERS" -eq 0 ]; then
     ss_warn "Nœud isolé"
-    # On ne fait une alerte vocale que si ça dure (ex: après 5 min)
     if [ ! -f /tmp/swarm_fail_start ]; then touch /tmp/swarm_fail_start; fi
 else
     rm -f /tmp/swarm_fail_start
 fi
 
 # ── NOSTR Identity (Y-Level) ────────────────────────────────────────────────
-# Dérive ou charge le HEX NOSTR depuis secret.june / secret.nostr.
-# Publié dans MY_NODE_DIR/HEX → téléchargé par la constellation via swarm IPNS.
-# Permet à all_but_blacklist.sh du relay de reconnaître ce nœud.
 NODEHEX=""
-ASTRO_TOOLS="$HOME/.zen/Astroport.ONE/tools"
 if [[ -s ~/.zen/game/secret.nostr ]]; then
     source ~/.zen/game/secret.nostr
     NODEHEX="${HEX:-}"
@@ -61,25 +81,14 @@ elif [[ -s ~/.zen/game/secret.june && -f "$ASTRO_TOOLS/keygen" ]]; then
     [[ -n "$NODEHEX" ]] && echo "NSEC=$_nsec; NPUB=$_npub; HEX=$NODEHEX" > ~/.zen/game/secret.nostr
     rm -f "$_CRED_PICO"
 fi
-# Publier HEX dans la balise IPNS (lu par all_but_blacklist.sh via swarm cache)
 [[ -n "$NODEHEX" ]] && echo "$NODEHEX" > "$MY_NODE_DIR/HEX"
 
 # Mot de passe admin portail = 10 derniers caractères de UPLANETNAME (swarm.key)
-# Écrit en RAM (/dev/shm) pour www-data (CGI lighttpd).
 _UPLANETNAME=$(tail -n 1 ~/.ipfs/swarm.key 2>/dev/null || echo "")
 if [ -n "$_UPLANETNAME" ]; then
     echo "${_UPLANETNAME: -10}" > /dev/shm/soundspot_admin_pass
     chmod 644 /dev/shm/soundspot_admin_pass
 fi
-
-# --- CHARGEMENT DES LOGS ---
-_SS_SERVICE="picoport"
-source /opt/soundspot/backend/system/log.sh 2>/dev/null || {
-    ss_info()  { echo "[INFO]  [picoport] $*"; }
-    ss_debug() { echo "[DEBUG] [picoport] $*"; }
-    ss_warn()  { echo "[WARN]  [picoport] $*"; }
-    ss_error() { echo "[ERROR] [picoport] $*" >&2; }
-}
 
 # Clé IPNS secondaire MySwarm (initialisée par swarm_sync.sh) — lue sans secrets
 CHAN=$(ipfs key list -l 2>/dev/null | grep "MySwarm_${IPFSNODEID}" | awk '{print $1}' || echo "")
@@ -203,14 +212,11 @@ while true; do
     # Mise à jour du 12345.json (ajoute les services détectés)
     DRAGON_LIST=$(ls "$MY_NODE_DIR"/x_*.sh 2>/dev/null | xargs -I{} basename {} .sh | sed 's/^x_//' | paste -sd',' -)
 
-    # ── Capacités via heartbox_analysis.sh (format unifié swarm) ────────────────
-    # Si heartbox_analysis.sh est disponible (Astroport.ONE light install),
-    # on l'utilise pour générer le bloc capacities avec power_score et crypto_score.
+    # ── Capacités via heartbox_analysis.sh ──────────────────────────────────────
     HB_CACHE="$MY_NODE_DIR/heartbox_analysis.json"
     CAPACITIES='{"power_score":0,"crypto_score":0,"provider_ready":false,"storage_ready":false}'
 
-    if [[ -n "$HB_SCRIPT" ]]; then
-        # Rafraîchir si absent ou > 900 s (TTL heartbox = 300 s, on tolère 3 cycles picoport)
+    if [[ -f "$HB_SCRIPT" ]]; then
         if [[ ! -s "$HB_CACHE" ]] || \
            [[ $(( $(date +%s) - $(stat -c%Y "$HB_CACHE" 2>/dev/null || echo 0) )) -gt 900 ]]; then
             bash "$HB_SCRIPT" update >/dev/null 2>&1
@@ -221,14 +227,19 @@ while true; do
         fi
     fi
 
+    # ── Détection UPassport local (pour les apps CGI et le swarm) ───────────────
+    UPASSPORT_AVAILABLE="false"
+    if curl -sf --max-time 2 "http://127.0.0.1:54321/health" >/dev/null 2>&1; then
+        UPASSPORT_AVAILABLE="true"
+    fi
+
     myIP=$(hostname -I | awk '{print $1}')
     G1PUB_CACHED=$(cat "$MY_NODE_DIR/G1PUB" 2>/dev/null || echo "")
-    # Rafraîchir CHAN si swarm_sync.sh vient de créer la clé
     [ -z "$CHAN" ] && CHAN=$(ipfs key list -l 2>/dev/null | grep "MySwarm_${IPFSNODEID}" | awk '{print $1}' || echo "")
 
     cat > "$MY_NODE_DIR/12345.json" << EOF
 {
-    "version": "picoport-0.5-dragon",
+    "version": "picoport-0.6-dragon",
     "created": $MOATS,
     "hostname":      "$(hostname)",
     "ipfsnodeid":    "$IPFSNODEID",
@@ -245,6 +256,11 @@ while true; do
     "SSHPUB":        "$(cat ~/.ssh/id_ed25519.pub 2>/dev/null || echo '')",
     "dragon_services": "$DRAGON_LIST",
     "streaming":     { "icecast": true, "snapcast": true },
+    "uplanet": {
+        "upassport_available": $UPASSPORT_AVAILABLE,
+        "upload2ipfs":  "${UPLOAD_SCRIPT:-}",
+        "publish_nostr": "${PUBLISH_SCRIPT:-}"
+    },
     "capacities":    $CAPACITIES
 }
 EOF

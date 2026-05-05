@@ -1,24 +1,14 @@
 #!/usr/bin/env python3
 import json, time, os, re, websocket
 
-# ── Identification Astroport (Optimisée : lecture native Python) ──
-def get_ipfs_peer_id():
-    config_path = os.path.expanduser("~/.ipfs/config")
-    try:
-        with open(config_path, "r") as f:
-            config = json.load(f)
-            peer_id = config.get("Identity", {}).get("PeerID")
-            if peer_id:
-                return peer_id
-    except Exception:
-        pass
-    return "unknown"
-
-IPFSNODEID = get_ipfs_peer_id()
-QUEUE_DIR = os.path.expanduser(f"~/.zen/tmp/{IPFSNODEID}/soundspot_queue")
+QUEUE_DIR = "/dev/shm/soundspot_queue"
 os.makedirs(QUEUE_DIR, exist_ok=True)
 
-RELAY_URL = "ws://127.0.0.1:9999" # Tunnel vers le Brain-Node de l'essaim
+# Essaie le tunnel local P2P vers le Brain-Node, puis le relay public
+RELAY_URLS = [
+    "ws://127.0.0.1:9999",
+    "wss://relay.copylaradio.com",
+]
 seen_urls = set()
 
 def on_message(ws, message):
@@ -41,14 +31,24 @@ def on_message(ws, message):
                     print(f"📥 Jukebox: Morceau reçu via Nostr -> {url}", flush=True)
     except Exception: pass
 
-def on_open(ws):
-    print(f"🔗 Connecté au tunnel Nostr ({RELAY_URL})", flush=True)
-    ws.send(json.dumps(["REQ", "jukebox_sub", {"kinds": [1], "since": int(time.time())}]))
+def make_on_open(relay_url):
+    def on_open(ws):
+        print(f"🔗 Connecté au relay Nostr ({relay_url})", flush=True)
+        ws.send(json.dumps(["REQ", "jukebox_sub", {"kinds": [1], "since": int(time.time())}]))
+    return on_open
 
 if __name__ == "__main__":
+    relay_idx = 0
     while True:
+        relay_url = RELAY_URLS[relay_idx % len(RELAY_URLS)]
         try:
-            ws = websocket.WebSocketApp(RELAY_URL, on_open=on_open, on_message=on_message)
+            ws = websocket.WebSocketApp(
+                relay_url,
+                on_open=make_on_open(relay_url),
+                on_message=on_message,
+            )
             ws.run_forever(ping_interval=30, ping_timeout=10)
-        except Exception: pass
+        except Exception:
+            pass
+        relay_idx += 1
         time.sleep(5)

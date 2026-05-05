@@ -18,6 +18,7 @@ source "$SCRIPT_DIR/install/colors.sh"
 source "$SCRIPT_DIR/install/bluetooth.sh"
 source "$SCRIPT_DIR/install/pipewire.sh"
 source "$SCRIPT_DIR/install/snapclient.sh"
+source "$SCRIPT_DIR/install/zram.sh"
 
 
 # ── Variables configurables ─────────────────────────────────
@@ -152,21 +153,7 @@ apt_retry install -y --no-install-recommends $PKGS
 
 mkdir -p "$INSTALL_DIR/backend/system"
 
-# ── log2ram : /var/log en RAM (protection SD solaire) ────────
-hdr "log2ram — /var/log en RAM"
-if ! command -v log2ram &>/dev/null; then
-    KEYRING="/usr/share/keyrings/azlux-archive-keyring.gpg"
-    wget -qO "$KEYRING" https://azlux.fr/repo.gpg 2>/dev/null \
-        && echo "deb [signed-by=${KEYRING}] http://packages.azlux.fr/debian/ bookworm main" \
-            > /etc/apt/sources.list.d/azlux.list \
-        && apt-get update -qq 2>/dev/null \
-        && apt-get install -y -q log2ram 2>/dev/null \
-        && sed -i 's/^SIZE=.*/SIZE=128M/;s/^MAIL=true/MAIL=false/' /etc/log2ram.conf 2>/dev/null \
-        && log "log2ram installé ✓" \
-        || warn "log2ram non installé — logs sur SD"
-else
-    log "log2ram déjà présent ✓"
-fi
+setup_zram
 
 # ── Groupe système soundspot ─────────────────────────────────
 groupadd --system soundspot 2>/dev/null || true

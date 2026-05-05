@@ -94,8 +94,12 @@ if [ "${CMD}" = "tts_now" ]; then
             -d "{\"model\":\"orpheus\",\"input\":${JSON_TXT},\"voice\":\"${VOICE}\",\"response_format\":\"wav\",\"speed\":1.0}" \
             "http://localhost:${ORPHEUS_PORT}/v1/audio/speech" 2>/dev/null \
             && [ -s "$TMP_WAV" ]; then
+            # Normalisation volume (même filtre que tts.sh)
+            ffmpeg -i "$TMP_WAV" -af "highpass=f=80,speechnorm=e=12:p=0.9" \
+                -y "${TMP_WAV}.norm.wav" >/dev/null 2>&1 \
+                && mv "${TMP_WAV}.norm.wav" "$TMP_WAV" || true
             mv "$TMP_WAV" "$wav"
-            chown www-data:www-data "$wav" 2>/dev/null || true
+            chown www-data:soundspot "$wav" 2>/dev/null || true
             _log "ok source=orpheus voice=$VOICE wav=$wav"
             jq -n --arg id "$ID" --arg voice "$VOICE" --arg url "$WAV_URL" \
                 '{"status":"ok","id":$id,"voice":$voice,"source":"orpheus","url":$url}'
@@ -109,7 +113,7 @@ if [ "${CMD}" = "tts_now" ]; then
 
     # Fallback espeak
     if espeak-ng -v fr+f3 -s 115 -p 40 "$TXT_CONTENT" -w "$wav" 2>/dev/null; then
-        chown www-data:www-data "$wav" 2>/dev/null || true
+        chown www-data:soundspot "$wav" 2>/dev/null || true
         _log "ok source=espeak wav=$wav"
         jq -n --arg id "$ID" --arg url "$WAV_URL" \
             '{"status":"ok","id":$id,"source":"espeak","url":$url}'
@@ -117,6 +121,12 @@ if [ "${CMD}" = "tts_now" ]; then
         _log "ERREUR tts_failed"
         jq -n '{"error":"tts_failed"}'
     fi
+
+    if [ -f "$wav" ]; then
+        chown www-data:soundspot "$wav"
+        chmod 664 "$wav"
+    fi
+
     exit 0
 fi
 

@@ -70,16 +70,14 @@ declare -A MSGS
         # Écrire le texte source (toujours, pour permettre l'édition)
         echo "${MSGS[$id]}" > "$txt_file"
 
-        # Générer le .wav uniquement s'il n'existe pas déjà
-        # (préserve un .wav personnalisé déposé manuellement)
-        if [ ! -f "$wav_file" ]; then
-            espeak-ng -v fr+f3 -s 115 -p 40 "${MSGS[$id]}" \
-                -w "$wav_file" 2>/dev/null \
-                && log "message_${id}.wav généré" \
-                || warn "espeak-ng : message_${id}.wav non généré"
-        else
-            log "message_${id}.wav existant conservé (personnalisé ?)"
-        fi
+        # Générer le .wav
+        espeak-ng -v fr+f3 -s 115 -p 40 "${MSGS[$id]}" \
+            -w "$wav_file" 2>/dev/null \
+            && log "message_${id}.wav généré" \
+            || warn "espeak-ng : message_${id}.wav non généré"
+        
+        chown www-data:soundspot "$wav_file" 2>/dev/null || true
+
     done
 
     log "Textes sources dans : ${wav_dir}/ (fichiers .txt modifiables)"

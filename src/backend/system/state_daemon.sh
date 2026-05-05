@@ -22,14 +22,12 @@ while true; do
             mv /dev/shm/status.json.tmp "${PORTAL}/status.json"
     fi
     sleep "$INTERVAL"
-    # Watchdog Décodeur
-
-    # Vérification sécurisée du watchdog
+    # Watchdog Décodeur — vérifie le service sans consommer d'octets du FIFO PCM
     if [ -f "${PORTAL}/status.json" ]; then
         DJ_ACTIVE=$(jq -r '.dj_active // "false"' "${PORTAL}/status.json")
         if [ "$DJ_ACTIVE" = "true" ]; then
-            if ! timeout 1 dd if=/dev/shm/snapfifo bs=1 count=1 >/dev/null 2>&1; then
-                ss_warn "Watchdog: Silence détecté"
+            if ! systemctl is-active --quiet soundspot-decoder 2>/dev/null; then
+                ss_warn "Watchdog: Décodeur arrêté"
                 espeak-ng -v fr+f3 "Flux audio gelé. Tentative de redémarrage du décodeur." | aplay -q 2>/dev/null &
                 systemctl restart soundspot-decoder
             fi

@@ -84,8 +84,8 @@ pico-status() {
     bluetoothctl info 2>/dev/null | grep -q "Connected: yes" && echo "connecté" || echo "déconnecté"
     echo -n "Snapclient: " && systemctl is-active soundspot-client 2>/dev/null
     echo -n "Snapserver: " && systemctl is-active snapserver 2>/dev/null
-    if [ -f /tmp/battery_level ]; then
-        echo -n "Batterie:   " && cat /tmp/battery_level
+    if [ -f /dev/shm/battery_percent ]; then
+        echo -n "Batterie:   " && cat /dev/shm/battery_percent && echo " %"
     fi
 }
 

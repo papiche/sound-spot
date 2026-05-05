@@ -119,7 +119,7 @@ echo "▶ Recalibration solaire..."
 
 # 3. Signal de vie Nostr (kind 1)
 BATT="N/A"
-[ -f /tmp/battery_level ] && BATT=\$(cat /tmp/battery_level)
+[ -f /dev/shm/battery_percent ] && BATT="\$(cat /dev/shm/battery_percent)%"
 UPTIME=\$(uptime -p)
 IPFSNODEID=\$(ipfs id -f="<id>" 2>/dev/null || echo "unknown")
 MESSAGE="🎶 Picoport SoundSpot

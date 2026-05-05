@@ -90,16 +90,16 @@ if RELAY_PIN > 0:
 
 
 def export_to_prometheus(voltage, percent):
-    prom_path = "/var/lib/prometheus/node-exporter/picoport_battery.prom"
-    if not os.path.exists(os.path.dirname(prom_path)):
-        os.makedirs(os.path.dirname(prom_path), exist_ok=True)
+    # Écriture en RAM (/dev/shm) — zéro écriture SD.
+    # Configurer Node Exporter avec --collector.textfile.directory=/dev/shm
+    prom_path = "/dev/shm/picoport_battery.prom"
     try:
         with open(prom_path + ".tmp", "w") as f:
-            f.write(f"# HELP picoport_battery_voltage Voltage of the solar battery\n")
-            f.write(f"# TYPE picoport_battery_voltage gauge\n")
+            f.write("# HELP picoport_battery_voltage Voltage of the solar battery\n")
+            f.write("# TYPE picoport_battery_voltage gauge\n")
             f.write(f"picoport_battery_voltage {voltage:.2f}\n")
-            f.write(f"# HELP picoport_battery_percent Percentage of the solar battery\n")
-            f.write(f"# TYPE picoport_battery_percent gauge\n")
+            f.write("# HELP picoport_battery_percent Percentage of the solar battery\n")
+            f.write("# TYPE picoport_battery_percent gauge\n")
             f.write(f"picoport_battery_percent {percent}\n")
         os.replace(prom_path + ".tmp", prom_path)
     except Exception as e:

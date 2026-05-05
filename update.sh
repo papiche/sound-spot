@@ -32,11 +32,28 @@ for arg in "$@"; do
     [ "$arg" = "--pinout" ] && WITH_PINOUT=true
 done
 
+# ── Droits système (miroir deploy_on_pi.sh) ───────────────────
+hdr "Droits système"
+usermod -aG video,render,audio,input "$SOUNDSPOT_USER" 2>/dev/null || true
+log "Groupes video,render,audio,input : $SOUNDSPOT_USER ✓"
+
+if ! loginctl show-user "$SOUNDSPOT_USER" 2>/dev/null | grep -q "Linger=yes"; then
+    loginctl enable-linger "$SOUNDSPOT_USER"
+    log "linger activé pour $SOUNDSPOT_USER"
+fi
+
+if ! grep -q "^KillUserProcesses=no" /etc/systemd/logind.conf 2>/dev/null; then
+    echo "KillUserProcesses=no" >> /etc/systemd/logind.conf
+    systemctl restart systemd-logind 2>/dev/null || true
+    log "KillUserProcesses=no → logind.conf"
+fi
+
 # ── Portail (portal/) ─────────────────────────────────────────
 hdr "Mise à jour du portail"
 rsync -a --delete \
     --exclude='pinout/' \
     "$SCRIPT_DIR/src/portal/" "$INSTALL_DIR/portal/"
+chown -R www-data:www-data "$INSTALL_DIR/portal"
 chmod -R a+rX "$INSTALL_DIR/portal/"
 log "portal/ synchronisé"
 
@@ -177,13 +194,12 @@ fi
 if [ -d "$INSTALL_DIR/wav" ]; then
     # On s'assure que le groupe soundspot existe
     getent group soundspot >/dev/null || groupadd soundspot
-    
-    # On remet tout au propre : groupe soundspot + écriture groupe
-    chown -R root:soundspot "$INSTALL_DIR/wav"
+    # groupe soundspot + écriture groupe
+    # rwxrwsr-x : Le 's' force les nouveaux fichiers à être du groupe soundspot
     chmod -R 775 "$INSTALL_DIR/wav"
-    chmod g+s "$INSTALL_DIR/wav" # Heritage du groupe pour les nouveaux fichiers
+    chmod g+s "$INSTALL_DIR/wav"
     
-    log "wav/ permissions blindées (groupe soundspot)"
+    log "Permissions wav/ optimisées pour le remplacement de voix"
 fi
 
 # ── Accès www-data au log centralisé ─────────────────────────
@@ -216,6 +232,11 @@ if [ -f "$SUDOERS" ]; then
     if ! grep -q 'set_audio_output' "$SUDOERS"; then
         echo "www-data ALL=(ALL) NOPASSWD: ${INSTALL_DIR}/backend/system/set_audio_output.sh *" >> "$SUDOERS"
         log "Sudoers : règle set_audio_output.sh ajoutée"
+    fi
+    if ! grep -q 'upload2ipfs' "$SUDOERS"; then
+        _USER_HOME=$(getent passwd "$SOUNDSPOT_USER" | cut -d: -f6)
+        echo "www-data ALL=(${SOUNDSPOT_USER}) NOPASSWD: /bin/bash ${_USER_HOME}/.zen/UPassport/upload2ipfs.sh *" >> "$SUDOERS"
+        log "Sudoers : règle upload2ipfs.sh ajoutée"
     fi
 fi
 

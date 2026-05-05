@@ -25,6 +25,7 @@ source "$SCRIPT_DIR/install/presence.sh"
 source "$SCRIPT_DIR/install/battery.sh"
 source "$SCRIPT_DIR/install/idle.sh"
 source "$SCRIPT_DIR/install/jukebox.sh"
+source "$SCRIPT_DIR/install/zram.sh"
 
 # ── Variables configurables ─────────────────────────────────
 export SPOT_NAME="${SPOT_NAME:-SoundSpot_Zicmama}"
@@ -219,14 +220,7 @@ GOEOF
     log "Fleet relay (port 9999) + fleet listener activés"
 fi
 
-hdr "Optimisation Disque/Swap"
-# Désactiver le swap fichier par défaut de Debian/PiOS
-dphys-swapfile swapoff 2>/dev/null || true
-systemctl disable dphys-swapfile 2>/dev/null || true
-# Vérifier ZRAM
-echo "PERCENT=60" > /etc/default/zramswap
-systemctl restart zramswap
-log "Swap sur SD désactivé, ZRAM 60% activé."
+setup_zram
 
 # ── Fichier de configuration final ──────────────────────────
 hdr "Finalisation"
@@ -245,15 +239,5 @@ hdr "Installation terminée ✓"
 echo -e "${G}SoundSpot est prêt !${N}"
 echo -e "Utilisez la commande ${C}check${N} (alias) pour vérifier l'état des services."
 echo -e "Le nœud va redémarrer dans 10s..."
-
-hdr "Optimisation RAM (ZRAM)"
-cat > /etc/default/zramswap <<EOF
-ALGORITHM=lz4
-SIZE=256
-PRIORITY=100
-EOF
-systemctl restart zramswap
-log "ZRAM configuré (256Mo compressés) ✓"
-
 sleep 10
 reboot
