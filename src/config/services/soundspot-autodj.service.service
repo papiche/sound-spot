@@ -1,0 +1,14 @@
+[Unit]
+Description=SoundSpot — AutoDJ (Lecture de ~/Music)
+After=icecast2.service snapserver.service
+
+[Service]
+Type=simple
+User=${SOUNDSPOT_USER}
+EnvironmentFile=${INSTALL_DIR}/soundspot.conf
+ExecStart=${INSTALL_DIR}/backend/audio/autodj.sh
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

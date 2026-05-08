@@ -23,13 +23,11 @@ if [ "$(id -u)" -ne 0 ]; then
     warn "Ce script doit être lancé en root (sudo bash update.sh)"
     exit 1
 fi
-
 [ -d "$SCRIPT_DIR/src/portal" ]  || { warn "Répertoire src/portal introuvable — lancez depuis la racine du dépôt"; exit 1; }
 [ -d "$INSTALL_DIR" ]            || { warn "$INSTALL_DIR inexistant — faites d'abord l'installation complète"; exit 1; }
 
 WITH_PINOUT=false
-for arg in "$@"; do
-    [ "$arg" = "--pinout" ] && WITH_PINOUT=true
+for arg in "$@"; do[ "$arg" = "--pinout" ] && WITH_PINOUT=true
 done
 
 # ── Droits système (miroir deploy_on_pi.sh) ───────────────────
@@ -65,8 +63,25 @@ chmod -R a+rX "$INSTALL_DIR/backend/"
 find "$INSTALL_DIR/backend/" -name "*.sh" -exec chmod +x {} \;
 log "backend/ synchronisé"
 
+# ── Service AutoDJ (Mise à niveau à chaud) ────────────────────
+_USER_HOME=$(getent passwd "$SOUNDSPOT_USER" | cut -d: -f6)
+if [ ! -d "$_USER_HOME/Music" ]; then
+    mkdir -p "$_USER_HOME/Music"
+    chown "$SOUNDSPOT_USER:$SOUNDSPOT_USER" "$_USER_HOME/Music"
+    log "Dossier $_USER_HOME/Music créé"
+fi
+
+if [ ! -f "/etc/systemd/system/soundspot-autodj.service" ] &&[ -f "$SCRIPT_DIR/src/config/services/soundspot-autodj.service" ]; then
+    hdr "Mise à niveau : Service AutoDJ"
+    cp "$SCRIPT_DIR/src/config/services/soundspot-autodj.service" /etc/systemd/system/
+    sed -i "s|\${SOUNDSPOT_USER}|$SOUNDSPOT_USER|g" /etc/systemd/system/soundspot-autodj.service
+    sed -i "s|\${INSTALL_DIR}|$INSTALL_DIR|g" /etc/systemd/system/soundspot-autodj.service
+    systemctl daemon-reload
+    log "Service soundspot-autodj déployé"
+fi
+
 # ── Snapweb ───────────────────────────────────────────────────
-if [ ! -d "/usr/share/snapserver/snapweb" ] || [ -z "$(ls -A /usr/share/snapserver/snapweb 2>/dev/null)" ]; then
+if [ ! -d "/usr/share/snapserver/snapweb" ] ||[ -z "$(ls -A /usr/share/snapserver/snapweb 2>/dev/null)" ]; then
     hdr "Mise à jour de Snapweb"
     log "Téléchargement et installation de Snapweb..."
     mkdir -p /usr/share/snapserver/snapweb
@@ -192,13 +207,9 @@ fi
 
 # ── Permissions wav/ ──────────────────────────────────────────
 if [ -d "$INSTALL_DIR/wav" ]; then
-    # On s'assure que le groupe soundspot existe
     getent group soundspot >/dev/null || groupadd soundspot
-    # groupe soundspot + écriture groupe
-    # rwxrwsr-x : Le 's' force les nouveaux fichiers à être du groupe soundspot
     chmod -R 775 "$INSTALL_DIR/wav"
     chmod g+s "$INSTALL_DIR/wav"
-    
     log "Permissions wav/ optimisées pour le remplacement de voix"
 fi
 
@@ -222,7 +233,7 @@ print('lighttpd : alias /wav/ ajouté')
 PYEOF
 fi
 
-# ── Sudoers tts.sh si absent ──────────────────────────────────
+# ── Sudoers si absent ─────────────────────────────────────────
 SUDOERS=/etc/sudoers.d/soundspot-www
 if [ -f "$SUDOERS" ]; then
     if ! grep -q 'tts.sh' "$SUDOERS"; then
@@ -234,9 +245,14 @@ if [ -f "$SUDOERS" ]; then
         log "Sudoers : règle set_audio_output.sh ajoutée"
     fi
     if ! grep -q 'upload2ipfs' "$SUDOERS"; then
-        _USER_HOME=$(getent passwd "$SOUNDSPOT_USER" | cut -d: -f6)
         echo "www-data ALL=(${SOUNDSPOT_USER}) NOPASSWD: /bin/bash ${_USER_HOME}/.zen/UPassport/upload2ipfs.sh *" >> "$SUDOERS"
         log "Sudoers : règle upload2ipfs.sh ajoutée"
+    fi
+    # Règles pour l'AutoDJ
+    if ! grep -q 'soundspot-autodj' "$SUDOERS"; then
+        echo "www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl start soundspot-autodj" >> "$SUDOERS"
+        echo "www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop soundspot-autodj" >> "$SUDOERS"
+        log "Sudoers : règles AutoDJ ajoutées"
     fi
 fi
 

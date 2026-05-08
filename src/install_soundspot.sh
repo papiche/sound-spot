@@ -26,6 +26,7 @@ source "$SCRIPT_DIR/install/battery.sh"
 source "$SCRIPT_DIR/install/idle.sh"
 source "$SCRIPT_DIR/install/jukebox.sh"
 source "$SCRIPT_DIR/install/zram.sh"
+source "$SCRIPT_DIR/install/autodj.sh"
 
 # ── Variables configurables ─────────────────────────────────
 export SPOT_NAME="${SPOT_NAME:-SoundSpot_Zicmama}"
@@ -131,6 +132,7 @@ setup_presence       # Caméra + Welcome.wav
 setup_battery        # Batterie INA219 (indépendant caméra)
 setup_idle           # Clocher numérique
 setup_jukebox        # Nostr Jukebox
+setup_autodj         # Auto DJ service
 
 # ── Services Master spécifiques ──────────────────────────────
 hdr "Services Master (état JSON + micro USB)"

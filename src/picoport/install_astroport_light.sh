@@ -50,7 +50,7 @@ _PYPACKAGES=(
     "python-gnupg:gnupg"     "jwcrypto:jwcrypto"          "PyNaCl:nacl"
     "pynostr:pynostr"        "bech32:bech32"               "ecdsa:ecdsa"
     "pynentry:pynentry"      "websocket-client:websocket"  "requests:requests"
-    "monero:monero"          "bitcoin:bitcoin"
+    "monero:monero"          "bitcoin:bitcoin"             "meshtastic:meshtastic"
     "scrypt:scrypt"
 )
 _TOTAL=${#_PYPACKAGES[@]}; _IDX=0
