@@ -3,190 +3,236 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#1a0b14">
-  <title>Le Cyber Cochon 🐷</title>
+  <title>Cyber Cochon 🐷 - Nœud UPlanet</title>
+  <script type="module" src="model-viewer.min.js"></script>
   <style>
     :root {
-      --bg: #0f0a10; --panel: #1e1319; --pink: #ff66b2; 
-      --teal: #4ecdc4; --text: #e0d0d8; --font: system-ui, -apple-system, sans-serif;
+      --bg: #090a0f; 
+      --panel: rgba(15, 12, 20, 0.85); 
+      --pink: #ff3399; /* Rose néon agressif */
+      --yellow: #ffd700; /* Jaune bière/donut */
+      --text: #e0e2e6; 
+      --accent: #00ffcc; 
+      --font: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
-    body { 
-      background: var(--bg); color: var(--text); font-family: var(--font); 
-      margin: 0; padding: 20px 15px; display: flex; flex-direction: column; align-items: center; 
+    body {
+      margin: 0; padding: 0; background: radial-gradient(circle at center, #2a0a18 0%, var(--bg) 100%);
+      color: var(--text); font-family: var(--font); height: 100vh; overflow: hidden;
+      display: flex; flex-direction: row;
     }
-    .header { text-align: center; margin-bottom: 25px; }
-    .header h1 { color: var(--pink); margin: 0; font-size: 2.2rem; text-transform: uppercase; letter-spacing: 2px;}
-    .header p { color: var(--teal); font-family: monospace; margin: 5px 0 0 0; }
-    
-    .card { 
-      background: var(--panel); border: 1px solid #3a1a2a; border-radius: 16px; 
-      padding: 25px; max-width: 450px; width: 100%; margin-bottom: 20px; 
-      box-shadow: 0 8px 30px rgba(255, 102, 178, 0.1); box-sizing: border-box;
-    }
-    h2 { color: #fff; font-size: 1.3rem; margin-top: 0; border-bottom: 1px solid #3a1a2a; padding-bottom: 10px; }
-    p { font-size: 0.95rem; line-height: 1.6; }
-    
-    .tags { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 15px; }
-    .tag { font-size: 0.75rem; background: #000; padding: 5px 10px; border-radius: 6px; color: var(--pink); font-family: monospace; border: 1px solid #3a1a2a;}
 
-    .btn { 
-      display: block; width: 100%; padding: 16px; text-align: center; font-weight: bold; 
-      text-decoration: none; border-radius: 10px; border: none; cursor: pointer; 
-      font-size: 1.1rem; margin-top: 15px; transition: transform 0.1s, filter 0.2s; box-sizing: border-box;
+    /* --- TICKER DEFILANT (Engagement) --- */
+    .ticker-wrap {
+      position: absolute; top: 0; width: 100%; height: 30px; background: var(--pink); color: #000;
+      overflow: hidden; z-index: 100; display: flex; align-items: center; font-family: monospace; font-weight: bold;
+      box-shadow: 0 0 15px var(--pink);
     }
-    .btn:active { transform: scale(0.98); }
-    .btn:hover { filter: brightness(1.1); }
-    
-    .btn-internet { background: transparent; border: 2px solid var(--teal); color: var(--teal); }
-    .btn-support { background: var(--pink); color: #000; text-transform: uppercase; }
-    
-    .btn-autodj { background: #3a1a2a; color: #fff; border: 1px solid var(--pink); }
-    .btn-autodj.playing { background: var(--pink); color: #000; }
+    .ticker { white-space: nowrap; animation: ticker 25s linear infinite; }
+    @keyframes ticker { 0% { transform: translateX(100vw); } 100% { transform: translateX(-100%); } }
 
-    .icon { font-size: 1.4rem; vertical-align: middle; margin-right: 8px; }
-
-    #toast { 
-      position: fixed; bottom: 20px; background: #000; color: var(--teal); 
-      padding: 12px 25px; border-radius: 30px; border: 1px solid var(--teal); 
-      opacity: 0; transition: 0.3s; pointer-events: none; font-weight: bold;
+    /* --- PANNEAU GAUCHE --- */
+    .info-section {
+      width: 45%; padding: 60px 40px 40px; box-sizing: border-box; display: flex;
+      flex-direction: column; justify-content: center; z-index: 10;
+      background: linear-gradient(90deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 100%);
+      border-right: 2px solid rgba(255, 51, 153, 0.3);
     }
-    #toast.show { opacity: 1; transform: translateY(-10px); }
+    h1 { color: var(--pink); font-size: 3.5rem; margin: 0; text-transform: uppercase; text-shadow: 0 0 15px var(--pink), 2px 2px 0px var(--yellow); line-height: 1; }
+    h2 { color: var(--accent); font-family: monospace; font-size: 1.2rem; margin-top: 10px; }
+    p { font-size: 1.1rem; line-height: 1.6; color: #ccc; }
+    
+    .highlight { color: var(--yellow); font-weight: bold; }
+    .cyber-link { color: var(--accent); text-decoration: none; border-bottom: 1px dashed var(--accent); transition: 0.3s; font-weight: bold; }
+    .cyber-link:hover { color: #fff; border-bottom: 1px solid #fff; text-shadow: 0 0 8px var(--accent); }
+
+    /* --- BOUTONS D'ENGAGEMENT --- */
+    .action-group { margin-top: 30px; display: flex; flex-direction: column; gap: 15px; }
+    
+    .btn-donate {
+      background: var(--yellow); color: #000; font-size: 1.4rem; font-weight: 900;
+      padding: 20px; border: none; border-radius: 8px; cursor: pointer; text-transform: uppercase; 
+      box-shadow: 0 0 20px rgba(255, 215, 0, 0.5); transition: 0.2s; position: relative; overflow: hidden;
+      animation: pulse-yellow 2s infinite;
+    }
+    .btn-donate:hover { transform: scale(1.05); background: #fff; box-shadow: 0 0 30px #fff; }
+    
+    .btn-print {
+      background: transparent; color: var(--pink); font-size: 1.2rem; font-weight: bold;
+      padding: 15px; border: 2px solid var(--pink); border-radius: 8px; cursor: pointer; text-transform: uppercase; 
+      transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px;
+    }
+    .btn-print:hover { background: var(--pink); color: #000; box-shadow: 0 0 20px var(--pink); }
+
+    @keyframes pulse-yellow {
+      0% { box-shadow: 0 0 10px rgba(255, 215, 0, 0.5); }
+      50% { box-shadow: 0 0 25px rgba(255, 215, 0, 0.8); }
+      100% { box-shadow: 0 0 10px rgba(255, 215, 0, 0.5); }
+    }
+
+    /* --- 3D SECTION --- */
+    .model-section { width: 55%; height: 100vh; position: relative; }
+    model-viewer { width: 100%; height: 100%; --poster-color: transparent; outline: none; }
+
+    /* Hotspots */
+    .hotspot {
+      width: 24px; height: 24px; border-radius: 50%; background: rgba(255, 51, 153, 0.8); border: 2px solid #fff;
+      box-shadow: 0 0 15px var(--pink); cursor: pointer; transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      animation: hotspot-pulse 1.5s infinite alternate;
+    }
+    .hotspot:hover { transform: scale(1.5); background: var(--accent); box-shadow: 0 0 20px var(--accent); border-color: #000; animation: none; }
+    @keyframes hotspot-pulse { from { box-shadow: 0 0 5px var(--pink); } to { box-shadow: 0 0 20px var(--pink); } }
+
+    /* Panneau d'info 3D */
+    #info-panel {
+      position: absolute; top: 50%; right: 30px; transform: translateY(-50%) scale(0.9);
+      width: 320px; background: var(--panel); border: 2px solid var(--pink); border-radius: 12px;
+      padding: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.8), inset 0 0 15px rgba(255,51,153,0.2);
+      backdrop-filter: blur(10px); z-index: 10; opacity: 0; pointer-events: none; transition: 0.3s;
+    }
+    #info-panel.visible { opacity: 1; transform: translateY(-50%) scale(1); pointer-events: auto; }
+    #info-title { color: var(--accent); margin: 0 0 10px; font-size: 1.6rem; text-transform: uppercase; }
+    #info-desc { font-size: 1rem; line-height: 1.5; margin-bottom: 15px; }
+    .tech-specs { background: rgba(0,0,0,0.6); padding: 10px; border-radius: 6px; font-family: monospace; color: var(--yellow); font-size: 0.85rem; border-left: 3px solid var(--accent); }
+
+    #toast {
+      position: fixed; bottom: 30px; left: 50%; transform: translate(-50%, 100px);
+      background: var(--accent); color: #000; padding: 15px 30px; border-radius: 50px;
+      font-weight: 900; font-size: 1.2rem; opacity: 0; transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 1000; text-transform: uppercase; box-shadow: 0 5px 20px rgba(0,255,204,0.5);
+    }
+    #toast.show { transform: translate(-50%, 0); opacity: 1; }
+
+    @media (max-width: 900px) {
+      body { flex-direction: column; overflow-y: auto; height: auto; }
+      .model-section { width: 100%; height: 60vh; }
+      .info-section { width: 100%; border-right: none; padding: 50px 20px 20px; }
+      #info-panel { top: 10px; right: 10px; left: 10px; width: auto; transform: none; }
+      #info-panel.visible { transform: none; }
+    }
   </style>
 </head>
 <body>
 
-  <div class="header">
-    <h1>Cyber Cochon 🐷</h1>
-    <p>Nœud Astroport // UPlanet ẐEN</p>
-  </div>
-
-  <div class="card">
-    <div class="tags">
-      <span class="tag">#Astroport</span>
-      <span class="tag">#Meshtastic</span>
-      <span class="tag">#OpenSource</span>
-      <span class="tag">#G1</span>
+  <!-- Ticker d'engagement -->
+  <div class="ticker-wrap">
+    <div class="ticker">
+      🐷 D'OH! CONNEXION UPLANET ÉTABLIE 🍩 BIENVENUE SUR LE CYBER COCHON 🍩 AUDIT EN COURS : CACHEZ LES BIÈRES 🍩 LA SOUVERAINETÉ NUMÉRIQUE C'EST COMME UN DONUT : TOUT EST DANS LE TROU 🍩 LAISSEZ UN POURBOIRE AU G1FABLAB 🍩 
     </div>
-    <p>Vous êtes connecté à une créature autonome nourrie 100% aux logiciels libres. Elle diffuse de la musique, repère son environnement et tisse la Toile de Confiance.</p>
   </div>
 
-  <div class="card">
-    <h2>🌐 Accès Internet (15 min)</h2>
-    <p>Ce réseau est un point de relais local. Cliquez ci-dessous pour débloquer l'accès à l'Internet mondial pendant 15 minutes.</p>
-    <button id="btn-auth" class="btn btn-internet" onclick="doAuth()">
-      <span class="icon">🔓</span> Ouvrir la connexion
-    </button>
-    <p id="auth-msg" style="display:none; color: var(--teal); font-weight: bold; text-align: center; margin-top: 15px;">
-      ✅ Connexion établie ! Bonne navigation.
-    </p>
+  <div class="info-section">
+    <h1>Cyber<br>Cochon</h1>
+    <h2>Nœud Autonome // UPlanet ẐEN</h2>
+    
+    <p>La souveraineté numérique, c'est savoir <span class="highlight">où se trouvent nos données</span> et quels algorithmes les manipulent. Marre de M. Burns qui contrôle tout ?</p>
+    
+    <p>Ici, les logiciels sont des <b>Biens Communs</b> (licences GPL / AGPL). Le <a href="https://opencollective.com/monnaie-libre" target="_blank" class="cyber-link">G1FabLab</a> réunit développeurs et utilisateurs pour bâtir notre indépendance matérielle.</p>
+    
+    <p>Envie de monter votre propre créature ? <br>👉 <a href="https://pad.p2p.legal/RaspberryPi" target="_blank" class="cyber-link">Consulter les plans de fabrication du Cochon</a></p>
+    
+    <div class="action-group">
+      <!-- Appel à l'action très fort -->
+      <button class="btn-donate" onclick="window.open('https://opencollective.com/monnaie-libre/contribute', '_blank')">
+        🍩 Nourrir le Cochon (Dons)
+      </button>
+      
+      <!-- Bouton d'impression matériel -->
+      <button class="btn-print" onclick="printTicket()">
+        🖨️ Récupérez un Ticket
+      </button>
+    </div>
   </div>
 
-  <div class="card">
-    <h2>🤖 AutoDJ du Cochon</h2>
-    <p>S'il n'y a pas de DJ humain en direct, vous pouvez demander au cochon de fouiller dans son dossier musique et de créer une playlist autonome.</p>
-    <button id="btn-autodj" class="btn btn-autodj" onclick="toggleAutoDJ()">
-      <span class="icon">🎵</span> Charger le lecteur...
-    </button>
+  <div class="model-section">
+    <!-- 
+      RÉGLAGES DE ZOOM ET CENTRAGE :
+      - camera-target="0m 0.2m 0m" : Force la caméra à viser 20cm au-dessus du sol (le ventre du cochon)
+      - camera-orbit="45deg 70deg 0.9m" : Position de départ (tourné à 45°, vue de face/haut, zoomé à 90cm)
+      - min-camera-orbit / max-camera-orbit : Empêche l'utilisateur de trop dézoomer et voir la table coupée.
+    -->
+    <model-viewer src="cochon.glb" 
+                  camera-controls auto-rotate 
+                  rotation-per-second="20deg"
+                  camera-target="0m 0.2m 0m" 
+                  camera-orbit="45deg 70deg 1.2m"
+                  min-camera-orbit="auto auto 0.9m"
+                  max-camera-orbit="auto auto 1.8m"
+                  field-of-view="30deg"
+                  shadow-intensity="1">
+      
+      <!-- HOTSPOTS (Ajuste data-position via https://modelviewer.dev/editor/ ) -->
+      <!-- Coordonnées estimées centrées sur un modèle de 40cm de haut -->
+      <button class="hotspot" slot="hotspot-ventre" data-position="0 0.15 0.1" data-normal="0 0 1" onclick="showInfo('ventre')"></button>
+      <button class="hotspot" slot="hotspot-bouche" data-position="0 0.28 0.12" data-normal="0 1 1" onclick="showInfo('bouche')"></button>
+      <button class="hotspot" slot="hotspot-bras" data-position="0.15 0.2 0" data-normal="1 0 0" onclick="showInfo('bras')"></button>
+      <button class="hotspot" slot="hotspot-dos" data-position="0 0.2 -0.15" data-normal="0 0 -1" onclick="showInfo('dos')"></button>
+    </model-viewer>
+
+    <!-- Panneau flottant 3D -->
+    <div id="info-panel">
+      <h2 id="info-title">Composant</h2>
+      <div id="info-desc">Description</div>
+      <div id="info-specs" class="tech-specs"></div>
+    </div>
   </div>
 
-  <div class="card">
-    <h2>🎧 Écouter ce que je diffuse</h2>
-    <p>Je streame ma musique en direct et sans latence ! Téléchargez l'application <b>Snapcast</b> (Play Store, F-Droid, ou App Store).</p>
-    <p>Entrez l'IP du serveur : <span style="color: var(--pink); font-family: monospace; font-size: 1.2rem; display: block; text-align: center; margin-top: 10px;">192.168.10.1</span></p>
-  </div>
-
-  <div class="card">
-    <h2>💖 Soutenir le G1FabLab</h2>
-    <p>L'infrastructure IPFS et la radio ne survivent que grâce aux dons. Aidez-nous à fabriquer d'autres biens communs numériques !</p>
-    <a href="https://opencollective.com/monnaie-libre" target="_blank" class="btn btn-support">
-      <span class="icon">✨</span> Faire un don (OpenCollective)
-    </a>
-  </div>
-
-  <div id="toast">Message</div>
+  <div id="toast">Bzzzz... Impression en cours ! 🖨️</div>
 
   <script>
-    let isAutoDjPlaying = false;
+    // Base de données Homer/Tech
+    const equipmentData = {
+      'ventre': {
+        title: "Raspberry Pi 4",
+        desc: "L'estomac de la bête ! Il digère les données du réseau IPFS et gère le mixage audio.",
+        specs: "CPU: Quad-Core ARM<br>RAM: 4GB LPDDR4<br>Rôle: Nœud PicoPort UPlanet"
+      },
+      'bouche': {
+        title: "L'Œil d'Homer",
+        desc: "Avec mon module caméra caché sous le groin, je peux repèrer les humains (et les donuts aussi) et déclencher des réactions.",
+        specs: "Module: Pi Camera V3<br>FOV: 75°<br>Tech: Haar Cascade OpenCV"
+      },
+      'bras': {
+        title: "Antenne Réseau",
+        desc: "C'est avec ça que je fourni le Wi-Fi ZICMAMA pour vous permettre de rejoindre la Toile de Confiance de la constellation ORIGIN.",
+        specs: "Mode: Point d'Accès (uap0)<br>Fréq: 2.4 / 5 GHz<br>Protocol: Mesh/P2P"
+      },
+      'dos': {
+        title: "Sac à Dos Tech",
+        desc: "Il contient un disque rempli de musique <a target=_blank href=https://u.copylaradio.com/youtube?html=1>et de vidéos</a>, une carte réseau et optionnel, un projecteur vidéo pour les soirées !",
+        specs: "Stockage: SSD<br>Réseau: Alfa Network<br>Audio: Snapcast Jack 3.5mm / BT"
+      }
+    };
 
-    // Récupérer l'état de l'AutoDJ au chargement de la page
-    window.addEventListener('DOMContentLoaded', async () => {
-      try {
-        const r = await fetch('/api.sh?action=autodj&cmd=status');
-        const d = await r.json();
-        isAutoDjPlaying = (d.state === 'playing');
-        updateAutoDjBtn();
-      } catch (e) {
-        document.getElementById('btn-autodj').innerHTML = "⚠ Erreur de connexion";
+    function showInfo(partId) {
+      const panel = document.getElementById('info-panel');
+      const data = equipmentData[partId];
+      
+      document.getElementById('info-title').innerHTML = '🐷 ' + data.title;
+      document.getElementById('info-desc').innerHTML = data.desc;
+      document.getElementById('info-specs').innerHTML = data.specs;
+      
+      panel.classList.add('visible');
+      document.querySelector('model-viewer').removeAttribute('auto-rotate');
+    }
+
+    // Cacher le panneau si clic dans le vide
+    document.querySelector('model-viewer').addEventListener('mousedown', (e) => {
+      if(e.target.tagName === 'MODEL-VIEWER') {
+        document.querySelector('model-viewer').setAttribute('auto-rotate', 'true');
+        document.getElementById('info-panel').classList.remove('visible');
       }
     });
 
-    async function toggleAutoDJ() {
-      const btn = document.getElementById('btn-autodj');
-      const action = isAutoDjPlaying ? 'stop' : 'start';
-      btn.innerHTML = '<span class="icon">⏳</span> Un instant...';
-      
+    async function printTicket() {
+      const toast = document.getElementById('toast');
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 4000);
+
       try {
-        const r = await fetch('/api.sh?action=autodj', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: 'cmd=' + action
-        });
-        const d = await r.json();
-        if (d.status === 'ok') {
-          isAutoDjPlaying = (d.state === 'playing');
-          updateAutoDjBtn();
-          showToast(isAutoDjPlaying ? '▶ AutoDJ Lancé !' : '⏹ AutoDJ Arrêté');
-        }
-      } catch(e) {
-        showToast('Erreur serveur');
-        updateAutoDjBtn();
+        await fetch('/api.sh?action=print_ticket', { method: 'POST' });
+      } catch (e) {
+        console.log("Erreur API imprimante", e);
       }
-    }
-
-    function updateAutoDjBtn() {
-      const btn = document.getElementById('btn-autodj');
-      if (isAutoDjPlaying) {
-        btn.className = 'btn btn-autodj playing';
-        btn.innerHTML = '<span class="icon">⏹</span> Arrêter l\'AutoDJ';
-      } else {
-        btn.className = 'btn btn-autodj';
-        btn.innerHTML = '<span class="icon">▶</span> Lancer l\'AutoDJ';
-      }
-    }
-
-    async function doAuth() {
-      const btn = document.getElementById('btn-auth');
-      const msg = document.getElementById('auth-msg');
-      btn.disabled = true; 
-      btn.innerHTML = '<span class="icon">⏳</span> Négociation réseau...';
-      
-      try {
-        const r = await fetch('/api.sh?action=auth', { method: 'POST', body: '' });
-        const d = await r.json();
-        
-        if (d.status === 'authorized') {
-          btn.style.display = 'none';
-          msg.style.display = 'block';
-          showToast('✅ Réseau déverrouillé');
-        } else {
-          btn.disabled = false; 
-          btn.innerHTML = '<span class="icon">🔄</span> Réessayer';
-          showToast('Erreur : ' + (d.error || 'inconnue'));
-        }
-      } catch(e) {
-        btn.disabled = false; 
-        btn.innerHTML = '<span class="icon">⚠</span> Erreur réseau, réessayer';
-        showToast('Serveur injoignable');
-      }
-    }
-
-    function showToast(text) {
-      const t = document.getElementById('toast');
-      t.textContent = text;
-      t.classList.add('show');
-      setTimeout(() => t.classList.remove('show'), 3000);
     }
   </script>
-
 </body>
 </html>

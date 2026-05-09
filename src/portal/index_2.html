@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#1a0b14">
+  <title>Le Cyber Cochon 🐷</title>
+  <style>
+    :root {
+      --bg: #0f0a10; --panel: #1e1319; --pink: #ff66b2; 
+      --teal: #4ecdc4; --text: #e0d0d8; --font: system-ui, -apple-system, sans-serif;
+    }
+    body { 
+      background: var(--bg); color: var(--text); font-family: var(--font); 
+      margin: 0; padding: 20px 15px; display: flex; flex-direction: column; align-items: center; 
+    }
+    .header { text-align: center; margin-bottom: 25px; }
+    .header h1 { color: var(--pink); margin: 0; font-size: 2.2rem; text-transform: uppercase; letter-spacing: 2px;}
+    .header p { color: var(--teal); font-family: monospace; margin: 5px 0 0 0; }
+    
+    .card { 
+      background: var(--panel); border: 1px solid #3a1a2a; border-radius: 16px; 
+      padding: 25px; max-width: 450px; width: 100%; margin-bottom: 20px; 
+      box-shadow: 0 8px 30px rgba(255, 102, 178, 0.1); box-sizing: border-box;
+    }
+    h2 { color: #fff; font-size: 1.3rem; margin-top: 0; border-bottom: 1px solid #3a1a2a; padding-bottom: 10px; }
+    p { font-size: 0.95rem; line-height: 1.6; }
+    
+    .tags { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 15px; }
+    .tag { font-size: 0.75rem; background: #000; padding: 5px 10px; border-radius: 6px; color: var(--pink); font-family: monospace; border: 1px solid #3a1a2a;}
+
+    .btn { 
+      display: block; width: 100%; padding: 16px; text-align: center; font-weight: bold; 
+      text-decoration: none; border-radius: 10px; border: none; cursor: pointer; 
+      font-size: 1.1rem; margin-top: 15px; transition: transform 0.1s, filter 0.2s; box-sizing: border-box;
+    }
+    .btn:active { transform: scale(0.98); }
+    .btn:hover { filter: brightness(1.1); }
+    
+    .btn-internet { background: transparent; border: 2px solid var(--teal); color: var(--teal); }
+    .btn-support { background: var(--pink); color: #000; text-transform: uppercase; }
+    
+    .btn-autodj { background: #3a1a2a; color: #fff; border: 1px solid var(--pink); }
+    .btn-autodj.playing { background: var(--pink); color: #000; }
+
+    .icon { font-size: 1.4rem; vertical-align: middle; margin-right: 8px; }
+
+    #toast { 
+      position: fixed; bottom: 20px; background: #000; color: var(--teal); 
+      padding: 12px 25px; border-radius: 30px; border: 1px solid var(--teal); 
+      opacity: 0; transition: 0.3s; pointer-events: none; font-weight: bold;
+    }
+    #toast.show { opacity: 1; transform: translateY(-10px); }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>Cyber Cochon 🐷</h1>
+    <p>Nœud Astroport // UPlanet ẐEN</p>
+  </div>
+
+  <div class="card">
+    <div class="tags">
+      <span class="tag">#Astroport</span>
+      <span class="tag">#Meshtastic</span>
+      <span class="tag">#OpenSource</span>
+      <span class="tag">#G1</span>
+    </div>
+    <p>Vous êtes connecté à une créature autonome nourrie 100% aux logiciels libres. Elle diffuse de la musique, repère son environnement et tisse la Toile de Confiance.</p>
+  </div>
+
+  <div class="card">
+    <h2>🌐 Accès Internet (15 min)</h2>
+    <p>Ce réseau est un point de relais local. Cliquez ci-dessous pour débloquer l'accès à l'Internet mondial pendant 15 minutes.</p>
+    <button id="btn-auth" class="btn btn-internet" onclick="doAuth()">
+      <span class="icon">🔓</span> Ouvrir la connexion
+    </button>
+    <p id="auth-msg" style="display:none; color: var(--teal); font-weight: bold; text-align: center; margin-top: 15px;">
+      ✅ Connexion établie ! Bonne navigation.
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>🤖 AutoDJ du Cochon</h2>
+    <p>S'il n'y a pas de DJ humain en direct, vous pouvez demander au cochon de fouiller dans son dossier musique et de créer une playlist autonome.</p>
+    <button id="btn-autodj" class="btn btn-autodj" onclick="toggleAutoDJ()">
+      <span class="icon">🎵</span> Charger le lecteur...
+    </button>
+  </div>
+
+  <div class="card">
+    <h2>🎧 Écouter ce que je diffuse</h2>
+    <p>Je streame ma musique en direct et sans latence ! Téléchargez l'application <b>Snapcast</b> (Play Store, F-Droid, ou App Store).</p>
+    <p>Entrez l'IP du serveur : <span style="color: var(--pink); font-family: monospace; font-size: 1.2rem; display: block; text-align: center; margin-top: 10px;">192.168.10.1</span></p>
+  </div>
+
+  <div class="card">
+    <h2>💖 Soutenir le G1FabLab</h2>
+    <p>L'infrastructure IPFS et la radio ne survivent que grâce aux dons. Aidez-nous à fabriquer d'autres biens communs numériques !</p>
+    <a href="https://opencollective.com/monnaie-libre" target="_blank" class="btn btn-support">
+      <span class="icon">✨</span> Faire un don (OpenCollective)
+    </a>
+  </div>
+
+  <div id="toast">Message</div>
+
+  <script>
+    let isAutoDjPlaying = false;
+
+    // Récupérer l'état de l'AutoDJ au chargement de la page
+    window.addEventListener('DOMContentLoaded', async () => {
+      try {
+        const r = await fetch('/api.sh?action=autodj&cmd=status');
+        const d = await r.json();
+        isAutoDjPlaying = (d.state === 'playing');
+        updateAutoDjBtn();
+      } catch (e) {
+        document.getElementById('btn-autodj').innerHTML = "⚠ Erreur de connexion";
+      }
+    });
+
+    async function toggleAutoDJ() {
+      const btn = document.getElementById('btn-autodj');
+      const action = isAutoDjPlaying ? 'stop' : 'start';
+      btn.innerHTML = '<span class="icon">⏳</span> Un instant...';
+      
+      try {
+        const r = await fetch('/api.sh?action=autodj', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: 'cmd=' + action
+        });
+        const d = await r.json();
+        if (d.status === 'ok') {
+          isAutoDjPlaying = (d.state === 'playing');
+          updateAutoDjBtn();
+          showToast(isAutoDjPlaying ? '▶ AutoDJ Lancé !' : '⏹ AutoDJ Arrêté');
+        }
+      } catch(e) {
+        showToast('Erreur serveur');
+        updateAutoDjBtn();
+      }
+    }
+
+    function updateAutoDjBtn() {
+      const btn = document.getElementById('btn-autodj');
+      if (isAutoDjPlaying) {
+        btn.className = 'btn btn-autodj playing';
+        btn.innerHTML = '<span class="icon">⏹</span> Arrêter l\'AutoDJ';
+      } else {
+        btn.className = 'btn btn-autodj';
+        btn.innerHTML = '<span class="icon">▶</span> Lancer l\'AutoDJ';
+      }
+    }
+
+    async function doAuth() {
+      const btn = document.getElementById('btn-auth');
+      const msg = document.getElementById('auth-msg');
+      btn.disabled = true; 
+      btn.innerHTML = '<span class="icon">⏳</span> Négociation réseau...';
+      
+      try {
+        const r = await fetch('/api.sh?action=auth', { method: 'POST', body: '' });
+        const d = await r.json();
+        
+        if (d.status === 'authorized') {
+          btn.style.display = 'none';
+          msg.style.display = 'block';
+          showToast('✅ Réseau déverrouillé');
+        } else {
+          btn.disabled = false; 
+          btn.innerHTML = '<span class="icon">🔄</span> Réessayer';
+          showToast('Erreur : ' + (d.error || 'inconnue'));
+        }
+      } catch(e) {
+        btn.disabled = false; 
+        btn.innerHTML = '<span class="icon">⚠</span> Erreur réseau, réessayer';
+        showToast('Serveur injoignable');
+      }
+    }
+
+    function showToast(text) {
+      const t = document.getElementById('toast');
+      t.textContent = text;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 3000);
+    }
+  </script>
+
+</body>
+</html>

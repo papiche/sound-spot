@@ -12,6 +12,7 @@ www-data ALL=(ALL) NOPASSWD: /opt/soundspot/backend/system/set_bells_mode.sh
 www-data ALL=(ALL) NOPASSWD: /opt/soundspot/bt_manage.sh
 www-data ALL=(ALL) NOPASSWD: /opt/soundspot/backend/system/bt_connect_mac.sh
 www-data ALL=(ALL) NOPASSWD: /opt/soundspot/backend/system/set_bt_macs.sh
+www-data ALL=(ALL) NOPASSWD: /opt/soundspot/backend/system/print_ticket.sh
 www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart soundspot-idle
 www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart soundspot-decoder
 www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart snapserver

@@ -64,12 +64,12 @@ apt_retry install -y --no-install-recommends \
     icecast2 rpicam-apps \
     bluez bluez-alsa-utils libspa-0.2-bluetooth \
     pipewire pipewire-alsa pipewire-pulse wireplumber \
-    snapserver snapclient \
+    snapserver snapclient libusb-1.0-0-dev \
     pulseaudio-utils \
     avahi-daemon \
     iptables-persistent netfilter-persistent \
     python3 python3-opencv python3-picamera2 \
-    python3-markdown python3-websocket python3-dbus python3-gi\
+    python3-markdown python3-websocket python3-dbus python3-gi python3-pip \
     espeak-ng jq \
     curl wget ffmpeg unzip \
     iw wireless-tools socat gettext-base rsyslog \
