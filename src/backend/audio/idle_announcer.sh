@@ -47,9 +47,16 @@ reload_conf() {
 
 ss_info "démarrage clocher — mode=${CLOCK_MODE:-bells} intervalle=${IDLE_ANNOUNCE_INTERVAL:-900}s"
 
-# ── Audio : paplay → pw-play → aplay ─────────────────────────────
-play_wav() {
-    paplay "$1" 2>/dev/null || pw-play "$1" 2>/dev/null || aplay -q "$1" 2>/dev/null || true
+# ── Audio : mpg123 → paplay → pw-play → aplay ─────────────────────────────
+play_audio() {
+    local file="$1"
+    if [[ "${file,,}" == *.mp3 ]]; then
+        # Pour les MP3, mpg123 est le plus fiable et léger
+        mpg123 -q "$file" 2>/dev/null || pw-play "$file" 2>/dev/null || true
+    else
+        # Pour les WAV et le reste
+        paplay "$file" 2>/dev/null || pw-play "$file" 2>/dev/null || aplay -q "$file" 2>/dev/null || true
+    fi
 }
 
 # ── Synthèse vocale TTS → WAV temporaire → lecture ───────────────
@@ -63,7 +70,7 @@ say() {
     wav_paths=$(bash "$TTS_SH" "$*" "${ORPHEUS_VOICE:-pierre}" 2>/dev/null)
     while IFS= read -r wav; do
         [ -f "$wav" ] || continue
-        play_wav "$wav"
+        play_audio "$wav"
         rm -f "$wav"
     done <<< "$wav_paths"
 }
@@ -74,29 +81,32 @@ say() {
 play_message_file() {
     local n="$1"
     local id=$(printf '%02d' "$n")
+    local mp3="$WAV_DIR/message_${id}.mp3"
     local wav="$WAV_DIR/message_${id}.wav"
     local txt="$WAV_DIR/message_${id}.txt"
 
-    # Vérifier le propriétaire actuel
+    # Priorité 1 : Fichier MP3
+    if [ -f "$mp3" ]; then
+        ss_info "Lecture message_$id (MP3 utilisateur)"
+        play_audio "$mp3"
+        return 0
+    fi
+
+    # Priorité 2 & 3 : Fichier WAV ou Génération dynamique (Logique d'origine)
     local owner=$(stat -c '%U' "$wav" 2>/dev/null || echo "none")
 
     # Si Orpheus est vivant ET (le fichier appartient à www-data OU est absent)
-    if [ "${_CYCLE_ORPHEUS:-false}" = "true" ] && { [ "$owner" = "www-data" ] || [ ! -f "$wav" ]; }; then
+    if [ "${_CYCLE_ORPHEUS:-false}" = "true" ] && {[ "$owner" = "www-data" ] || [ ! -f "$wav" ]; }; then
         ss_info "Promotion Orpheus pour message_$id (Source: $owner)"
-        
-        # On génère en temporaire via pi
-        local live_wav=$(bash "$TTS_SH" "$(cat "$txt")" "${ORPHEUS_VOICE:-pierre}" 2>/dev/null | tail -1)
-        
+        local live_wav=$(bash "$TTS_SH" "$(cat "$txt" 2>/dev/null)" "${ORPHEUS_VOICE:-pierre}" 2>/dev/null | tail -1)
         if [ -f "$live_wav" ]; then
-            # En écrasant le fichier, pi (qui lance ce script) en devient le propriétaire
             mv -f "$live_wav" "$wav"
-            # On s'assure que le groupe est soundspot pour que le portail puisse encore le lire
-            chown pi:soundspot "$wav"
+            chown pi:soundspot "$wav" 2>/dev/null || true
             chmod 664 "$wav"
         fi
     fi
     
-    [ -f "$wav" ] && play_wav "$wav"
+    [ -f "$wav" ] && play_audio "$wav"
 }
 
 # ── Régénérer tous les .wav espeak au démarrage ──────────────────
@@ -152,7 +162,7 @@ regen_orpheus_wavs_bg() {
 
 # ── Nombre de messages disponibles dans wav/ ─────────────────────
 count_messages() {
-    ls "$WAV_DIR"/message_*.txt 2>/dev/null | wc -l
+    ls "$WAV_DIR"/message_*.* 2>/dev/null | grep -oP 'message_[0-9]+' | sort -u | wc -l
 }
 
 # ── Vérifier si un DJ diffuse (source active sur Icecast) ────────
@@ -167,7 +177,7 @@ ring_bells() {
     local n="$1" i
     local bell="$WAV_DIR/bell_429hz.wav"
     for i in $(seq 1 "$n"); do
-        play_wav "$bell"
+        play_audio "$bell"
         sleep 0.9
     done
 }
@@ -272,7 +282,7 @@ main() {
 
                 # 1. Bip 429.62 Hz — inhibé si BELLS_ENABLED=false
                 if [ "${BELLS_ENABLED:-true}" = "true" ]; then
-                    play_wav "$WAV_DIR/tone_429hz.wav"
+                    play_audio "$WAV_DIR/tone_429hz.wav"
                     sleep 1
                 fi
 
