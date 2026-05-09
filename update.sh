@@ -27,7 +27,8 @@ fi
 [ -d "$INSTALL_DIR" ]            || { warn "$INSTALL_DIR inexistant — faites d'abord l'installation complète"; exit 1; }
 
 WITH_PINOUT=false
-for arg in "$@"; do[ "$arg" = "--pinout" ] && WITH_PINOUT=true
+for arg in "$@"; do
+    [ "$arg" = "--pinout" ] && WITH_PINOUT=true
 done
 
 # ── Droits système (miroir deploy_on_pi.sh) ───────────────────
