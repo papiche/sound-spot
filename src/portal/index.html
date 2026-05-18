@@ -3,429 +3,1101 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cyber Cochon 🐷 - Nœud UPlanet</title>
-  <script type="module" src="model-viewer.min.js"></script>
+  <meta name="theme-color" content="#080810">
+  <meta name="description" content="SoundSpot PicoPort — Souveraineté Collective UPlanet">
+  <link rel="manifest" href="/manifest.json">
+  <title>SoundSpot</title>
+  <link rel="stylesheet" href="chartist.min.css">
+  <script src="chartist.min.js"></script>
   <style>
     :root {
-      --bg: #090a0f; 
-      --panel: rgba(15, 12, 20, 0.85); 
-      --pink: #ff3399; 
-      --yellow: #ffd700; 
-      --text: #e0e2e6; 
-      --accent: #00ffcc; 
-      --font: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      --black: #080810; --dark: #0f0f1a; --panel: #161622;
+      --border: #26263a; --deep: #1c1c2e;
+      --accent: #7fff6e; --teal: #4ecdc4; --dj: #ffb347;
+      --sat: #b47fff; --red: #ff6b6b; --gold: #ffd700;
+      --text: #e0e0f0; --muted: #6a6a88;
+      --font: system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+      --mono: ui-monospace,"Cascadia Code","Source Code Pro",Menlo,Monaco,Consolas,monospace;
     }
-    body {
-      margin: 0; padding: 0; background: radial-gradient(circle at center, #2a0a18 0%, var(--bg) 100%);
-      color: var(--text); font-family: var(--font); height: 100vh; overflow: hidden;
-      display: flex; flex-direction: row;
-    }
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    body { background:var(--black); color:var(--text); font-family:var(--font); padding:0 0 80px; display:flex; flex-direction:column; align-items:center; line-height:1.4; }
 
-    /* --- TICKER --- */
-    .ticker-wrap {
-      position: absolute; top: 0; width: 100%; height: 30px; background: var(--pink); color: #000;
-      overflow: hidden; z-index: 100; display: flex; align-items: center; font-family: monospace; font-weight: bold;
-      box-shadow: 0 0 15px var(--pink);
-    }
-    .ticker { white-space: nowrap; animation: ticker 25s linear infinite; }
-    @keyframes ticker { 0% { transform: translateX(100vw); } 100% { transform: translateX(-100%); } }
+    /* ── Hero ── */
+    .hero { width:100%; background:var(--dark); border-bottom:1px solid var(--border); padding:18px 20px 14px; text-align:center; }
+    .hero-logo { font-size:1.6rem; font-weight:900; color:#fff; letter-spacing:1px; }
+    .hero-logo span { color:var(--accent); }
+    .hero-sub { font-family:var(--mono); font-size:10px; letter-spacing:.15em; text-transform:uppercase; color:var(--muted); margin:4px 0 10px; }
+    .status-bar { display:flex; justify-content:center; gap:8px; flex-wrap:wrap; }
+    .badge-mini { padding:4px 10px; border-radius:20px; font-size:10px; font-weight:700; border:1px solid var(--border); background:rgba(255,255,255,.03); color:var(--muted); }
+    .badge-mini.live { color:var(--dj); border-color:var(--dj); background:rgba(255,179,71,.07); }
+    .badge-mini.on   { color:var(--teal); border-color:var(--teal); background:rgba(78,205,196,.07); }
+    .pulse { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--dj); animation:pulse 1.4s infinite; margin-right:4px; vertical-align:middle; }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(1.5)} }
 
-    /* --- PANNEAU GAUCHE --- */
-    .info-section {
-      width: 45%; padding: 60px 40px 40px; box-sizing: border-box; display: flex;
-      flex-direction: column; justify-content: center; z-index: 10;
-      background: linear-gradient(90deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 100%);
-      border-right: 2px solid rgba(255, 51, 153, 0.3);
-    }
-    h1 { color: var(--pink); font-size: 3.5rem; margin: 0; text-transform: uppercase; text-shadow: 0 0 15px var(--pink), 2px 2px 0px var(--yellow); line-height: 1; }
-    h2 { color: var(--accent); font-family: monospace; font-size: 1.2rem; margin-top: 10px; }
-    p { font-size: 1.1rem; line-height: 1.6; color: #ccc; }
-    .highlight { color: var(--yellow); font-weight: bold; }
-    .cyber-link { color: var(--accent); text-decoration: none; border-bottom: 1px dashed var(--accent); transition: 0.3s; font-weight: bold; }
-    .cyber-link:hover { color: #fff; border-bottom: 1px solid #fff; text-shadow: 0 0 8px var(--accent); }
+    /* ── Navigation ── */
+    .nav-tabs { position:fixed; bottom:0; width:100%; height:65px; background:var(--panel); border-top:1px solid var(--border); display:flex; z-index:1000; }
+    .tab-btn { flex:1; border:none; background:none; color:var(--muted); display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:9px; cursor:pointer; transition:color .2s,background .2s; }
+    .tab-btn.active { color:var(--accent); background:rgba(127,255,110,.05); }
+    .tab-btn svg { width:20px; height:20px; margin-bottom:4px; }
 
-    /* --- BOUTONS --- */
-    .action-group { margin-top: 30px; display: flex; flex-direction: column; gap: 15px; }
-    .btn-donate {
-      background: var(--yellow); color: #000; font-size: 1.4rem; font-weight: 900;
-      padding: 20px; border: none; border-radius: 8px; cursor: pointer; text-transform: uppercase; 
-      box-shadow: 0 0 20px rgba(255, 215, 0, 0.5); transition: 0.2s; animation: pulse-yellow 2s infinite;
-    }
-    .btn-print {
-      background: transparent; color: var(--pink); font-size: 1.2rem; font-weight: bold;
-      padding: 15px; border: 2px solid var(--pink); border-radius: 8px; cursor: pointer; text-transform: uppercase; 
-      transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px;
-    }
-    .btn-print:hover { background: var(--pink); color: #000; box-shadow: 0 0 20px var(--pink); }
+    /* ── Contenu ── */
+    .tab-content { display:none; width:100%; max-width:600px; padding:14px 16px; animation:fadeIn .25s; }
+    .tab-content.active { display:block; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:none} }
 
-    /* --- 3D SECTION --- */
-    .model-section { width: 55%; height: 100vh; position: relative; }
-    model-viewer { width: 100%; height: 100%; --poster-color: transparent; outline: none; }
-    .hotspot {
-      width: 24px; height: 24px; border-radius: 50%; background: rgba(255, 51, 153, 0.8); border: 2px solid #fff;
-      box-shadow: 0 0 15px var(--pink); cursor: pointer; transition: 0.3s; animation: hotspot-pulse 1.5s infinite alternate;
-    }
-    .hotspot:hover { transform: scale(1.5); background: var(--accent); box-shadow: 0 0 20px var(--accent); border-color: #000; }
-    @keyframes hotspot-pulse { from { box-shadow: 0 0 5px var(--pink); } to { box-shadow: 0 0 20px var(--pink); } }
+    /* ── Cartes ── */
+    .card { background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:16px; margin-bottom:12px; }
+    h2 { font-size:1.05rem; margin-bottom:12px; color:#fff; }
+    p  { font-size:.88rem; color:#b0b0d0; margin-bottom:10px; }
+    p:last-child { margin-bottom:0; }
+    .hi { color:var(--accent); font-weight:700; }
+    a  { color:var(--teal); text-decoration:none; }
+    a:hover { color:var(--accent); }
 
-    #info-panel {
-      position: absolute; top: 50%; right: 30px; transform: translateY(-50%) scale(0.9);
-      width: 320px; background: var(--panel); border: 2px solid var(--pink); border-radius: 12px;
-      padding: 20px; backdrop-filter: blur(10px); z-index: 10; opacity: 0; pointer-events: none; transition: 0.3s;
-    }
-    #info-panel.visible { opacity: 1; transform: translateY(-50%) scale(1); pointer-events: auto; }
-    .tech-specs { background: rgba(0,0,0,0.6); padding: 10px; border-radius: 6px; font-family: monospace; color: var(--yellow); font-size: 0.85rem; border-left: 3px solid var(--accent); margin-top: 10px; }
+    /* ── Info-box ── */
+    .ibox { background:var(--deep); padding:10px 12px; border-radius:4px; margin:10px 0; font-family:var(--mono); font-size:.82rem; }
+    .irow { display:flex; justify-content:space-between; align-items:center; padding:5px 0; border-bottom:1px solid rgba(255,255,255,.05); }
+    .irow:last-child { border-bottom:none; }
+    .lbl { color:var(--muted); }
+    .val { color:var(--teal); }
 
-    /* --- MODAL QR CODE --- */
-    #qr-modal {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.9); backdrop-filter: blur(10px);
-      display: none; justify-content: center; align-items: center; z-index: 2000;
-    }
-    #qr-modal.active { display: flex; }
-    .modal-content {
-      background: var(--panel); border: 3px solid var(--pink); padding: 30px;
-      text-align: center; border-radius: 20px; box-shadow: 0 0 50px var(--pink); position: relative;
-    }
-    .modal-content img { background: white; padding: 10px; border-radius: 10px; margin: 15px 0; }
-    .close-modal { position: absolute; top: 10px; right: 15px; font-size: 2rem; color: var(--pink); cursor: pointer; }
+    /* ── Steps ── */
+    .steps { display:flex; flex-direction:column; gap:8px; margin:10px 0; }
+    .step { display:flex; align-items:flex-start; gap:10px; font-size:.88rem; color:#9090b0; line-height:1.55; }
+    .sn { font-family:var(--mono); font-size:10px; border-radius:2px; padding:2px 6px; white-space:nowrap; margin-top:2px; min-width:26px; text-align:center; flex-shrink:0; }
+    .sn-t  { color:var(--teal); border:1px solid var(--teal); }
+    .sn-g  { color:var(--gold); border:1px solid var(--gold); }
+    .sn-dj { color:var(--dj);   border:1px solid var(--dj); }
+    .sn-s  { color:var(--sat);  border:1px solid var(--sat); }
 
-    #toast {
-      position: fixed; bottom: 30px; left: 50%; transform: translate(-50%, 100px);
-      background: var(--accent); color: #000; padding: 15px 30px; border-radius: 50px;
-      font-weight: 900; opacity: 0; transition: 0.4s; z-index: 1000;
-    }
-    #toast.show { transform: translate(-50%, 0); opacity: 1; }
+    /* ── Accordéons ── */
+    details { background:var(--deep); border-radius:6px; margin-bottom:8px; border:1px solid var(--border); }
+    summary { padding:11px 14px; cursor:pointer; font-weight:700; font-size:.85rem; color:var(--teal); list-style:none; display:flex; justify-content:space-between; align-items:center; }
+    summary::-webkit-details-marker { display:none; }
+    summary::after { content:'▾'; font-size:12px; transition:transform .2s; color:var(--muted); }
+    details[open] summary::after { transform:rotate(-180deg); }
+    .det-body { padding:12px 14px 14px; border-top:1px solid rgba(255,255,255,.05); }
 
-    @keyframes pulse-yellow { 0%, 100% { box-shadow: 0 0 10px rgba(255, 215, 0, 0.5); } 50% { box-shadow: 0 0 25px rgba(255, 215, 0, 0.8); } }
-    @media (max-width: 900px) {
-      body { flex-direction: column; overflow-y: auto; }
-      .model-section { height: 60vh; width: 100%; }
-      .info-section { width: 100%; padding: 50px 20px; }
-      #info-panel { top: 20px; right: 20px; left: 20px; transform: none; width: auto; }
-    }
+    /* ── Grille astro ── */
+    .astro-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:12px 0; }
+    .astro-box { background:var(--dark); padding:12px; border-radius:6px; border:1px solid var(--border); text-align:center; }
+    .astro-box span { display:block; font-size:1.4rem; margin-bottom:4px; }
+    .astro-box label { font-size:.7rem; color:var(--muted); text-transform:uppercase; }
 
-    /* --- NÉBULEUSE DE SERVICES --- */
-    .nebula-overlay { position:absolute; inset:0; pointer-events:none; z-index:6; overflow:hidden; }
-    .nebula-dot { position:absolute; pointer-events:auto; cursor:pointer; transform:translate(-50%,-50%); }
-    .dot-core { border-radius:50%; display:flex; align-items:center; justify-content:center;
-      font-size:.88rem; transition:transform .25s ease, filter .25s ease; }
-    .nebula-dot:hover .dot-core { transform:scale(1.85); filter:brightness(1.5); }
-    .nebula-dot:active .dot-core { transform:scale(2.3); }
-    .dot-label { position:absolute; bottom:calc(100% + 10px); left:50%; transform:translateX(-50%);
-      background:rgba(8,6,16,.95); border-radius:8px; padding:7px 13px;
-      opacity:0; pointer-events:none; transition:opacity .2s ease;
-      text-align:center; min-width:130px; max-width:195px; z-index:20; }
-    .nebula-dot:hover .dot-label { opacity:1; }
-    .dot-label.pos-below { bottom:auto; top:calc(100% + 10px); }
-    .dot-label.pos-right { left:calc(100% + 10px); bottom:auto; top:50%; transform:translateY(-50%); }
-    .dot-label.pos-left  { right:calc(100% + 10px); left:auto; bottom:auto; top:50%; transform:translateY(-50%); }
-    .svc-name { font-weight:700; font-size:.77rem; font-family:monospace; display:block; margin-top:3px; }
-    .svc-desc { font-size:.66rem; color:#8ab; line-height:1.35; display:block; margin-top:3px; }
-    .nebula-svg-lines { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; overflow:visible; }
-    @keyframes pp { 0%,100%{box-shadow:0 0 5px 1px rgba(255,51,153,.35)} 50%{box-shadow:0 0 16px 6px rgba(255,51,153,.9)} }
-    @keyframes cc { 0%,100%{box-shadow:0 0 5px 1px rgba(0,255,204,.35)} 50%{box-shadow:0 0 16px 6px rgba(0,255,204,.9)} }
-    @keyframes yy { 0%,100%{box-shadow:0 0 5px 1px rgba(255,215,0,.3)}  50%{box-shadow:0 0 16px 6px rgba(255,215,0,.85)} }
-    @keyframes twinkle { 0%,100%{opacity:.12} 50%{opacity:.65} }
+    /* ── Boutons ── */
+    .btn { display:block; width:100%; padding:12px; text-align:center; font-weight:700; font-size:12px; text-transform:uppercase; letter-spacing:.05em; border-radius:4px; text-decoration:none; border:none; cursor:pointer; margin-bottom:8px; transition:opacity .15s; }
+    .btn:hover { opacity:.85; }
+    .btn:last-child { margin-bottom:0; }
+    .btn-main    { background:var(--accent); color:var(--black); }
+    .btn-teal    { background:var(--teal);   color:var(--black); }
+    .btn-outline { background:transparent; border:1px solid var(--border); color:var(--muted); }
+    .btn-gold    { background:var(--gold);   color:var(--black); }
+    .btn-dj      { background:var(--dj);     color:#000; }
+    .btn-sat     { background:var(--sat);    color:#000; }
+    .btn-red     { background:#cc0000;       color:#fff; }
+    .btn-sm { padding:7px 12px; font-size:10px; display:inline-block; width:auto; margin-bottom:4px; margin-right:4px; }
+    .row { display:flex; gap:8px; flex-wrap:wrap; }
+    .row .btn { flex:1; }
+
+    /* ── Inputs ── */
+    .yt-input { width:100%; padding:10px 12px; background:var(--deep); border:1px solid var(--border); border-radius:4px; color:#fff; font-family:var(--mono); font-size:.85rem; margin-bottom:8px; outline:none; }
+    .yt-input:focus { border-color:var(--teal); }
+    #yt-result { margin-top:6px; font-size:.82rem; font-family:var(--mono); color:var(--teal); }
+    #yt-result.err { color:var(--red); }
+
+    /* ── Batterie ── */
+    .volt-display { font-family:var(--mono); font-size:1.9rem; font-weight:800; color:var(--accent); text-align:center; display:block; }
+    .ct-chart { height:150px; margin-top:12px; }
+
+    /* ── Toast ── */
+    #toast { position:fixed; bottom:80px; left:50%; transform:translateX(-50%) translateY(16px); background:var(--panel); border:1px solid var(--accent); color:var(--accent); padding:9px 20px; border-radius:20px; font-weight:700; font-size:13px; opacity:0; transition:opacity .3s,transform .3s; z-index:2000; pointer-events:none; white-space:nowrap; }
+    #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+    ul.applist { list-style:none; display:flex; flex-direction:column; gap:8px; }
+    ul.applist li { font-size:.85rem; color:#b0b0d0; }
+    ul.applist b { color:#fff; }
+    code.val { font-family:var(--mono); font-size:.88em; color:var(--teal); }
   </style>
 </head>
 <body>
 
-  <div class="ticker-wrap">
-    <div class="ticker">
-      🐷 D'OH! CONNEXION UPLANET ÉTABLIE 🍩 BIENVENUE SUR LE CYBER COCHON 🍩 AUDIT EN COURS : CACHEZ LES BIÈRES 🍩 LA SOUVERAINETÉ NUMÉRIQUE C'EST COMME UN DONUT : TOUT EST DANS LE TROU 🍩 LAISSEZ UN POURBOIRE AU G1FABLAB 🍩 
+<div id="toast"></div>
+
+<!-- ═══ HERO ═══ -->
+<div class="hero">
+  <div class="hero-logo">Sound<span>Spot</span></div>
+  <div class="hero-sub" id="hero-sub">Nœud coopératif UPlanet</div>
+  <div class="status-bar">
+    <div id="dj-badge" class="badge-mini">…</div>
+    <div id="batt-badge" class="badge-mini" style="display:none">-- %</div>
+    <div id="pico-badge" class="badge-mini" style="display:none">IPFS</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     TAB 1 — RADIO
+════════════════════════════════════════ -->
+<div id="tab-radio" class="tab-content active">
+
+  <div class="card">
+    <h2>🎧 Rejoindre le Stream</h2>
+    <div class="ibox">
+      <div class="irow"><span class="lbl">WiFi</span>         <span class="val" id="cfg-ssid">…</span></div>
+      <div class="irow"><span class="lbl">Serveur</span>      <span class="val" id="cfg-ip">…</span></div>
+      <div class="irow"><span class="lbl">Port Snapcast</span><span class="val" id="cfg-port">…</span></div>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="sn sn-t">01</div>
+        <span>Connecté au WiFi <span id="cfg-ssid2" class="hi">…</span> ✓</span>
+      </div>
+      <div class="step">
+        <div class="sn sn-t">02</div>
+        <span>Installer <span class="hi">Snapcast</span> :<br>
+          📱 Android : <a id="lnk-fdroid" href="#">F-Droid</a>
+            · <a id="lnk-play" href="#">Play Store</a><br>
+          🍎 iOS : <a id="lnk-ios" href="#">App Store</a><br>
+          🖥 PC : <code id="lnk-pc" class="val">snapclient -h …</code>
+        </span>
+      </div>
+      <div class="step">
+        <div class="sn sn-t">03</div>
+        <span>Serveur : <code class="val" id="cfg-ip2">…</code>  Port : <code class="val" id="cfg-port2">…</code></span>
+      </div>
+    </div>
+    <a id="lnk-mixer" href="#" target="_blank" class="btn btn-outline" style="margin-top:8px">🎛 Console de Mixage (Volume) →</a>
+  </div>
+
+  <div class="card">
+    <h2>🌐 Accès Internet — 15 min</h2>
+    <p>Le stream est disponible <span class="hi">sans limite</span>. L'accès Internet est temporaire (15 min).</p>
+    <button id="btn-auth" onclick="doAuth()" class="btn btn-main">Ouvrir l'accès Internet →</button>
+    <p id="auth-msg" style="display:none;font-size:.82rem;color:var(--teal);margin-top:6px"></p>
+  </div>
+
+  <div class="card">
+    <h2>⏰ Clocher Numérique</h2>
+    <div class="ibox">
+      <div class="irow"><span class="lbl">Bip + Cloches</span>    <span class="val" id="bells-lbl">…</span></div>
+      <div class="irow"><span class="lbl">Coups (heure pile)</span><span class="val" id="clock-lbl">…</span></div>
+      <div class="irow"><span class="lbl">Messages &amp; heure</span><span class="val" id="voice-lbl">…</span></div>
+    </div>
+    <p style="font-size:.78rem;color:var(--muted);margin-top:6px">Réglages disponibles dans l'onglet ⚙ Config.</p>
+  </div>
+
+  <details id="det-audio" style="display:none">
+    <summary>🔊 Sortie Audio</summary>
+    <div class="det-body">
+      <p style="font-size:.85rem;color:#b0b0d0;margin-bottom:10px">Sélectionner la sortie PipeWire. Redémarre le service (2–3 s).</p>
+      <div id="audio-sinks-list"><p style="color:var(--muted);font-size:.85rem">Détection…</p></div>
+    </div>
+  </details>
+
+  <details>
+    <summary>🎛 Espace DJ</summary>
+    <div class="det-body">
+      <div class="ibox">
+        <div class="irow"><span class="lbl">Serveur Icecast</span><span class="val" id="dj-icecast">…</span></div>
+        <div class="irow"><span class="lbl">Montage</span>        <span class="val">/live</span></div>
+        <div class="irow"><span class="lbl">Format</span>         <span class="val">Ogg Vorbis</span></div>
+        <div class="irow"><span class="lbl">Login / Mdp</span>    <span class="val">source / (cf. opérateur)</span></div>
+      </div>
+      <div class="steps" style="margin-top:10px">
+        <div class="step"><div class="sn sn-dj">01</div><span>Installer <span class="hi">Mixxx</span> + <code class="val">snapclient</code></span></div>
+        <div class="step"><div class="sn sn-dj">02</div><span>Retour casque : <code class="val" id="dj-snap">snapclient -h …</code></span></div>
+        <div class="step">
+          <div class="sn sn-dj">03</div>
+          <span>Mixxx → Préférences → Live Broadcasting<br>
+            Serveur <code class="val" id="dj-ip">…</code>  Port <code class="val" id="dj-port">…</code>  Montage <code class="val">/live</code></span>
+        </div>
+        <div class="step"><div class="sn sn-dj">04</div><span>Cliquer sur l'icône <span class="hi">Antenne</span> → en direct</span></div>
+      </div>
+      <p style="font-size:.78rem;color:var(--muted);margin-top:8px">⚠ Latence 1–3 s — beatmatch sur casque Cue, pas sur enceintes.</p>
+      <a href="docs.sh?howto" class="btn btn-dj btn-sm" style="display:block;margin-top:10px">Guide DJ complet →</a>
+    </div>
+  </details>
+
+</div>
+
+<!-- ═══════════════════════════════════════
+     TAB 2 — LIBERTÉ
+════════════════════════════════════════ -->
+<div id="tab-liberte" class="tab-content">
+  <div class="card">
+    <h2>✊ Libérer nos Données</h2>
+    <p class="hi">"Nos données valent de l'or, récupérons nos pépites."</p>
+
+    <details>
+      <summary>👁️ 📷 Oeil &amp; Stockage — Nextcloud</summary>
+      <div class="det-body">
+        <p>Sortez du Cloud propriétaire vers votre espace souverain.</p>
+        <a href="https://f-droid.org/fr/packages/com.nextcloud.client/" target="_blank" class="btn btn-main btn-sm">App Nextcloud (F-Droid)</a>
+        <a href="https://pad.p2p.legal/s/Smartphone2NextCloud#" target="_blank" class="btn btn-outline btn-sm">Guide Pas à Pas</a>
+      </div>
+    </details>
+
+    <details>
+      <summary>🤖 💾 Cerveau &amp; Mémoire — Outils Libres</summary>
+      <div class="det-body">
+        <ul class="applist">
+          <li><b>VLC</b> — Lecture universelle. <a href="https://f-droid.org/fr/packages/org.videolan.vlc/" target="_blank">F-Droid</a></li>
+          <li><b>Kodi + VStream</b> — Cinéma à domicile. <a href="https://f-droid.org/fr/packages/org.xbmc.kodi/" target="_blank">F-Droid</a> / <a href="https://kodi-vstream.github.io/docs/installation/" target="_blank">VStream</a></li>
+          <li><b>Organic Maps</b> — Cartes hors-ligne. <a href="https://f-droid.org/fr/packages/app.organicmaps/" target="_blank">F-Droid</a></li>
+        </ul>
+      </div>
+    </details>
+
+    <details>
+      <summary>🔬 Nature &amp; Sciences</summary>
+      <div class="det-body">
+        <ul class="applist">
+          <li><b>Plantnet</b> — Identifiez la flore. <a href="https://plantnet.org/" target="_blank">plantnet.org</a></li>
+          <li><b>Phyphox</b> — Capteurs physiques. <a href="https://f-droid.org/fr/packages/de.rwth_aachen.phyphox/" target="_blank">F-Droid</a></li>
+        </ul>
+      </div>
+    </details>
+
+    <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:14px">
+      <p>Vérifiez si votre smartphone est re-flashable vers un OS libre :</p>
+      <a href="https://doc.e.foundation/devices" target="_blank" class="btn btn-outline btn-sm">/e/ foundation →</a>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     TAB 3 — UPLANET
+════════════════════════════════════════ -->
+<div id="tab-constellation" class="tab-content">
+
+  <div class="card">
+    <h2>🐲 Délégation DRAGON</h2>
+    <p>Coopérative numérique UPlanet — algorithmes AGPL pour l'économie circulaire.</p>
+    <div class="astro-grid">
+      <div class="astro-box"><span>👄 👂</span><label>Bouche &amp; Oreilles</label></div>
+      <div class="astro-box"><span>👁 📷</span><label>Oeil &amp; Stockage</label></div>
+      <div class="astro-box"><span>🤖 💾</span><label>Cerveau &amp; Mémoire</label></div>
+      <div class="astro-box"><span>🔋 🌞</span><label>Énergie</label></div>
+    </div>
+    <div class="ibox">
+      <div class="irow"><span class="lbl">Souveraineté</span><span class="val">Collective</span></div>
+      <div class="irow"><span class="lbl">Vision</span><span class="val"><a href="https://ipfs.copylaradio.com/ipns/copylaradio.com/Unation.html" target="_blank">Unation →</a></span></div>
     </div>
   </div>
 
-  <div class="info-section">
-    <h1>Cyber<br>Cochon</h1>
-    <h2>Nœud Autonome // UPlanet ẐEN</h2>
-    <p>La souveraineté numérique, c'est savoir <span class="highlight">où se trouvent nos données</span>. Marre de M. Burns ?</p>
-    <p>Ici, les logiciels sont des <b>Biens Communs</b>. Le <a href="https://opencollective.com/monnaie-libre" target="_blank" class="cyber-link">G1FabLab</a> bâtit notre indépendance matérielle.</p>
-    
-    <div class="action-group">
-      <button class="btn-donate" onclick="window.open('https://opencollective.com/monnaie-libre/contribute', '_blank')">
-        🍩 Rejoindre le collectif (Dons)
-      </button>
-      <button class="btn-print" onclick="printTicket()">
-        🖨️ Récupérez un MULTIPASS (UPlanet)
-      </button>
+  <div class="card">
+    <h2>🪪 MULTIPASS Ẑelkova</h2>
+    <p>Votre identité coopérative : clé <span class="hi">NOSTR</span>, compte <span class="hi">Ğ1</span>, accès aux services ẐEN.</p>
+    <div class="steps">
+      <div class="step">
+        <div class="sn sn-g">01</div>
+        <span>Installer <span class="hi">Ẑelkova</span> :<br>
+          📱 Android : <a id="lnk-zelkova" href="#" target="_blank">APK GitHub</a></span>
+      </div>
+      <div class="step"><div class="sn sn-g">02</div><span>Créer votre profil → clé NOSTR + identité Ğ1 générés localement.</span></div>
+      <div class="step"><div class="sn sn-g">03</div><span>Lié à la coopérative <a id="lnk-g1fablab" href="#" target="_blank">G1FabLab</a> et au réseau UPlanet ẐEN.</span></div>
+      <div class="step"><div class="sn sn-g">04</div><span>Ce nœud peut émettre des <span class="hi">ZenCards</span> — demandez à l'opérateur.</span></div>
+    </div>
+    <a id="btn-zelkova" href="#" target="_blank" class="btn btn-gold" style="margin-top:6px">Télécharger Ẑelkova →</a>
+  </div>
+
+  <div class="card" id="card-jukebox" style="display:none">
+    <h2>📥 Jukebox Collectif</h2>
+    <p>Archivez une musique sur ce nœud IPFS. Accessible hors-ligne via la gateway locale.</p>
+    <div class="ibox">
+      <div class="irow"><span class="lbl">Format</span>  <span class="val">MP3 (audio)</span></div>
+      <div class="irow"><span class="lbl">Gateway</span> <span class="val" id="cfg-gateway">http://…:8080/ipfs/&lt;CID&gt;</span></div>
+    </div>
+    <input type="text" id="yt-url" class="yt-input" placeholder="Lien YouTube ou recherche…">
+    <button onclick="doYtCopy()" id="btn-yt" class="btn btn-red">Télécharger &amp; épingler →</button>
+    <div id="yt-result"></div>
+  </div>
+
+  <details>
+    <summary>📡 Ajouter une Enceinte Satellite</summary>
+    <div class="det-body">
+      <div class="steps">
+        <div class="step"><div class="sn sn-s">01</div><span>Flasher un <span class="hi">RPi Zero 2W</span> avec Raspberry Pi OS Lite</span></div>
+        <div class="step"><div class="sn sn-s">02</div><span>Connecter au WiFi <code class="val" id="sat-ssid">…</code> ou <code class="val">qo-op</code></span></div>
+        <div class="step">
+          <div class="sn sn-s">03</div>
+          <span><code class="val">git clone https://github.com/papiche/sound-spot</code><br>
+            <code class="val">sudo bash deploy_on_pi.sh --satellite</code></span>
+        </div>
+        <div class="step"><div class="sn sn-s">04</div><span>Maître : <code class="val" id="sat-ip">…</code> ou <code class="val">soundspot.local</code></span></div>
+      </div>
+    </div>
+  </details>
+
+  <details>
+    <summary>🪙 Économie ẐEN &amp; Ğ1</summary>
+    <div class="det-body">
+      <a href="https://github.com/papiche/Astroport.ONE/blob/master/docs/ZEN.ECONOMY.v3.md" target="_blank" class="btn btn-gold btn-sm">Zen Economy v3</a>
+      <a href="https://zen.copylaradio.com/" target="_blank" class="btn btn-outline btn-sm">TrocZen</a>
+      <a id="lnk-oc" href="#" target="_blank" class="btn btn-main btn-sm">Soutenir G1FabLab</a>
+    </div>
+  </details>
+
+  <details>
+    <summary>🔍 QQOQCCP — Le Projet</summary>
+    <div class="det-body">
+      <p><b style="color:#fff">Qui :</b> Les membres G1FabLab.<br>
+         <b style="color:#fff">Quoi :</b> Nœuds PicoPort WiFi + audio.<br>
+         <b style="color:#fff">Pourquoi :</b> Souveraineté collective.<br>
+         <b style="color:#fff">Comment :</b> Énergie solaire &amp; logiciel libre AGPL.</p>
+      <a href="docs.sh" class="btn btn-outline btn-sm" style="display:block;margin-top:10px">Documentation locale →</a>
+    </div>
+  </details>
+
+</div>
+
+<!-- ═══════════════════════════════════════
+     TAB 4 — ÉNERGIE
+════════════════════════════════════════ -->
+<div id="tab-solaire" class="tab-content">
+
+  <div class="card" id="card-battery" style="display:none">
+    <h2>🔋 Télémétrie Solaire (INA219)</h2>
+    <div class="astro-grid">
+      <div class="astro-box"><span id="batt-volt" class="volt-display">-- V</span><label>Tension</label></div>
+      <div class="astro-box"><span id="batt-cur"  class="volt-display">-- mA</span><label>Courant</label></div>
+      <div class="astro-box"><span id="batt-pow"  class="volt-display">-- mW</span><label>Puissance</label></div>
+      <div class="astro-box"><span id="batt-pct"  class="volt-display">-- %</span><label>Charge</label></div>
+    </div>
+    <div id="energy-chart" class="ct-chart"></div>
+  </div>
+
+  <div class="card">
+    <h2>📊 Nœud</h2>
+    <div class="ibox">
+      <div class="irow"><span class="lbl">Charge CPU</span>   <span class="val" id="sys-cpu">…</span></div>
+      <div class="irow"><span class="lbl">Mémoire libre</span><span class="val" id="sys-mem">…</span></div>
+      <div class="irow"><span class="lbl">Version portail</span><span class="val" id="cfg-version">…</span></div>
     </div>
   </div>
 
-  <div class="model-section">
-    <model-viewer src="cochon.glb" 
-                  camera-controls auto-rotate 
-                  camera-target="0m 0.2m 0m" 
-                  camera-orbit="45deg 70deg 1.2m"
-                  shadow-intensity="1">
-      
-      <!-- TOUS LES HOTSPOTS RESTAURÉS -->
-      <button class="hotspot" slot="hotspot-ventre" data-position="0 0.15 0.1" data-normal="0 0 1" onclick="showInfo('ventre')"></button>
-      <button class="hotspot" slot="hotspot-bouche" data-position="0 0.28 0.12" data-normal="0 1 1" onclick="showInfo('bouche')"></button>
-      <button class="hotspot" slot="hotspot-bras" data-position="0.15 0.2 0" data-normal="1 0 0" onclick="showInfo('bras')"></button>
-      <button class="hotspot" slot="hotspot-dos" data-position="0 0.2 -0.15" data-normal="0 0 -1" onclick="showInfo('dos')"></button>
-    </model-viewer>
-
-    <!-- NÉBULEUSE : points constellation UPlanet / MULTIPASS -->
-    <div class="nebula-overlay" id="nebula-overlay">
-      <svg class="nebula-svg-lines" id="nebula-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+  <div class="card">
+    <h2>💻 Sous le Capot</h2>
+    <p>Infrastructure résiliente : IPFS, Duniter v2s et NOSTR sur 512 Mo de RAM avec énergie solaire.</p>
+    <div class="ibox">
+      <div class="irow"><span class="lbl">Licence</span>    <span class="val">AGPL-3.0</span></div>
+      <div class="irow"><span class="lbl">IPFS</span>       <span class="val" id="pico-status-detail">—</span></div>
+      <div class="irow"><span class="lbl">GPIO Pinout</span><span class="val"><a href="/pinout/" target="_blank">Référence →</a></span></div>
+      <div class="irow"><span class="lbl">Code Source</span><span class="val"><a id="lnk-src" href="#" target="_blank">GitHub →</a></span></div>
+      <div class="irow"><span class="lbl">Soutien</span>    <span class="val"><a id="lnk-oc2" href="#" target="_blank">OpenCollective →</a></span></div>
     </div>
+    <a href="docs.sh" class="btn btn-outline btn-sm" style="display:block;margin-top:10px">Documentation locale →</a>
+  </div>
 
-    <div id="info-panel">
-      <h2 id="info-title" style="color: var(--accent); margin:0;">Titre</h2>
-      <div id="info-desc" style="margin: 10px 0;">Description</div>
-      <div id="info-specs" class="tech-specs">Specs</div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     TAB 5 — CONFIG
+════════════════════════════════════════ -->
+<div id="tab-config" class="tab-content">
+
+  <div class="card">
+    <h2>📡 Réseau</h2>
+    <div class="ibox" id="cfg-network-box">
+      <div class="irow"><span class="lbl">SSID Visiteurs</span> <span class="val" id="cn-ssid">…</span></div>
+      <div class="irow"><span class="lbl">IP Station</span>     <span class="val" id="cn-ip">…</span></div>
+      <div class="irow"><span class="lbl">Hostname</span>        <span class="val" id="cn-hostname">…</span></div>
+      <div class="irow"><span class="lbl">IPv4 amont</span>      <span class="val" id="cn-wan">…</span></div>
     </div>
   </div>
 
-  <!-- MODAL QR CODE -->
-  <div id="qr-modal">
-    <div class="modal-content">
-      <span class="close-modal" onclick="closeModal()">&times;</span>
-      <h3 style="color: var(--accent); margin: 0; text-transform: uppercase;">Ticket Qo-Op</h3>
-      <div id="qr-container"></div>
-      <p style="color: var(--yellow); font-family: monospace; margin: 10px 0;">https://qo-op.com</p>
+  <div class="card">
+    <h2>🔊 Audio</h2>
+    <div id="cfg-audio-sinks"><p style="color:var(--muted);font-size:.85rem">Détection sorties…</p></div>
+    <a id="lnk-mixer-cfg" href="#" target="_blank" class="btn btn-teal btn-sm" style="margin-top:8px">Ouvrir Snapweb →</a>
+    <div class="ibox" style="margin-top:10px">
+      <div class="irow"><span class="lbl">Enceinte(s) BT</span><span class="val" id="cn-bt">…</span></div>
+      <div class="irow"><span class="lbl">Port Snapcast</span>  <span class="val" id="cn-snap">…</span></div>
+      <div class="irow"><span class="lbl">Port Icecast</span>   <span class="val" id="cn-ice">…</span></div>
+    </div>
+    <p style="font-size:.78rem;color:var(--muted);margin-top:6px">Reconnexion disponible dans 🔒 Administration.</p>
+  </div>
+
+  <div class="card">
+    <h2>🎛 Voix &amp; Clocher</h2>
+    <div class="ibox">
+      <div class="irow"><span class="lbl">Bip + Cloches</span>    <span class="val" id="cfg-bells-lbl">…</span></div>
+      <div class="irow"><span class="lbl">Coups (heure pile)</span><span class="val" id="cfg-clock-lbl">…</span></div>
+      <div class="irow"><span class="lbl">Voix (annonces)</span>   <span class="val" id="cfg-voice-lbl">…</span></div>
+    </div>
+    <p style="font-size:.78rem;color:var(--muted);margin-top:6px">Réglages protégés — voir 🔒 Administration.</p>
+  </div>
+
+  <div class="card">
+    <h2>🔧 GPIO &amp; Extensions</h2>
+    <p>Carte brochage Raspberry Pi disponible hors-ligne :</p>
+    <a href="/pinout/" target="_blank" class="btn btn-outline">📌 Ouvrir Pinout.xyz →</a>
+    <p style="font-size:.78rem;color:var(--muted);margin-top:8px">Cloner d'autres extensions : <code class="val">git clone …</code> dans <code class="val">~/.zen/workspace/</code></p>
+  </div>
+
+  <div class="card">
+    <h2>⚡ Services</h2>
+    <div id="cfg-services-list"><p style="color:var(--muted);font-size:.85rem">Chargement…</p></div>
+  </div>
+
+  <!-- ── Messages du clocher ── -->
+  <div class="card">
+    <h2>📢 Messages du clocher</h2>
+    <div id="msg-list" style="display:flex;flex-direction:column;gap:8px"></div>
+    <button class="btn btn-sm btn-outline" style="margin-top:8px" onclick="msgLoad()">Actualiser</button>
+  </div>
+
+  <!-- ── Administration (protégée par mot de passe UPLANETNAME) ── -->
+  <div class="card">
+    <h2>🔒 Administration BT</h2>
+    <div id="adm-login">
+      <div class="irow">
+        <input id="adm-pass-input" type="password" placeholder="Mot de passe (10 car.)"
+          style="flex:1;padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:.9rem"
+          onkeydown="if(event.key==='Enter') admLogin()" />
+        <button class="btn btn-sm" onclick="admLogin()">Connexion</button>
+      </div>
+      <p style="font-size:.75rem;color:var(--muted);margin-top:4px">10 derniers caractères de UPLANETNAME</p>
+    </div>
+    <div id="adm-panel" style="display:none">
+
+      <p style="font-size:.8rem;font-weight:700;color:var(--muted);margin:8px 0 4px;text-transform:uppercase;letter-spacing:.06em">Bluetooth</p>
+      <div class="ibox" style="margin:0 0 8px">
+        <div class="irow"><span class="lbl">MACs configurés</span><span class="val" id="adm-bt-macs">—</span></div>
+        <div class="irow"><span class="lbl">Connectés</span>       <span class="val" id="adm-bt-connected">—</span></div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
+        <button class="btn btn-sm" onclick="admBtScan()">Scanner (10s)</button>
+        <button class="btn btn-sm btn-outline" onclick="admBtRefresh()">Actualiser</button>
+      </div>
+      <div id="adm-bt-results" style="margin-bottom:10px"></div>
+
+      <p style="font-size:.8rem;font-weight:700;color:var(--muted);margin:8px 0 4px;text-transform:uppercase;letter-spacing:.06em">Audio</p>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
+        <button class="btn btn-sm btn-outline" onclick="fixAudio()">🔄 Reconnecter audio</button>
+        <button class="btn btn-red btn-sm" onclick="admAudioReset()">🔥 Reset audio total</button>
+      </div>
+
+      <p style="font-size:.8rem;font-weight:700;color:var(--muted);margin:8px 0 4px;text-transform:uppercase;letter-spacing:.06em">Clocher &amp; Voix</p>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+        <button onclick="toggleBells()" id="adm-btn-bells" class="btn btn-outline btn-sm">…</button>
+        <button onclick="toggleClock()" id="adm-btn-clock" class="btn btn-outline btn-sm">…</button>
+        <button onclick="toggleVoice()" id="adm-btn-voice" class="btn btn-outline btn-sm">…</button>
+      </div>
+
+      <details style="margin-top:4px">
+        <summary style="font-size:.8rem;color:var(--muted)">🐛 Debug log</summary>
+        <pre id="adm-debug" style="font-size:.7rem;color:var(--muted);padding:8px;max-height:180px;overflow:auto;white-space:pre-wrap;margin-top:4px"></pre>
+      </details>
     </div>
   </div>
 
-  <div id="toast">Bzzzz... Génération du ticket ! 🖨️</div>
-  <audio id="homer-audio" preload="none"></audio>
+</div>
 
-  <script>
-    // TOUTES LES DONNÉES RESTAURÉES
-    const equipmentData = {
-      'ventre': {
-        title: "Raspberry Pi 4",
-        desc: "L'estomac de la bête ! Il digère les données du réseau IPFS et gère le mixage audio.",
-        specs: "CPU: Quad-Core ARM<br>RAM: 4GB LPDDR4<br>Rôle: Nœud PicoPort UPlanet"
-      },
-      'bouche': {
-        title: "L'Œil d'Homer",
-        desc: "Avec mon module caméra caché sous le groin, je peux repérer les donuts et déclencher des réactions.",
-        specs: "Module: Pi Camera V3<br>FOV: 75°<br>Tech: OpenCV"
-      },
-      'bras': {
-        title: "Antenne Réseau",
-        desc: "C'est avec ça que je fourni le Wi-Fi ZICMAMA pour rejoindre la Toile de Confiance.",
-        specs: "Mode: Point d'Accès (uap0)<br>Fréq: 2.4 / 5 GHz<br>Protocol: Mesh/P2P"
-      },
-      'dos': {
-        title: "Sac à Dos Tech",
-        desc: "Contient un SSD rempli de musique et vidéos, et potentiellement un micro-projecteur.",
-        specs: "Stockage: SSD USB 3.0<br>Réseau: Alfa Network<br>Audio: Jack 3.5mm"
+<!-- ═══ NAVIGATION ═══ -->
+<nav class="nav-tabs">
+  <button class="tab-btn active" onclick="showTab('tab-radio',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9M19.1 4.9c3.9 3.9 3.9 10.3 0 14.2M8.3 15.7c-2.1-2.1-2.1-5.5 0-7.6M15.7 8.3c2.1 2.1 2.1 5.5 0 7.6M12 12v.01"/>
+    </svg>
+    Radio
+  </button>
+  <button class="tab-btn" onclick="showTab('tab-liberte',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+    </svg>
+    Liberté
+  </button>
+  <button class="tab-btn" onclick="showTab('tab-constellation',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="10"/>
+      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+      <path d="M2 12h20"/>
+    </svg>
+    UPlanet
+  </button>
+  <button class="tab-btn" onclick="showTab('tab-solaire',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="5"/>
+      <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+      <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+    </svg>
+    Énergie
+  </button>
+  <button class="tab-btn" onclick="showTab('tab-config',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+    </svg>
+    Config
+  </button>
+</nav>
+
+<script>
+'use strict';
+let CFG = {}, clockMode = 'bells', voiceEnabled = true, bellsEnabled = true, ttsEngine = 'espeak', chart, chartData = { labels: [], series: [[]] };
+
+function showTab(id, btn) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+  if (id === 'tab-solaire') setTimeout(initChart, 200);
+  if (id === 'tab-config') { loadConfigTab(); loadServicesStatus(); setTimeout(loadAudioSinksCfg, 300); msgLoad(); }
+}
+
+function toast(msg, ok = true) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.borderColor = ok ? 'var(--accent)' : 'var(--red)';
+  t.style.color = ok ? 'var(--accent)' : 'var(--red)';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function setTxt(ids, val) {
+  ids.forEach(id => { const el = document.getElementById(id); if (el) el.textContent = val; });
+}
+function setHref(id, href) {
+  if (!href) return;
+  const el = document.getElementById(id);
+  if (el) el.href = href;
+}
+
+async function loadConfig() {
+  try {
+    const r = await fetch('/api.sh?action=config');
+    CFG = await r.json();
+    const n  = CFG.spot_name  || '—';
+    const ip = CFG.spot_ip    || '—';
+    const sp = String(CFG.snapcast_port || 1704);
+    const ic = String(CFG.icecast_port  || 8111);
+    const lk = CFG.links || {};
+    const mixerUrl = 'http://' + ip + ':1780';
+    setHref('lnk-mixer', mixerUrl);
+    setHref('lnk-mixer-cfg', mixerUrl);
+
+    document.getElementById('hero-sub').textContent = 'Nœud // ' + n;
+    setTxt(['cfg-ssid','cfg-ssid2','sat-ssid'], n);
+    setTxt(['cfg-ip','cfg-ip2','dj-ip','sat-ip'], ip);
+    setTxt(['cfg-port','cfg-port2','dj-port'], sp);
+    setTxt(['lnk-pc'],    'snapclient -h ' + ip);
+    setTxt(['dj-snap'],   'snapclient -h ' + ip);
+    setTxt(['dj-icecast'], ip + ':' + ic);
+    setTxt(['cfg-gateway'], 'http://' + ip + ':8080/ipfs/<CID>');
+    setTxt(['cfg-version'], CFG.version || 'dev');
+
+    setHref('lnk-fdroid',   lk.snapdroid_fdroid);
+    setHref('lnk-play',     lk.snapdroid_play);
+    setHref('lnk-ios',      lk.snapcast_ios);
+    setHref('lnk-zelkova',  lk.zelkova_release);
+    setHref('btn-zelkova',  lk.zelkova_release);
+    setHref('lnk-g1fablab', lk.g1fablab);
+    setHref('lnk-oc',       lk.g1fablab);
+    setHref('lnk-oc2',      lk.g1fablab);
+    setHref('lnk-src',      lk.source);
+
+    if (CFG.picoport_enabled && CFG.yt_available) {
+      document.getElementById('card-jukebox').style.display = '';
+    }
+
+    clockMode    = CFG.clock_mode    || 'bells';
+    voiceEnabled = CFG.voice_enabled !== false;
+    bellsEnabled = CFG.bells_enabled !== false;
+    updateClockUI();
+    updateBellsUI();
+    // ttsEngine mis à jour par loadStatus() — appel immédiat pour initialiser
+    fetch('/api.sh?action=status').then(r=>r.json()).then(d => {
+      if (d.tts_engine) { ttsEngine = d.tts_engine; }
+      updateVoiceUI();
+    }).catch(() => updateVoiceUI());
+    loadConfigTab();
+  } catch(e) { console.error('Config failed', e); }
+}
+
+async function loadStatus() {
+  try {
+    const r = await fetch('/api.sh?action=status');
+    const d = await r.json();
+
+    const dj = document.getElementById('dj-badge');
+    if (d.dj_active) {
+      dj.innerHTML = '<span class="pulse"></span>DJ LIVE';
+      dj.className = 'badge-mini live';
+    } else {
+      dj.textContent = 'Silence';
+      dj.className = 'badge-mini';
+    }
+
+    if (d.cpu_load) setTxt(['sys-cpu'], d.cpu_load + ' (1 min)');
+    if (d.mem_free_kb) setTxt(['sys-mem'], Math.round(d.mem_free_kb / 1024) + ' Mo libres');
+
+    if (d.picoport_active) {
+      const pb = document.getElementById('pico-badge');
+      pb.style.display = ''; pb.textContent = 'IPFS ✓'; pb.className = 'badge-mini on';
+      setTxt(['pico-status-detail'], 'Actif (picoport.service)');
+    }
+
+    if (d.batt_volt && parseFloat(d.batt_volt) > 0) {
+      document.getElementById('batt-badge').style.display = '';
+      document.getElementById('batt-badge').textContent = d.batt_pct + ' %';
+      setTxt(['batt-volt'], d.batt_volt + ' V');
+      setTxt(['batt-cur'],  d.batt_cur  + ' mA');
+      setTxt(['batt-pow'],  d.batt_pow  + ' mW');
+      setTxt(['batt-pct'],  d.batt_pct  + ' %');
+      document.getElementById('card-battery').style.display = '';
+      if (chart) {
+        chartData.labels.push(new Date().toLocaleTimeString());
+        chartData.series[0].push(parseFloat(d.batt_volt));
+        if (chartData.labels.length > 12) { chartData.labels.shift(); chartData.series[0].shift(); }
+        chart.update(chartData);
       }
-    };
-
-    function showInfo(partId) {
-      const panel = document.getElementById('info-panel');
-      const data = equipmentData[partId];
-      document.getElementById('info-title').innerHTML = '🐷 ' + data.title;
-      document.getElementById('info-desc').innerHTML = data.desc;
-      document.getElementById('info-specs').innerHTML = data.specs;
-      panel.classList.add('visible');
     }
 
-    async function printTicket() {
-      const toast = document.getElementById('toast');
-      const modal = document.getElementById('qr-modal');
-      const qrContainer = document.getElementById('qr-container');
-
-      toast.classList.add('show');
-      setTimeout(() => toast.classList.remove('show'), 3000);
-
-      // URL MULTIPASS : dériver depuis le hostname actuel → u.DOMAIN/qr
-      const h = location.hostname;
-      const domain = h.replace(/^(ipfs|astroport|soundspot|192\.168\.[0-9]+)\./,'') || 'copylaradio.com';
-      const upassportQr = `https://u.${domain}/qr?data=${encodeURIComponent('https://qo-op.com')}&format=json`;
-      const fallbackUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent('https://qo-op.com')}&color=ff3399`;
-
-      let imgSrc = null;
-      try {
-        const r = await fetch(upassportQr, { signal: AbortSignal.timeout(4000) });
-        if (r.ok) {
-          const j = await r.json();
-          imgSrc = j.dataUrl || (j.fallback ? j.fallback : null);
-        }
-      } catch (_) {}
-
-      imgSrc = imgSrc || fallbackUrl;
-      qrContainer.innerHTML = `<a href="https://qo-op.com" target="qo-op"><img src="${imgSrc}" alt="QR" style="max-width:180px;border-radius:10px;"></a>`;
-      setTimeout(() => modal.classList.add('active'), 500);
+    if (d.clock_mode && d.clock_mode !== clockMode) {
+      clockMode = d.clock_mode;
+      updateClockUI();
     }
+    if (typeof d.voice_enabled !== 'undefined' && d.voice_enabled !== voiceEnabled) {
+      voiceEnabled = d.voice_enabled;
+      updateVoiceUI();
+    }
+    if (d.tts_engine && d.tts_engine !== ttsEngine) {
+      ttsEngine = d.tts_engine;
+      updateVoiceUI();
+    }
+    if (typeof d.bells_enabled !== 'undefined' && d.bells_enabled !== bellsEnabled) {
+      bellsEnabled = d.bells_enabled;
+      updateBellsUI();
+    }
+  } catch(e) {}
+}
 
-    function closeModal() { document.getElementById('qr-modal').classList.remove('active'); }
+function initChart() {
+  if (chart || typeof Chartist === 'undefined') return;
+  chart = new Chartist.Line('#energy-chart', chartData, {
+    low: 3.2, high: 4.2, showArea: true, fullWidth: true,
+    axisX: { showGrid: false, showLabel: false }
+  });
+}
 
-    // Fermeture du panneau 3D au clic ailleurs
-    document.querySelector('model-viewer').addEventListener('mousedown', (e) => {
-      if(e.target.tagName === 'MODEL-VIEWER') document.getElementById('info-panel').classList.remove('visible');
+async function doAuth() {
+  const btn = document.getElementById('btn-auth');
+  const msg = document.getElementById('auth-msg');
+  btn.disabled = true; btn.textContent = 'Ouverture…';
+  try {
+    const r = await fetch('/api.sh?action=auth', { method: 'POST', body: '' });
+    const d = await r.json();
+    if (d.status === 'authorized') {
+      btn.textContent = '✓ Accès ouvert (15 min)';
+      btn.style.background = 'var(--teal)';
+      msg.style.display = ''; msg.textContent = 'Accès internet ouvert pour 15 min. Bonne navigation !';
+      toast('✅ Accès Internet ouvert');
+    } else {
+      btn.disabled = false; btn.textContent = "Ouvrir l'accès Internet →";
+      toast('Erreur : ' + (d.error || 'inconnue'), false);
+    }
+  } catch(e) {
+    btn.disabled = false; btn.textContent = "Ouvrir l'accès Internet →";
+    toast('Erreur réseau', false);
+  }
+}
+
+function updateClockUI() {
+  const active = clockMode === 'bells';
+  const lbl  = active ? '🔔 Activées' : '🔇 Silencieuses';
+  const btxt = active ? 'Désactiver les cloches' : 'Activer les cloches';
+  ['clock-lbl','cfg-clock-lbl'].forEach(id => { const e=document.getElementById(id); if(e) e.textContent=lbl; });
+  ['adm-btn-clock'].forEach(id => { const e=document.getElementById(id); if(e) e.textContent=btxt; });
+}
+
+function updateBellsUI() {
+  const active = bellsEnabled !== false;
+  const lbl  = active ? '🔔 Actifs' : '🔕 Coupés';
+  const btxt = active ? 'Couper ding & cloches' : 'Activer ding & cloches';
+  ['bells-lbl','cfg-bells-lbl'].forEach(id => { const e=document.getElementById(id); if(e) e.textContent=lbl; });
+  ['adm-btn-bells'].forEach(id => { const e=document.getElementById(id); if(e) e.textContent=btxt; });
+}
+
+async function toggleBells() {
+  const next = bellsEnabled ? 'false' : 'true';
+  try {
+    const r = await fetch('/api.sh?action=bells', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'mode=' + next
     });
+    const d = await r.json();
+    if (d.status === 'ok') {
+      bellsEnabled = d.bells_enabled === true || d.bells_enabled === 'true';
+      updateBellsUI();
+      toast(bellsEnabled ? '🔔 Ding & cloches activés' : '🔕 Ding & cloches coupés');
+    }
+  } catch(e) { toast('Erreur réseau', false); }
+}
 
-    // ─── NÉBULEUSE DE SERVICES UPLANET ────────────────────────────────────────
-    // Résoudre les URLs de service depuis le hostname du portail
-    const _domain = (() => {
-      const h = location.hostname;
-      return h.replace(/^(ipfs|astroport|soundspot|192\.168\.[0-9.]+)\./i, '') || 'copylaradio.com';
-    })();
-    function resolveUrl(tmpl) {
-      return tmpl
-        .replace('{u}',     `https://u.${_domain}`)
-        .replace('{earth}', `https://ipfs.${_domain}/ipns/copylaradio.com`)
-        .replace('{g1fablab}', `https://opencollective.com/monnaie-libre`)
-        .replace('{zicmama}', `https://ipfs.${_domain}/ipfs/QmSTcJURUCzX4vCPXEy1tqBgdLbAdh5ENvSu3HznaNzcLp/`)
-        .replace('{astroport}', `https://astroport.copylaradio.com`)
-        .replace('{coracle}', `https://coracle.copylaradio.com`)
-        .replace('{zelkova}', `https://zinkgo.copylaradio.com`)
-        .replace('{troczen}', `https://zen.copylaradio.com`);
-      }
+function updateVoiceUI() {
+  const active = voiceEnabled !== false;
+  const engineLbl = ttsEngine === 'orpheus' ? '🎤 Humain (UPlanet connecté)' : '🤖 Robot (Local)';
+  const lbl  = active ? engineLbl : '🔇 Coupée';
+  const btxt = active ? 'Couper les voix' : 'Activer les voix';
+  ['voice-lbl','cfg-voice-lbl'].forEach(id => { const e=document.getElementById(id); if(e) e.textContent=lbl; });
+  ['adm-btn-voice'].forEach(id => { const e=document.getElementById(id); if(e) e.textContent=btxt; });
+}
 
-    const SVCS = [
-      {e:'🪪', n:'Multipass Web3',       d:'Votre identité souveraine\nNostr • Ğ1 • IPFS',               c:'p', x:14, y:13, l:'{earth}/contribute-3D-curieux.html'},
-      {e:'🌍', n:'Cloud UPlanet',        d:'Hébergement en essaim\n100% libre et décentralisé',         c:'c', x:48, y:7,  l:'{earth}/'},
-      {e:'🎬', n:'Nostr Tube',           d:'Alternative vidéo libre\nZéro pub, zéro algorithme',        c:'c', x:85, y:16, l:'{u}/youtube?html=1'},
-      {e:'📡', n:'Relais Nostr',         d:'Messagerie incorruptible\nRésistante à la censure',         c:'c', x:7,  y:40, l:'{earth}/nostr_console.html'},
-      {e:'🧠', n:'IA ZicMama',           d:'Intelligence distribuée\nSouveraine & collaborative',       c:'p', x:82, y:33, l:'{zicmama}/'},
-      {e:'💻', n:'Terminal #BRO',        d:'Console des Communs\nChat IA & financement participatif',   c:'p', x:20, y:62, l:'{u}/nostr'},
-      {e:'📻', n:'Radio P2P',            d:'Streaming audio coopératif\nVoix & Musique sur WiFi libre', c:'y', x:88, y:55, l:'{u}/vocals-read'},
-      {e:'📍', n:'Cadastre UPlanet',     d:'Votre zone 0.01°×0.01°\nAgissez sur le territoire local',   c:'c', x:13, y:80, l:'{earth}/welcome.html'},
-      {e:'✨', n:'Constellation',        d:'Maillage de nœuds Astroport\nStations autonomes locales',   c:'p', x:90, y:72, l:'{earth}/Unation.html'},
-      {e:'⚖️', n:'Économie ẐEN',         d:'Monnaie libre et échanges\nVotre tableau de bord',          c:'y', x:60, y:90, l:'{earth}/economy.html'},
-      {e:'🤝', n:'G1FabLab Coop',        d:'Financement collectif\nSoutenez l\'infrastructure libre',   c:'y', x:34, y:20, l:'{g1fablab}/'},
-      {e:'🕸️', n:'Toile de Confiance',   d:'Certification humaine Ğ1\nSécurisez le réseau Duniter',     c:'y', x:68, y:10, l:'{earth}/contribute-3D-G1.html'},
-      {e:'🛠️', n:'Savoirs MineLife',     d:'Échange de compétences\nFormation de pair à pair',          c:'c', x:5,  y:67, l:'{earth}/minelife.html'},
-      {e:'🎟️', n:'TrocZen Marchés',      d:'Bons d\'échanges locaux\nFidélisez votre clientèle',        c:'y', x:44, y:92, l:'{troczen}'},
-      {e:'🏛️', n:'Carte Sociétaire',     d:'Gouvernance collective\nVotez pour vos biens communs',      c:'p', x:76, y:84, l:'{earth}/contribute-3D-coop.html'},
-      {e:'🛰️', n:'Station Astroport',    d:'Accès balise 12345.json\nDonnées de votre station',         c:'c', x:50, y:45, l:'{astroport}/12345.json'},
-      {e:'🚀', n:'Astroport.one',        d:'Code source ouvert\nLe réseau spatial décentralisé',        c:'p', x:40, y:55, l:'http://astroport.com'}
-    ];
+async function toggleVoice() {
+  const next = voiceEnabled ? 'false' : 'true';
+  try {
+    const r = await fetch('/api.sh?action=voice', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'mode=' + next
+    });
+    const d = await r.json();
+    if (d.status === 'ok') {
+      voiceEnabled = d.voice_enabled === true || d.voice_enabled === 'true';
+      updateVoiceUI();
+      toast(voiceEnabled ? '🔊 Voix activées' : '🔇 Voix coupées');
+    }
+  } catch(e) { toast('Erreur réseau', false); }
+}
 
-    const COL = {
-      p:{bg:'rgba(255,51,153,.2)',  bd:'#ff3399', an:'pp', lb:'#ff3399'},
-      c:{bg:'rgba(0,255,204,.2)',   bd:'#00ffcc', an:'cc', lb:'#00ffcc'},
-      y:{bg:'rgba(255,215,0,.15)', bd:'#ffd700', an:'yy', lb:'#ffd700'},
+async function toggleClock() {
+  const next = clockMode === 'bells' ? 'silent' : 'bells';
+  try {
+    const r = await fetch('/api.sh?action=clock', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'mode=' + next
+    });
+    const d = await r.json();
+    if (d.status === 'ok') {
+      clockMode = d.clock_mode || next;
+      updateClockUI();
+      toast(clockMode === 'bells' ? '🔔 Cloches activées' : '🔇 Cloches désactivées');
+    }
+  } catch(e) { toast('Erreur réseau', false); }
+}
+
+async function fixAudio() {
+  toast('🚀 Relance audio…');
+  try { await fetch('/api.sh?action=audio_fix'); toast('✅ Service reconnecté'); }
+  catch(e) { toast('Erreur', false); }
+}
+
+function loadConfigTab() {
+  if (!CFG.spot_name) return;
+  const sp = String(CFG.snapcast_port || 1704);
+  const ic = String(CFG.icecast_port  || 8111);
+  setTxt(['cn-ssid'], CFG.spot_name || '—');
+  setTxt(['cn-ip'],   CFG.spot_ip   || '—');
+  setTxt(['cn-snap'], sp);
+  setTxt(['cn-ice'],  ic);
+  setTxt(['cn-bt'],   CFG.bt_macs   || '—');
+  setTxt(['cn-hostname'], CFG.hostname || location.hostname);
+  setTxt(['cn-wan'], CFG.wan_ip || '—');
+
+  // Cloner les sinks audio dans l'onglet config
+  const srcDiv = document.getElementById('audio-sinks-list');
+  const dstDiv = document.getElementById('cfg-audio-sinks');
+  if (srcDiv && dstDiv && srcDiv.innerHTML.trim() !== '<p style="color:var(--muted);font-size:.85rem">Détection…</p>') {
+    dstDiv.innerHTML = srcDiv.innerHTML;
+  }
+}
+
+function loadServicesStatus() {
+  const services = [
+    { name: 'snapserver',         label: 'Snapserver' },
+    { name: 'soundspot-decoder',  label: 'Décodeur audio' },
+    { name: 'soundspot-client',   label: 'Snapclient' },
+    { name: 'soundspot-idle',     label: 'Clocher' },
+    { name: 'icecast2',           label: 'Icecast' },
+    { name: 'lighttpd',           label: 'Portail web' },
+    { name: 'picoport',           label: 'Picoport IPFS' },
+  ];
+  const box = document.getElementById('cfg-services-list');
+  if (!box) return;
+  box.innerHTML = '<div class="ibox">' + services.map(s =>
+    `<div class="irow"><span class="lbl">${s.label}</span><span class="val" id="svc-${s.name}" style="color:var(--muted)">…</span></div>`
+  ).join('') + '</div>';
+
+  fetch('/api.sh?action=status').then(r=>r.json()).then(d=>{
+    const svc = d.services || {};
+    const st = (name) => {
+      const v = svc[name] || '';
+      if (v === 'active')      return { t: '✅', c: 'var(--teal)' };
+      if (v === 'failed')      return { t: '❌', c: 'var(--red)' };
+      if (v === 'activating')  return { t: '⏳', c: 'var(--gold)' };
+      return { t: '—', c: 'var(--muted)' };
     };
-    const LINES = [[0,10],[10,1],[1,11],[11,2],[3,5],[5,12],[4,6],[6,8],[8,9],[9,13],[9,14],[0,5]];
-    let homerTracks = [];
+    services.forEach(s => {
+      const el = document.getElementById('svc-' + s.name);
+      if (!el) return;
+      let r = st(s.name);
+      if (s.name === 'icecast2' && svc['icecast2'] === 'active')
+        r = d.dj_active ? { t: '🔴 Live', c: 'var(--dj)' } : { t: '🎙 Prêt', c: 'var(--teal)' };
+      if (s.name === 'picoport' && d.picoport_active)
+        r = { t: '✅ IPFS', c: 'var(--teal)' };
+      el.textContent = r.t;
+      el.style.color = r.c;
+    });
+  }).catch(()=>{
+    document.querySelectorAll('[id^="svc-"]').forEach(el => {
+      el.textContent = '?'; el.style.color = 'var(--muted)';
+    });
+  });
+}
 
-    async function loadHomer() {
-      try {
-        const r = await fetch('homer/homer.json');
-        if (r.ok) homerTracks = await r.json();
-      } catch(_) {}
-      if (!homerTracks.length) {
-        for (let i = 1; i <= 19; i++)
-          homerTracks.push({url:`homer/message_${String(i).padStart(2,'0')}.mp3`});
-      }
+async function loadAudioSinks() {
+  try {
+    const r = await fetch('/api.sh?action=audio_output');
+    const sinks = await r.json();
+    if (!Array.isArray(sinks) || !sinks.length) return;
+    document.getElementById('det-audio').style.display = '';
+    document.getElementById('audio-sinks-list').innerHTML =
+      '<div class="row" style="flex-wrap:wrap;gap:8px">' +
+      sinks.map(s =>
+        `<button class="btn btn-sm ${s.active ? 'btn-teal' : 'btn-outline'}"
+           onclick="setAudioSink('${s.name}')"
+           style="flex:none;min-width:120px">${s.label}${s.active ? ' ✓' : ''}</button>`
+      ).join('') + '</div>';
+  } catch(e) {}
+}
+
+async function loadAudioSinksCfg() {
+  try {
+    const r = await fetch('/api.sh?action=audio_output');
+    const sinks = await r.json();
+    if (!Array.isArray(sinks) || !sinks.length) return;
+    const div = document.getElementById('cfg-audio-sinks');
+    if (!div) return;
+    div.innerHTML =
+      '<div class="row" style="flex-wrap:wrap;gap:8px">' +
+      sinks.map(s =>
+        `<button class="btn btn-sm ${s.active ? 'btn-teal' : 'btn-outline'}"
+           onclick="setAudioSink('${s.name}')"
+           style="flex:none;min-width:120px">${s.label}${s.active ? ' ✓' : ''}</button>`
+      ).join('') + '</div>';
+  } catch(e) {}
+}
+
+async function setAudioSink(name) {
+  try {
+    const r = await fetch('/api.sh?action=audio_output', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'sink=' + encodeURIComponent(name)
+    });
+    const d = await r.json();
+    if (d.status === 'ok') { toast('🔊 Sortie changée'); setTimeout(loadAudioSinks, 3500); }
+    else toast('Erreur : ' + (d.message || 'inconnue'), false);
+  } catch(e) { toast('Erreur réseau', false); }
+}
+
+async function doYtCopy() {
+  const url = document.getElementById('yt-url').value.trim();
+  const res = document.getElementById('yt-result');
+  const btn = document.getElementById('btn-yt');
+  if (!url) { toast('URL requise', false); return; }
+  btn.disabled = true; btn.textContent = 'En cours…';
+  res.textContent = ''; res.className = '';
+  try {
+    const r = await fetch('/api.sh?action=yt_copy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'url=' + encodeURIComponent(url)
+    });
+    const d = await r.json();
+    if (d.status === 'ok') {
+      toast('✅ Ajouté au jukebox');
+      res.textContent = d.message || 'Musique ajoutée !';
+      document.getElementById('yt-url').value = '';
+    } else {
+      res.className = 'err';
+      res.textContent = 'Erreur : ' + (d.error || 'inconnue');
+      toast('Erreur', false);
     }
+  } catch(e) { toast('Erreur réseau', false); }
+  finally { btn.disabled = false; btn.textContent = 'Télécharger & épingler →'; }
+}
 
-    function playHomer() {
-      if (!homerTracks.length) return;
-      const t = homerTracks[Math.floor(Math.random() * homerTracks.length)];
-      const a = document.getElementById('homer-audio');
-      a.pause(); a.src = t.url; a.play().catch(()=>{});
-    }
+loadConfig().then(() => {
+  loadStatus();
+  loadAudioSinks();
+  setInterval(loadStatus, 15000);
+});
 
-    function dotFlash(el, color) {
-      el.style.filter = `drop-shadow(0 0 14px ${color})`;
-      setTimeout(() => el.style.filter = '', 700);
-    }
+// ═══ ADMINISTRATION BT ═══
+let admPass = null;
 
-    function buildNebula() {
-      const overlay = document.getElementById('nebula-overlay');
-      const svg     = document.getElementById('nebula-svg');
+function admDbg(msg) {
+  const el = document.getElementById('adm-debug');
+  if (!el) return;
+  const ts = new Date().toLocaleTimeString();
+  el.textContent = '[' + ts + '] ' + msg + '\n' + el.textContent;
+}
 
-      SVCS.forEach((svc, index) => {
-        let isValid = false;
-        let attempts = 0;
-        let nx, ny;
-        
-        // On essaie de trouver une place libre (jusqu'à 100 tentatives par point)
-        while (!isValid && attempts < 100) {
-          // Coordonnées aléatoires entre 8% et 92% pour ne pas déborder de l'écran
-          nx = 8 + Math.random() * 84; 
-          ny = 8 + Math.random() * 84;
-          
-          isValid = true;
-          // Vérification de la distance avec les points déjà placés
-          for (let i = 0; i < index; i++) {
-            let dx = SVCS[i].x - nx;
-            let dy = SVCS[i].y - ny;
-            // Si la distance est inférieure à 12%, on recommence
-            if (Math.sqrt(dx*dx + dy*dy) < 12) { 
-              isValid = false;
-              break;
-            }
-          }
-          attempts++;
-        }
-        
-        // On met à jour les coordonnées du point
-        svc.x = nx;
-        svc.y = ny;
-      });
+async function admFetch(url, opts) {
+  const r = await fetch(url, opts);
+  const text = await r.text();
+  admDbg((opts?.method === 'POST' ? 'POST' : 'GET') + ' ' + url.replace(/pass=[^&]+/, 'pass=***') + ' → ' + text.substring(0, 120));
+  try { return JSON.parse(text); }
+  catch(e) { throw new Error('Réponse non-JSON: ' + text.substring(0, 80)); }
+}
 
-      // Micro-étoiles de fond
-      for (let i = 0; i < 45; i++) {
-        const s = document.createElement('div');
-        const sz = 1 + Math.random() * 2.2;
-        s.style.cssText = `position:absolute;left:${(Math.random()*100).toFixed(1)}%;top:${(Math.random()*100).toFixed(1)}%;
-          width:${sz}px;height:${sz}px;border-radius:50%;pointer-events:none;
-          background:rgba(255,255,255,${(.12+Math.random()*.32).toFixed(2)});
-          animation:twinkle ${(2+Math.random()*3.5).toFixed(1)}s ${(Math.random()*4).toFixed(1)}s infinite`;
-        overlay.appendChild(s);
-      }
+async function admLogin() {
+  const p = document.getElementById('adm-pass-input').value.trim();
+  if (!p) return;
+  try {
+    const d = await admFetch('/api.sh?action=admin&cmd=status&pass=' + encodeURIComponent(p));
+    if (d.error === 'unauthorized') { toast('Mot de passe incorrect', false); return; }
+    if (d.error) { toast('Erreur: ' + d.error, false); return; }
+    admPass = p;
+    document.getElementById('adm-login').style.display = 'none';
+    document.getElementById('adm-panel').style.display = '';
+    admApplyStatus(d);
+    updateBellsUI(); updateClockUI(); updateVoiceUI();
+    toast('Administration déverrouillée');
+  } catch(e) { toast(e.message, false); admDbg('admLogin erreur: ' + e); }
+}
 
-      // Points de service
-      SVCS.forEach((svc, i) => {
-        const col = COL[svc.c];
-        const sz  = 26 + Math.floor(Math.random() * 10);
-        const dot = document.createElement('div');
-        dot.className = 'nebula-dot';
-        dot.style.left = svc.x + '%';
-        dot.style.top  = svc.y + '%';
+function admApplyStatus(d) {
+  setTxt(['adm-bt-macs'],      d.bt_macs      || '—');
+  setTxt(['adm-bt-connected'], d.bt_connected || '—');
+}
 
-        let lp = '';
-        if      (svc.y < 18)   lp = ' pos-below';
-        else if (svc.x < 15)   lp = ' pos-right';
-        else if (svc.x > 82)   lp = ' pos-left';
+async function admBtRefresh() {
+  if (!admPass) return;
+  try {
+    const d = await admFetch('/api.sh?action=admin&cmd=status&pass=' + encodeURIComponent(admPass));
+    if (d.error) { toast('Session expirée', false); admPass = null; return; }
+    admApplyStatus(d);
+  } catch(e) { toast(e.message, false); }
+}
 
-        dot.innerHTML = `
-          <div class="dot-core" style="width:${sz}px;height:${sz}px;
-            background:${col.bg};border:2px solid ${col.bd};
-            animation:${col.an} ${(1.4+Math.random()*2).toFixed(1)}s ${(Math.random()*2).toFixed(1)}s infinite alternate">${svc.e}</div>
-          <div class="dot-label${lp}" style="border:1px solid ${col.bd}22;box-shadow:0 0 10px ${col.bd}30">
-            <span style="font-size:1.15rem">${svc.e}</span>
-            <span class="svc-name" style="color:${col.lb}">${svc.n}</span>
-            <span class="svc-desc">${svc.d.replace(/\n/g,'<br>')}</span>
-          </div>`;
+async function admBtScan() {
+  if (!admPass) return;
+  const btn = document.querySelector('#adm-panel button');
+  btn.disabled = true; btn.textContent = 'Scan…';
+  try {
+    const d = await admFetch('/api.sh?action=admin&cmd=bt_scan&pass=' + encodeURIComponent(admPass));
+    if (!d.devices) { toast('Erreur scan: ' + (d.error || '?'), false); return; }
+    const div = document.getElementById('adm-bt-results');
+    div.innerHTML = d.devices.length ? d.devices.map(dev =>
+      `<div class="irow" style="flex-wrap:wrap;gap:6px">
+        <span class="lbl">${dev.name || dev.mac}</span>
+        <span style="font-size:.72rem;color:var(--muted)">${dev.mac}</span>
+        <button class="btn btn-sm" onclick="admBtConnect('${dev.mac}')">Connecter</button>
+        ${dev.connected
+          ? `<button class="btn btn-sm btn-outline" onclick="admBtRemove('${dev.mac}')">— Config</button>`
+          : `<button class="btn btn-sm btn-outline" onclick="admBtAdd('${dev.mac}')">+ Config</button>`}
+      </div>`
+    ).join('') : '<p style="color:var(--muted);font-size:.85rem">Aucun appareil trouvé</p>';
+  } catch(e) { toast(e.message, false); }
+  finally { btn.disabled = false; btn.textContent = 'Scanner (10s)'; }
+}
 
-        dot.addEventListener('click', e => {
-          e.stopPropagation();
-          playHomer();
-          dotFlash(dot, col.bd);
-          window.open(resolveUrl(svc.l), '_blank');
-        });
-        overlay.appendChild(dot);
-      });
+async function admBtConnect(mac) {
+  if (!admPass) return;
+  toast('Connexion en cours…');
+  try {
+    const d = await admFetch('/api.sh?action=admin', {
+      method: 'POST',
+      headers: {'Content-Type':'application/x-www-form-urlencoded'},
+      body: `cmd=bt_connect&mac=${mac}&pass=${encodeURIComponent(admPass)}`
+    });
+    toast(d.error ? 'Erreur: ' + d.error : `${mac} → reconnexion lancée`, !d.error);
+  } catch(e) { toast(e.message, false); }
+}
 
-      // Lignes de constellation (après layout)
-      requestAnimationFrame(() => {
-        const W = overlay.offsetWidth, H = overlay.offsetHeight;
-        LINES.forEach(([a, b]) => {
-          const sa = SVCS[a], sb = SVCS[b];
-          const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-          line.setAttribute('x1', (sa.x * W / 100).toFixed(1));
-          line.setAttribute('y1', (sa.y * H / 100).toFixed(1));
-          line.setAttribute('x2', (sb.x * W / 100).toFixed(1));
-          line.setAttribute('y2', (sb.y * H / 100).toFixed(1));
-          line.setAttribute('stroke', 'rgba(110,160,230,0.17)');
-          line.setAttribute('stroke-width', '1');
-          svg.appendChild(line);
-        });
-      });
-    }
+async function admBtAdd(mac) {
+  if (!admPass) return;
+  try {
+    const d = await admFetch('/api.sh?action=admin', {
+      method: 'POST',
+      headers: {'Content-Type':'application/x-www-form-urlencoded'},
+      body: `cmd=bt_add&mac=${mac}&pass=${encodeURIComponent(admPass)}`
+    });
+    toast(d.error ? 'Erreur: ' + d.error : `${mac} ajouté`, !d.error);
+    if (!d.error) admBtRefresh();
+  } catch(e) { toast(e.message, false); }
+}
 
-    loadHomer().then(buildNebula);
-  </script>
+async function admBtRemove(mac) {
+  if (!admPass) return;
+  try {
+    const d = await admFetch('/api.sh?action=admin', {
+      method: 'POST',
+      headers: {'Content-Type':'application/x-www-form-urlencoded'},
+      body: `cmd=bt_remove&mac=${mac}&pass=${encodeURIComponent(admPass)}`
+    });
+    toast(d.error ? 'Erreur: ' + d.error : `${mac} retiré`, !d.error);
+    if (!d.error) admBtRefresh();
+  } catch(e) { toast(e.message, false); }
+}
+
+async function admAudioReset() {
+  if (!admPass) return;
+  toast('🔥 Reset audio…');
+  try {
+    const d = await admFetch('/api.sh?action=admin', {
+      method: 'POST',
+      headers: {'Content-Type':'application/x-www-form-urlencoded'},
+      body: `cmd=reset_audio&pass=${encodeURIComponent(admPass)}`
+    });
+    toast(d.error ? 'Erreur: ' + d.error : '✅ Audio réinitialisé', !d.error);
+  } catch(e) { toast(e.message, false); }
+}
+
+// ═══ MESSAGES DU CLOCHER ═══
+async function msgLoad() {
+  const r = await fetch('/api.sh?action=messages&cmd=list');
+  const d = await r.json();
+  const el = document.getElementById('msg-list');
+  if (!d.messages || !d.messages.length) { el.innerHTML = '<p style="color:var(--muted);font-size:.85rem">Aucun message trouvé</p>'; return; }
+  el.innerHTML = d.messages.map(m => `
+    <div style="background:var(--deep);border-radius:6px;padding:10px 12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <span style="font-size:.75rem;color:var(--muted);font-family:var(--mono)">msg_${m.id}</span>
+        <span style="font-size:.7rem;color:${m.has_wav ? 'var(--teal)' : 'var(--muted)'}">
+          ${m.has_wav ? '🔊 wav' : '⚠ pas de wav'}
+        </span>
+      </div>
+      <textarea id="msg-txt-${m.id}"
+        style="width:100%;margin-top:6px;padding:6px 8px;border-radius:6px;border:1px solid var(--border);background:var(--panel);color:var(--text);font-size:.85rem;resize:vertical;min-height:52px"
+        rows="2">${m.text}</textarea>
+      <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
+        <button class="btn btn-sm" onclick="msgSave('${m.id}')">Enregistrer</button>
+        <button class="btn btn-sm btn-outline" onclick="msgTts('${m.id}','pierre')">Pierre</button>
+        <button class="btn btn-sm btn-outline" onclick="msgTts('${m.id}','amelie')">Amélie</button>
+      </div>
+    </div>`).join('');
+}
+
+async function msgSave(id) {
+  const txt = document.getElementById('msg-txt-' + id).value;
+  const r = await fetch('/api.sh?action=messages', {
+    method: 'POST',
+    headers: {'Content-Type':'application/x-www-form-urlencoded'},
+    body: `cmd=set_text&id=${id}&text=${encodeURIComponent(txt)}`
+  });
+  const d = await r.json();
+  toast(d.error ? 'Erreur: ' + d.error : `msg_${id} sauvegardé — regeneration au prochain cycle`, !d.error);
+}
+
+async function msgTts(id, voice) {
+  toast(`Génération ${voice}…`);
+  const r = await fetch('/api.sh?action=messages', {
+    method: 'POST',
+    headers: {'Content-Type':'application/x-www-form-urlencoded'},
+    body: `cmd=tts_now&id=${id}&voice=${voice}`
+  });
+  const d = await r.json();
+  toast(d.error ? 'TTS échoué: ' + d.error : `msg_${id} → ${d.source} (${voice})`, !d.error);
+  if (!d.error) { if (d.url) new Audio(d.url + '?t=' + Date.now()).play(); msgLoad(); }
+}
+</script>
+
 </body>
 </html>
