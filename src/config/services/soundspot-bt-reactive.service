@@ -7,8 +7,8 @@ Wants=bluetooth.service
 User=root
 Type=simple
 EnvironmentFile=${INSTALL_DIR}/soundspot.conf
-User=${SOUNDSPOT_USER}
 Environment="XDG_RUNTIME_DIR=/run/user/${SOUNDSPOT_UID}"
+Environment="DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/${SOUNDSPOT_UID}/bus"
 ExecStart=/usr/bin/python3 ${INSTALL_DIR}/backend/system/bt_reactive.py
 Restart=always
 RestartSec=10

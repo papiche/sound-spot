@@ -14,9 +14,6 @@ setup_snapclient() {
         log "$_script déployé"
     done
 
-    # ── NTP sync — évite les sauts d'horloge qui décrochent Snapclient ──
-    systemctl enable systemd-time-wait-sync 2>/dev/null || true
-    log "systemd-time-wait-sync activé (NTP avant démarrage Snapclient)"
 
     if [ "$mode" = "satellite" ]; then
         # find_master.sh : résolution dynamique AP directe ou mDNS unique

@@ -67,7 +67,12 @@ pw_get_bt_volume() {
 
 snapcast_set_volume() {
     local pct="$1"
-    local SNAP_IP="127.0.0.1"
+    if [ -f /run/soundspot_master.env ]; then
+        source /run/soundspot_master.env
+        local SNAP_IP="${MASTER_RESOLVED:-10.200.0.1}"
+    else
+        local SNAP_IP="127.0.0.1"
+    fi
     local SNAP_PORT="${SNAPCAST_PORT:-1704}"
     local WEB_PORT=1780
     # Récupérer l'ID du client local
@@ -156,8 +161,6 @@ cmd_connect() {
     systemctl restart bt-autoconnect 2>/dev/null || true
     bash "${INSTALL_DIR}/bt-connect.sh" && log "Connexion réussie" || warn "Connexion partielle"
     sleep 3
-    systemctl restart soundspot-client 2>/dev/null || true
-    log "soundspot-client relancé"
 }
 
 cmd_disconnect() {

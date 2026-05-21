@@ -34,6 +34,8 @@ Le DJ ouvre Mixxx sur son PC, active le **Live Broadcasting** vers le RPi (Iceca
 
 ---
 
+> ⚠️ **AVERTISSEMENT LÉGAL (Radio FM) :** L'utilisation d'un émetteur FM de 0.5W (portée ~2km) n'est pas un jouet. Dans la majorité des pays (dont la France via l'ARCOM/ANFR), émettre sur la bande FM sans autorisation est illégal et sévèrement puni en cas de brouillage des fréquences publiques ou aéronautiques. Utilisez cet équipement sous votre entière responsabilité, de préférence avec une charge fictive (dummy load) pour les tests, ou un micro-émetteur homologué CE (< 50nW).
+
 ## Matériel
 
 | Composant | Référence |
@@ -326,7 +328,27 @@ grep '\[picoport\]' /var/log/sound-spot.log  # picoport uniquement
 
 AGPL-3.0 — [G1FabLab](https://opencollective.com/monnaie-libre) / [UPlanet ẐEN](https://qo-op.com) / [zicmama.com](https://zicmama.com)
 
+## 📚 Documentation (Standard Diátaxis)
+
+Afin de faciliter la compréhension, la maintenance et l'extension du projet, notre documentation est structurée selon le framework **Diátaxis** :
+
+1. 🎓 **Tutoriels (Apprentissage)** : 
+   - [Créer votre premier nœud CyberCochon](docs/tutorial-premier-noeud.md) 
+   - [S'installer comme Co-développeur (Hot-Reload, API)](docs/tutorial-co-developpement.md)
+2. 🛠 **Guides Pratiques (Tâches)** : 
+   - [Ajouter un Satellite au réseau Mesh](docs/howto-mesh-satellite.md) 
+   - [Configuration DJ, Bluetooth et Clocher](docs/howto-dj-configuration.md) 
+   - [Lire les logs, utiliser check.sh et diagnostiquer](docs/howto-logs-diagnostic.md)
+3. 🧠 **[Explications (Compréhension)](docs/explanation-architecture.md)** : La philosophie du réseau B.A.T.M.A.N., la gestion de flotte NOSTR et l'autonomie énergétique.
+4. ⚙️ **[Référence (Information)](docs/reference-api-config.md)** : Documentation des API bash/python, ports réseaux, GPIO et fichiers de configuration.
+
 ## External Interface & API Reference
 The API HTTP (Port 80) and the Web3 NOSTR Interface (Jukebox) are fully documented for developers in [DEV.md](DEV.md).
 
 *🇬🇧 English speakers: We welcome issues, bug reports, and Pull Requests in English. Please refer to our [CONTRIBUTING.md](CONTRIBUTING.md) file.*
+## 🚀 Roadmap et Améliorations Futures (V2)
+Le projet est stable, mais la communauté G1FabLab travaille sur les points suivants. Les Pull Requests sont les bienvenues !
+- [ ] **Bouton d'Urgence Physique :** Ajouter un script GPIO pour un bouton "Reset Audio" / "Poweroff propre" en cas de perte totale du Wi-Fi.
+- [ ] **Sécurisation du Mesh :** Passer la cellule B.A.T.M.A.N.-adv (`CYBERCOCHON_MESH`) d'un mode Ad-Hoc ouvert à un mode WPA3-PSK chiffré pour empêcher le flood du réseau.
+- [ ] **OverlayFS (Read-Only) :** Rendre le système de fichiers racine en lecture seule pour résister aux arrêts électriques brutaux sans corrompre la carte SD.
+- [ ] **Intégration NVMe :** Script d'automatisation pour déplacer le dépôt IPFS lourd (`~/.ipfs`) vers un SSD NVMe sur le port PCIe du Raspberry Pi 5.

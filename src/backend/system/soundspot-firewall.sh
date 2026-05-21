@@ -21,6 +21,11 @@ echo 1 > /proc/sys/net/ipv4/ip_forward
 
 # ── NAT — partage de connexion uap0 → wlan0 ──────────────────────
 iptables -t nat -A POSTROUTING -o "${IFACE_WAN}" -j MASQUERADE
+iptables -t nat -A POSTROUTING -s 10.200.0.0/16 -o "${IFACE_WAN}" -j MASQUERADE
+# Optimisation MTU : TCP MSS Clamping pour éviter le blocage des gros paquets dans le Mesh
+iptables -t mangle -A POSTROUTING -p tcp --tcp-flags SYN,RST SYN -o "${IFACE_WAN}" -j TCPMSS --clamp-mss-to-pmtu
+iptables -t mangle -A FORWARD -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu
+
 
 # ── Interception HTTP (port 80) → portail lighttpd ───────────────
 # Redirige tout le trafic HTTP de l'AP vers le portail local.
@@ -31,6 +36,10 @@ iptables -t nat -A PREROUTING -i "${IFACE_AP}" -p tcp --dport 80 \
 
 # ── Règles FORWARD ────────────────────────────────────────────────
 # 1. DNS universel (tout le monde peut résoudre)
+# Autoriser tout le trafic interne du Mesh
+iptables -A FORWARD -i bat0 -j ACCEPT
+iptables -A FORWARD -o bat0 -j ACCEPT
+
 iptables -A FORWARD -i "${IFACE_AP}" -p udp --dport 53 -j ACCEPT
 iptables -A FORWARD -i "${IFACE_AP}" -p tcp --dport 53 -j ACCEPT
 

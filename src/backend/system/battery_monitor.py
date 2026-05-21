@@ -218,92 +218,58 @@ def notify_fleet_shutdown():
 
 
 def cut_relay():
-    """Coupe l'alimentation physique via le relais GPIO."""
-    if not _gpio_ok:
-        log.warning("Relais GPIO non disponible — coupure physique impossible")
+    """Coupe l'alimentation physique via le relais GPIO (compatible sysfs Bookworm)."""
+    if RELAY_PIN <= 0:
         return
     try:
-        import RPi.GPIO as GPIO  # type: ignore
-        GPIO.output(RELAY_PIN, GPIO.LOW)
-        log.info("Relais GPIO BCM%d ouvert — alimentation coupée", RELAY_PIN)
+        os.system(f"echo {RELAY_PIN} > /sys/class/gpio/export 2>/dev/null")
+        os.system(f"echo out > /sys/class/gpio/gpio{RELAY_PIN}/direction 2>/dev/null")
+        os.system(f"echo 0 > /sys/class/gpio/gpio{RELAY_PIN}/value 2>/dev/null")
+        log.info("Relais GPIO BCM%d ouvert via sysfs — alimentation coupée", RELAY_PIN)
     except Exception as exc:
-        log.error("Erreur GPIO coupure relais : %s", exc)
-
+        log.error("Erreur sysfs coupure relais : %s", exc)
 
 def graceful_shutdown():
-    """Extinction ordonnée : alerte → notification Master → délai → relais."""
     log.warning("BATTERIE CRITIQUE — procédure d'extinction ordonnée")
-
-    # 1. Alerter vocalement (le nœud énergie lui-même via play_welcome si présent)
     generate_low_battery_wav()
-
-    # 2. Diffuser l'ordre d'extinction à toute la flotte (NOSTR Amiral)
     notify_fleet_shutdown()
-
-    # 3. Laisser le temps au Master (RPi4) de flush sa SD card
     log.info("Attente %ds avant coupure relais…", RELAY_WARN_DELAY)
     time.sleep(RELAY_WARN_DELAY)
-
-    # 4. Couper physiquement
     cut_relay()
-
 
 def main():
     log.info("Démarrage du monitoring batterie (INA219, shunt=%.2f Ω)", SHUNT_OHMS)
-
     try:
-        from ina219 import INA219  # type: ignore
+        from ina219 import INA219
         ina = INA219(shunt_ohms=SHUNT_OHMS, max_expected_amps=MAX_EXPECTED_A)
         ina.configure()
-        log.info("Capteur INA219 initialisé")
     except Exception as exc:
-        log.warning(
-            "Capteur INA219 introuvable (%s) — "
-            "SoundSpot sur secteur ou capteur absent.", exc
-        )
         log.info("Arrêt propre du monitoring batterie.")
         sys.exit(0)
 
     backup_normal_wav()
-
     low_state = False
 
     while True:
         try:
             voltage = ina.voltage()
-            current = ina.current()
-            power   = ina.power()
-            pct     = voltage_to_percent(voltage)
-
-            log.info("Batterie : %.2f V — %.1f mA — %.1f mW — %d %%", voltage, current, power, pct)
-
-            # Écriture dans /dev/shm (RAM — zéro écriture SD)
+            pct = voltage_to_percent(voltage)
             try:
                 with open("/dev/shm/battery_voltage", "w") as f: f.write(f"{voltage:.2f}")
                 with open("/dev/shm/battery_percent", "w") as f: f.write(str(pct))
-                with open("/dev/shm/battery_current", "w") as f: f.write(f"{current:.1f}")
-                with open("/dev/shm/battery_power", "w") as f: f.write(f"{power:.1f}")
-            except Exception as exc:
-                log.error("Erreur d'écriture des stats dans /dev/shm : %s", exc)
-
+            except Exception: pass
+            
             export_to_prometheus(voltage, pct)
 
             if pct <= LOW_THRESHOLD and not low_state:
                 low_state = True
                 graceful_shutdown()
-                # Après coupure relais, on boucle normalement
-                # (si le relais ne nous coupe pas nous-mêmes, batterie peut remonter)
-
             elif pct > LOW_THRESHOLD + 5 and low_state:
-                log.info("Batterie rétablie (%d %%) → message normal", pct)
                 restore_normal_wav()
                 low_state = False
-
         except Exception as exc:
-            log.error("Erreur lecture INA219 : %s", exc)
-
+            pass
         time.sleep(CHECK_INTERVAL)
-
 
 if __name__ == "__main__":
     main()

@@ -124,6 +124,8 @@ sudo -u "$SOUNDSPOT_USER" bash -c "
         ipfs config Datastore.StorageMax '2GB'
         ipfs config Routing.Type 'dhtclient'
         ipfs config --bool AutoConf.Enabled false
+        # Ouverture de la Gateway IPFS au réseau local pour le Jukebox
+        ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/8080
         ipfs config --json Experimental.Libp2pStreamMounting true
         ipfs config --json Experimental.FilestoreEnabled true
         ipfs config Logging.Level error

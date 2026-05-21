@@ -169,8 +169,8 @@
   </div>
 
   <div class="card">
-    <h2>🌐 Accès Internet — 15 min</h2>
-    <p>Le stream est disponible <span class="hi">sans limite</span>. L'accès Internet est temporaire (15 min).</p>
+    <h2>🌐 Accès Internet — 4 heures</h2>
+    <p>Le stream est disponible <span class="hi">sans limite</span>. L'accès Internet est temporaire (4 heures).</p>
     <button id="btn-auth" onclick="doAuth()" class="btn btn-main">Ouvrir l'accès Internet →</button>
     <p id="auth-msg" style="display:none;font-size:.82rem;color:var(--teal);margin-top:6px"></p>
   </div>
@@ -344,6 +344,9 @@
          <b style="color:#fff">Quoi :</b> Nœuds PicoPort WiFi + audio.<br>
          <b style="color:#fff">Pourquoi :</b> Souveraineté collective.<br>
          <b style="color:#fff">Comment :</b> Énergie solaire &amp; logiciel libre AGPL.</p>
+      <a href="index_2.html" class="btn btn-dj btn-sm" style="display:block;margin-top:10px">🐷 Interface CyberCochon →</a>
+      <a href="macro.html" class="btn btn-sat btn-sm" style="display:block;margin-top:10px; background:#ffd700; color:#000;">🌌 Vision Macro (Essaim) →</a>
+
       <a href="docs.sh" class="btn btn-outline btn-sm" style="display:block;margin-top:10px">Documentation locale →</a>
     </div>
   </details>
@@ -385,6 +388,9 @@
       <div class="irow"><span class="lbl">Code Source</span><span class="val"><a id="lnk-src" href="#" target="_blank">GitHub →</a></span></div>
       <div class="irow"><span class="lbl">Soutien</span>    <span class="val"><a id="lnk-oc2" href="#" target="_blank">OpenCollective →</a></span></div>
     </div>
+      <a href="index_2.html" class="btn btn-dj btn-sm" style="display:block;margin-top:10px">🐷 Interface CyberCochon →</a>
+      <a href="macro.html" class="btn btn-sat btn-sm" style="display:block;margin-top:10px; background:#ffd700; color:#000;">🌌 Vision Macro (Essaim) →</a>
+
     <a href="docs.sh" class="btn btn-outline btn-sm" style="display:block;margin-top:10px">Documentation locale →</a>
   </div>
 
@@ -690,9 +696,9 @@ async function doAuth() {
     const r = await fetch('/api.sh?action=auth', { method: 'POST', body: '' });
     const d = await r.json();
     if (d.status === 'authorized') {
-      btn.textContent = '✓ Accès ouvert (15 min)';
+      btn.textContent = '✓ Accès ouvert (4 heures)';
       btn.style.background = 'var(--teal)';
-      msg.style.display = ''; msg.textContent = 'Accès internet ouvert pour 15 min. Bonne navigation !';
+      msg.style.display = ''; msg.textContent = 'Accès internet ouvert pour 4 heures. Bonne navigation !';
       toast('✅ Accès Internet ouvert');
     } else {
       btn.disabled = false; btn.textContent = "Ouvrir l'accès Internet →";
@@ -925,7 +931,7 @@ async function doYtCopy() {
 loadConfig().then(() => {
   loadStatus();
   loadAudioSinks();
-  setInterval(loadStatus, 15000);
+  setInterval(loadStatus, 10000);
 });
 
 // ═══ ADMINISTRATION BT ═══

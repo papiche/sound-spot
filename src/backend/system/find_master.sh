@@ -9,6 +9,11 @@ source "${INSTALL_DIR:-/opt/soundspot}/soundspot.conf" 2>/dev/null || true
 MASTER_IP=""
 CURRENT_SSID=$(iwgetid -r 2>/dev/null || true)
 
+# 0. Connexion Mesh B.A.T.M.A.N. (IP Maître fixe sur bat0)
+if ip link show bat0 >/dev/null 2>&1 && ping -c1 -W1 10.200.0.1 >/dev/null 2>&1; then
+    MASTER_IP="10.200.0.1"
+fi
+
 # 1. Connecté à l'AP du maître → gateway = maître (toujours 192.168.10.1)
 if [ -n "${SPOT_NAME:-}" ] && [ "$CURRENT_SSID" = "$SPOT_NAME" ]; then
     MASTER_IP=$(ip route 2>/dev/null | awk '/default/{print $3; exit}')

@@ -142,6 +142,15 @@ fi
 
 # ── 2. Réseau ───────────────────────────────────────────────────
 hdr "Réseau"
+# Interface Mesh (bat0)
+if ip link show bat0 2>/dev/null | grep -q "state UP"; then
+    BAT_IP=$(ip -4 addr show bat0 2>/dev/null | awk '/inet/{print $2}' | head -1)
+    NEIGHBORS=$(batctl n 2>/dev/null | grep -c "^[0-9a-f]")
+    ok "Mesh bat0 actif  ${D}IP:${N} $BAT_IP  ${D}Voisins BATMAN:${N} $NEIGHBORS"
+else
+    warn "Mesh bat0 inactif ou non configuré"
+fi
+
 
 # $IFACE_WAN - réseau amont
 if ip addr show $IFACE_WAN 2>/dev/null | grep -q "inet "; then

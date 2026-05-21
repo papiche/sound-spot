@@ -21,11 +21,12 @@ if [ -f "$AMIRAL_KEYFILE" ]; then
 fi
 
 # ── UPLANETNAME : secret partagé du cluster ──────────────────
+[ -f /opt/soundspot/uplanet.env ] && source /opt/soundspot/uplanet.env
 SWARM_KEY="${USER_HOME}/.ipfs/swarm.key"
 if [ -f "$SWARM_KEY" ]; then
     UPLANETNAME=$(tail -n 1 "$SWARM_KEY")
 else
-    UPLANETNAME=$(printf '%064d' 0)
+    UPLANETNAME="${UPLANETNAME:-$(printf '%064d' 0)}"
     echo "⚠ swarm.key absent — UPLANETNAME = 64 zéros (cluster non sécurisé)"
 fi
 

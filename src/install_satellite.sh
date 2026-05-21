@@ -19,6 +19,7 @@ source "$SCRIPT_DIR/install/bluetooth.sh"
 source "$SCRIPT_DIR/install/pipewire.sh"
 source "$SCRIPT_DIR/install/snapclient.sh"
 source "$SCRIPT_DIR/install/zram.sh"
+source "$SCRIPT_DIR/install/wifi_driver.sh"
 
 
 # ── Variables configurables ─────────────────────────────────
@@ -147,7 +148,7 @@ log "config.txt : sortie audio configurée → ${AUDIO_OUTPUT}"
 # ── Paquets ──────────────────────────────────────────────────
 hdr "Installation des paquets"
 apt_retry update -qq
-PKGS="bluez libspa-0.2-bluetooth pipewire pipewire-alsa pipewire-pulse wireplumber snapclient iw wireless-tools zram-tools python3-websockets"
+PKGS="bluez libspa-0.2-bluetooth pipewire pipewire-alsa pipewire-pulse wireplumber snapclient iw wireless-tools batctl zram-tools python3-websockets"
 [ "$AUDIO_OUTPUT" = "bluetooth" ] && PKGS="$PKGS bluez-alsa-utils"
 apt_retry install -y --no-install-recommends $PKGS
 
@@ -163,6 +164,8 @@ done
 
 # ── Configuration ─────────────────────────────────────────────
 [ "$AUDIO_OUTPUT" = "bluetooth" ] && setup_bluetooth
+setup_wifi_driver
+
 setup_pipewire
 
 # ── Optimisations Pi Zero V1 ─────────────────────────────────────────────────
@@ -198,7 +201,7 @@ WEOF
 
     # snapclient : augmenter la latence tampon pour éviter les coupures
     # La valeur est lue par setup_snapclient via SNAPCLIENT_LATENCY (ms)
-    export SNAPCLIENT_LATENCY="${SNAPCLIENT_LATENCY:-1000}"
+    export SNAPCLIENT_LATENCY="${SNAPCLIENT_LATENCY:-3000}"
     log "PipeWire quantum=2048, resample.quality=2, snapclient latency=${SNAPCLIENT_LATENCY}ms ✓"
 fi
 
@@ -263,7 +266,7 @@ if [ "${PICOPORT_ENABLED:-true}" = "true" ]; then
 fi
 
 # ── Scripts + service flotte NOSTR ───────────────────────────
-for _f in fleet_listener.sh amiral_keygen.sh fleet_relay.py; do
+for _f in fleet_listener.sh amiral_keygen.sh fleet_relay.py mesh_batman.sh; do
     _src="${SCRIPT_DIR}/backend/system/${_f}"
     [ -f "$_src" ] && cp "$_src" "$INSTALL_DIR/backend/system/" || true
 done
@@ -283,6 +286,11 @@ if [ "${PICOPORT_ENABLED:-true}" = "true" ]; then
 fi
 
 # ── Résumé ────────────────────────────────────────────────────
+hdr "Réseau Maillé (B.A.T.M.A.N.)"
+install_template soundspot-mesh.service /etc/systemd/system/soundspot-mesh.service '${INSTALL_DIR}'
+systemctl enable soundspot-mesh
+log "Service soundspot-mesh activé"
+
 hdr "Installation satellite terminée ✓"
 echo -e "
 ${W}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${N}

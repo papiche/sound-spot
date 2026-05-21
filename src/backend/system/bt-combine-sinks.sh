@@ -3,7 +3,7 @@
 # Appelé par bt-connect.sh après connexion des enceintes Bluetooth.
 # Fonctionne avec PipeWire (via compatibilité PulseAudio) et PulseAudio natif.
 
-export XDG_RUNTIME_DIR="/run/user/$(id -u pi 2>/dev/null || echo 1000)"
+export XDG_RUNTIME_DIR="/run/user/$(id -u ${SOUNDSPOT_USER:-pi} 2>/dev/null || echo 1000)"
 
 BT_SINKS=$(pactl list sinks short 2>/dev/null \
     | grep -i "bluez\|bluetooth" | awk '{print $2}')

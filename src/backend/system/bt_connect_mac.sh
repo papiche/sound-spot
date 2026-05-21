@@ -18,4 +18,3 @@ wait "$BT_PID" 2>/dev/null
 COMBINE="$INSTALL_DIR/backend/system/bt-combine-sinks.sh"
 [ -x "$COMBINE" ] && bash "$COMBINE" 2>/dev/null || true
 
-systemctl restart soundspot-client 2>/dev/null || true

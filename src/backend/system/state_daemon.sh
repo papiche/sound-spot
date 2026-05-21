@@ -14,12 +14,14 @@ export INSTALL_DIR="${INSTALL_DIR:-/opt/soundspot}"
 
 PORTAL="${INSTALL_DIR}/portal"
 CORE="${PORTAL}/api/core/status.sh"
-INTERVAL=5
+INTERVAL=10
 
 while true; do
     if [ -x "$CORE" ]; then
         bash "$CORE" > /dev/shm/status.json.tmp 2>/dev/null && \
             mv /dev/shm/status.json.tmp "${PORTAL}/status.json"
+            chmod 644 "${PORTAL}/status.json" 2>/dev/null
+            chown www-data:www-data "${PORTAL}/status.json" 2>/dev/null
     fi
     sleep "$INTERVAL"
     # Watchdog Décodeur — vérifie le service sans consommer d'octets du FIFO PCM

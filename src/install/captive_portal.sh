@@ -22,6 +22,7 @@ www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop soundspot-client
 www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart soundspot-client
 www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop snapserver
 www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop soundspot-decoder
+www-data ALL=(ALL) NOPASSWD: /bin/echo * > /sys/class/gpio/*
 www-data ALL=(ALL) NOPASSWD: /opt/soundspot/backend/system/set_audio_output.sh *
 www-data ALL=(ALL) NOPASSWD: /usr/sbin/poweroff
 www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl start soundspot-autodj
@@ -107,6 +108,8 @@ EOF
 
     # Donner accès à www-data pour le dossier Jukebox dans ~/.zen/tmp
     usermod -aG ${SOUNDSPOT_USER} www-data
+    usermod -aG gpio www-data 2>/dev/null || true
+
     local USER_HOME=$(getent passwd "$SOUNDSPOT_USER" | cut -d: -f6)
     chmod g+x "$USER_HOME" 2>/dev/null || true
     chmod g+rx "$USER_HOME/.zen" "$USER_HOME/.zen/tmp" 2>/dev/null || true

@@ -44,12 +44,21 @@ EOF
 
     # 5. ip_forward (persistant)
     echo "net.ipv4.ip_forward=1" > /etc/sysctl.d/90-soundspot.conf
+    echo "vm.swappiness=100" >> /etc/sysctl.d/90-soundspot.conf
+    echo "vm.vfs_cache_pressure=50" >> /etc/sysctl.d/90-soundspot.conf
+
+    echo "vm.swappiness=100" >> /etc/sysctl.d/90-soundspot.conf
+    echo "vm.vfs_cache_pressure=50" >> /etc/sysctl.d/90-soundspot.conf
+
+    echo "vm.swappiness=100" >> /etc/sysctl.d/90-soundspot.conf
+    echo "vm.vfs_cache_pressure=50" >> /etc/sysctl.d/90-soundspot.conf
+
     sysctl -w net.ipv4.ip_forward=1
 
     # 6. ipset — service de persistance avec bon ordre de démarrage
     #    DOIT démarrer avant netfilter-persistent ET avant soundspot-firewall
     modprobe ip_set_hash_ip 2>/dev/null || true
-    ipset create soundspot_auth hash:ip timeout 900 -exist
+    ipset create soundspot_auth hash:ip timeout 14400 -exist
 
     cat > /etc/systemd/system/ipset-soundspot.service <<'SVCEOF'
 [Unit]
@@ -63,7 +72,7 @@ Type=oneshot
 RemainAfterExit=yes
 ExecStartPre=/sbin/modprobe ip_set_hash_ip
 ExecStart=/bin/bash -c '\
-    /usr/sbin/ipset create soundspot_auth hash:ip timeout 900 -exist; \
+    /usr/sbin/ipset create soundspot_auth hash:ip timeout 14400 -exist; \
     /usr/sbin/ipset restore -! < /etc/soundspot_ipset.save 2>/dev/null || true'
 ExecStop=/bin/bash -c '\
     /usr/sbin/ipset save soundspot_auth > /etc/soundspot_ipset.save 2>/dev/null || true'

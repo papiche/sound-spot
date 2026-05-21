@@ -27,6 +27,7 @@ source "$SCRIPT_DIR/install/idle.sh"
 source "$SCRIPT_DIR/install/jukebox.sh"
 source "$SCRIPT_DIR/install/zram.sh"
 source "$SCRIPT_DIR/install/autodj.sh"
+source "$SCRIPT_DIR/install/wifi_driver.sh"
 
 # ── Variables configurables ─────────────────────────────────
 export SPOT_NAME="${SPOT_NAME:-SoundSpot_Zicmama}"
@@ -72,7 +73,7 @@ apt_retry install -y --no-install-recommends \
     python3-markdown python3-websocket python3-dbus python3-gi python3-pip \
     espeak-ng jq \
     curl wget ffmpeg unzip \
-    iw wireless-tools socat gettext-base rsyslog \
+    iw wireless-tools socat batctl gettext-base rsyslog \
     zram-tools 
     ## keep z ram packet last (for update.sh)
 
@@ -114,6 +115,7 @@ cp "$SCRIPT_DIR/../README.md" "$INSTALL_DIR/" 2>/dev/null || true
 cp "$SCRIPT_DIR/../HOWTO.md" "$INSTALL_DIR/" 2>/dev/null || true
 
 # ── Configuration des services ───────────────────────────────
+setup_wifi_driver    # Pilote clé USB Wi-Fi 5GHz
 setup_logging        # Logs centralisés
 setup_networking     # AP + IPSet + Firewall
 setup_captive_portal # Lighttpd
@@ -225,6 +227,11 @@ fi
 setup_zram
 
 # ── Fichier de configuration final ──────────────────────────
+hdr "Réseau Maillé (B.A.T.M.A.N.)"
+install_template soundspot-mesh.service /etc/systemd/system/soundspot-mesh.service '${INSTALL_DIR}'
+systemctl enable soundspot-mesh
+log "Service soundspot-mesh activé"
+
 hdr "Finalisation"
 install_template soundspot.conf.master.env "$INSTALL_DIR/soundspot.conf" \
     '${SPOT_NAME} ${SPOT_IP} ${WIFI_SSID} ${WIFI_CHANNEL} ${BT_MAC} ${BT_MACS} ${SNAPCAST_PORT} ${PRESENCE_COOLDOWN} ${PRESENCE_ENABLED} ${INSTALL_DIR} ${IFACE_AP} ${IFACE_WAN} ${LOG_LEVEL} ${SOUNDSPOT_LOG} ${PICOPORT_ENABLED}'

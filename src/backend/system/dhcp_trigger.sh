@@ -6,7 +6,7 @@ case "$1" in
     add|old)
         # Dès qu'un appareil reçoit une IP, on l'ajoute à la liste blanche
         # temporaire pour permettre les tests de connectivité (Google/Apple).
-        /usr/sbin/ipset add soundspot_auth "$3" timeout 900 -exist 2>/dev/null || true
+        /usr/sbin/ipset add soundspot_auth "$3" timeout 14400 -exist 2>/dev/null || true
         ;;
     del)
         # On laisse le timeout expirer seul

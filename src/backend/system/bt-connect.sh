@@ -80,8 +80,6 @@ if [ "$CONNECTED_COUNT" -gt 0 ]; then
     fi
 
     # TRÈS IMPORTANT : Relancer le client pour qu'il "voit" la sortie Bluetooth
-    echo "Relance de soundspot-client pour basculer sur le Bluetooth..."
-    systemctl restart soundspot-client
 else
     echo "Échec : aucune enceinte connectée."
     exit 1

@@ -10,6 +10,7 @@ Type=simple
 User=${SOUNDSPOT_USER}
 EnvironmentFile=${INSTALL_DIR}/soundspot.conf
 Environment="XDG_RUNTIME_DIR=/run/user/${SOUNDSPOT_UID}"
+Environment="DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/${SOUNDSPOT_UID}/bus"
 Environment="PULSE_SERVER=unix:/run/user/${SOUNDSPOT_UID}/pulse/native"
 ExecStart=${INSTALL_DIR}/backend/audio/mic_capture.sh
 Restart=always

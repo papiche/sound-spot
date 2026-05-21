@@ -29,7 +29,7 @@ try:
     arch = 'linux-${PICO_ARCH}'
     for asset in data.get('assets',[]):
         name = asset.get('name', '').lower()
-        if arch in name and not name.endswith('.sha256') and not name.endswith('.zip') and not name.endswith('.tar.gz'):
+        if arch in name and not name.endswith('.sha256') and not name.endswith('.zip'):
             print(asset['browser_download_url'])
             break
 except Exception:
@@ -38,7 +38,10 @@ except Exception:
 
 if [ -n "$BIN_URL" ]; then
     echo "▶ Téléchargement depuis : $BIN_URL"
-    wget -q --show-progress "$BIN_URL" -O /tmp/nak_dl
+    wget -q --show-progress "$BIN_URL" -O /tmp/nak.tar.gz
+    tar -xzf /tmp/nak.tar.gz -C /tmp 2>/dev/null || true
+    [ -f /tmp/nak ] && install -m 755 /tmp/nak /usr/local/bin/nak || install -m 755 /tmp/nak.tar.gz /usr/local/bin/nak
+    rm -f /tmp/nak.tar.gz /tmp/nak
     install -m 755 /tmp/nak_dl /usr/local/bin/nak
     rm -f /tmp/nak_dl
     echo "✅ nak installé avec succès dans /usr/local/bin/nak"

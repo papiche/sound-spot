@@ -69,9 +69,6 @@ def connect_mac(mac: str):
     combine = os.path.join(INSTALL_DIR, "backend/system/bt-combine-sinks.sh")
     if os.path.exists(combine):
         subprocess.run(["bash", combine], capture_output=True, timeout=10)
-    subprocess.run(["systemctl", "restart", "soundspot-client"],
-                   capture_output=True)
-    log.info("soundspot-client redémarré après connexion %s", mac)
 
 
 def is_connected(mac: str) -> bool:

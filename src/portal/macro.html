@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Vision Macro - Essaim ZICMAMA</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root { --bg: #080810; --text: #e0e0f0; --accent: #7fff6e; --teal: #4ecdc4; --box: #161622; --border: #26263a; }
+    body { background: var(--bg); color: var(--text); font-family: monospace; padding: 20px; max-width: 800px; margin: auto; }
+    h1 { color: var(--accent); text-align: center; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+    h2 { color: var(--teal); margin-top: 30px; }
+    .node-card { border: 1px solid var(--teal); margin: 15px 0; padding: 15px; border-radius: 8px; background: var(--box); box-shadow: 0 4px 15px rgba(78, 205, 196, 0.1); }
+    .master-card { border-color: #ffb347; box-shadow: 0 4px 15px rgba(255, 179, 71, 0.15); }
+    .badge { display: inline-block; padding: 3px 8px; border-radius: 12px; background: rgba(255,255,255,0.1); font-size: 0.8rem; margin-right: 5px; }
+    .status-ok { color: var(--accent); }
+    .status-ko { color: #ff6b6b; }
+    .data-row { display: flex; justify-content: space-between; border-bottom: 1px dashed var(--border); padding: 5px 0; }
+    .btn { display: block; padding: 12px; background: var(--teal); color: #000; text-align: center; text-decoration: none; border-radius: 5px; font-weight: bold; margin-top: 30px; }
+    .btn:hover { filter: brightness(1.2); }
+    pre { font-size: 0.8rem; color: #888; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <h1>🌌 Vision Macro (Essaim ZICMAMA)</h1>
+  <p style="text-align: center; color: #888;">Cartographie en temps réel du réseau P2P et des ressources matérielles.</p>
+
+  <h2>👑 Nœud Maître (Ce point d'accès)</h2>
+  <div class="node-card master-card" id="master-node">
+    <div style="text-align: center;">Recherche des signes vitaux... 📡</div>
+  </div>
+
+  <h2>🛰️ Constellation Mesh & IPFS</h2>
+  <div id="swarm-nodes">
+    <div style="text-align: center;">Scan des fréquences P2P en cours... 📡</div>
+  </div>
+
+  <a href="index.html" class="btn">← Retourner au Portail</a>
+
+  <script>
+    function loadMacro() {
+      // Chargement Master
+      fetch('/api.sh?action=status').then(r=>r.json()).then(d => {
+        let battHtml = d.batt_volt > 0 ? `<div class="data-row"><span>Batterie Solaire</span> <span class="status-ok">${d.batt_pct}% (${d.batt_volt}V)</span></div>` : '';
+        let fmHtml = `<div class="data-row"><span>Audio (FM / Projecteur)</span> <span class="status-ok">Actif (PipeWire)</span></div>`;
+        document.getElementById('master-node').innerHTML = `
+          <div style="margin-bottom: 10px;">
+            <span class="badge">IP: ${d.spot_ip}</span>
+            <span class="badge">SSID: ${d.spot_name}</span>
+            <span class="badge">CPU: ${d.cpu_load}</span>
+          </div>
+          ${battHtml}${fmHtml}
+          <div class="data-row"><span>Routage Mesh B.A.T.M.A.N.</span> <span class="status-ok">10.200.0.1</span></div>
+          <div class="data-row"><span>Moteur IA (Voix)</span> <span>${(d.tts_engine||'').toUpperCase()}</span></div>
+          <div class="data-row"><span>Flux Radio (Snapcast)</span> <span>Port ${d.snapcast_port}</span></div>
+        `;
+      }).catch(e => document.getElementById('master-node').innerHTML = '<span class="status-ko">Impossible de lire le Master.</span>');
+
+      // Chargement Swarm
+      fetch('/api.sh?action=swarm').then(r=>r.json()).then(d => {
+        let html = '';
+        if(d.swarm_nodes && d.swarm_nodes.length > 0) {
+          d.swarm_nodes.forEach(n => {
+            let batt = n.battery ? `${n.battery}` : 'Secteur';
+            let status = (n.last_seen_ago < 900) ? '<span class="status-ok">● En ligne</span>' : '<span class="status-ko">○ Absent</span>';
+            html += `
+              <div class="node-card">
+                <div style="font-weight:bold; font-size: 1.1rem; margin-bottom: 5px;">${n.name} <span style="font-size:0.8rem;">${status}</span></div>
+                <div class="data-row"><span>IP Mesh / Local</span> <span>${n.ip || 'Inconnue'}</span></div>
+                <div class="data-row"><span>Puissance de Calcul</span> <span>${n.power}</span></div>
+                <div class="data-row"><span>Énergie</span> <span>${batt}</span></div>
+                <div class="data-row"><span>Dernier Ping</span> <span>il y a ${n.last_seen_ago} s</span></div>
+                <pre>PeerID: ${n.peer}</pre>
+              </div>
+            `;
+          });
+        } else {
+          html = '<div class="node-card" style="text-align:center; color:#888;">Aucun autre nœud détecté dans le secteur.</div>';
+        }
+        document.getElementById('swarm-nodes').innerHTML = html;
+      });
+    }
+
+    loadMacro();
+    setInterval(loadMacro, 10000); // Auto-refresh toutes les 10 secondes
+  </script>
+</body>
+</html>
