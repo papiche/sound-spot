@@ -149,7 +149,7 @@ Boot order:
 wpa_supplicant@wlan0
   → soundspot-channel-sync
   → uap0 → uap0-ip
-  → ipset-soundspot                        (ipset hash:ip timeout 900)
+  → ipset-soundspot                        (ipset hash:ip timeout 14400)
   → soundspot-firewall                     (iptables NAT + portail captif)
   → hostapd → dnsmasq
   → icecast2
