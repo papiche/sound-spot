@@ -25,6 +25,6 @@ Si la batterie solaire passe sous les 20% :
 3. Tous les nœuds du festival (Satellites) vont s'éteindre proprement.
 4. **Le relais physique coupera le courant.** Le système se rallumera automatiquement au lever du soleil quand le panneau solaire rechargera la batterie.
 
-## 5. Modules Expérimentaux (LoRa & Impression) -- NEED TEST --
-- **Meshtastic (LoRa) :** Si un module LoRa est branché en USB, les messages du portail peuvent être diffusés par ondes radio textuelles (module `api/apps/meshtastic`).
-- **Tickets (Brother QL-700) :** Si une imprimante thermique est branchée, l'API `api.sh?action=print_ticket` imprimera un QR Code d'accès (module `print_ticket.sh`).
+## 5. Modules Expérimentaux (LoRa & Impression)
+- **Meshtastic (LoRa) :** Si un module LoRa est branché en USB, les messages du portail peuvent être diffusés par ondes radio textuelles (module `api/apps/meshtastic`). A TESTER !
+- **Tickets (Brother QL-700) :** Si une imprimante thermique est branchée, l'API `api.sh?action=print_ticket` imprimera un QR Code d'accès (module `print_ticket.sh`). A TESTER !
