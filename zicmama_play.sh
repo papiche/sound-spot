@@ -14,7 +14,7 @@ echo -e "\n${C}  ZICMAMA SoundSpot — Session DJ${N}\n"
 CURRENT=$(nmcli -t -f active,ssid dev wifi | grep '^yes' | cut -d: -f2 || echo "")
 
 if [ "$CURRENT" != "$SPOT_NAME" ]; then
-    log "Connexion à ${W}${SPOT_NAME}${N}..."
+    echo -e "  ${C}▶${N} Connexion à ${W}${SPOT_NAME}${N}..."
     nmcli dev wifi connect "$SPOT_NAME" || {
         echo -e "${R}✗${N} Échec WiFi. Vérifie que le SoundSpot est allumé."; exit 1
     }

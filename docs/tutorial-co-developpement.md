@@ -35,5 +35,6 @@ Tapez : `ss-prod`
 |-------|--------|
 | `ss-dev <branche>` | Active le mode dev — lien symbolique du portail vers le Workspace |
 | `ss-api <module>` | Teste un module API directement depuis le terminal du Pi |
+| `ss-center` | Ouvre l'interface interactive de gestion des processus (Start/Stop/Logs) |
 | `ss-reload` | Déploie les modifications backend et redémarre les services impactés |
 | `ss-prod` | Repasse en production — supprime les liens symboliques |

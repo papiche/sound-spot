@@ -1,1109 +1,1042 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#080810">
-  <meta name="description" content="SoundSpot PicoPort — Souveraineté Collective UPlanet">
-  <link rel="manifest" href="/manifest.json">
-  <title>SoundSpot</title>
-  <link rel="stylesheet" href="chartist.min.css">
-  <script src="chartist.min.js"></script>
-  <style>
-    :root {
-      --black: #080810; --dark: #0f0f1a; --panel: #161622;
-      --border: #26263a; --deep: #1c1c2e;
-      --accent: #7fff6e; --teal: #4ecdc4; --dj: #ffb347;
-      --sat: #b47fff; --red: #ff6b6b; --gold: #ffd700;
-      --text: #e0e0f0; --muted: #6a6a88;
-      --font: system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-      --mono: ui-monospace,"Cascadia Code","Source Code Pro",Menlo,Monaco,Consolas,monospace;
-    }
-    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
-    body { background:var(--black); color:var(--text); font-family:var(--font); padding:0 0 80px; display:flex; flex-direction:column; align-items:center; line-height:1.4; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title id="page-title">SoundSpot — Portail</title>
+<link rel="manifest" href="manifest.json">
+<style>
+:root {
+  --bg:     #07070f;
+  --bg2:    #0f0f1e;
+  --bg3:    #161628;
+  --border: #1e1e36;
+  --text:   #d0d0e8;
+  --muted:  #5a5a7a;
+  --accent: #7b61ff;
+  --green:  #3dba7e;
+  --yellow: #ffc107;
+  --red:    #e74c3c;
+  --cyan:   #4ecdc4;
+  --r: 10px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
 
-    /* ── Hero ── */
-    .hero { width:100%; background:var(--dark); border-bottom:1px solid var(--border); padding:18px 20px 14px; text-align:center; }
-    .hero-logo { font-size:1.6rem; font-weight:900; color:#fff; letter-spacing:1px; }
-    .hero-logo span { color:var(--accent); }
-    .hero-sub { font-family:var(--mono); font-size:10px; letter-spacing:.15em; text-transform:uppercase; color:var(--muted); margin:4px 0 10px; }
-    .status-bar { display:flex; justify-content:center; gap:8px; flex-wrap:wrap; }
-    .badge-mini { padding:4px 10px; border-radius:20px; font-size:10px; font-weight:700; border:1px solid var(--border); background:rgba(255,255,255,.03); color:var(--muted); }
-    .badge-mini.live { color:var(--dj); border-color:var(--dj); background:rgba(255,179,71,.07); }
-    .badge-mini.on   { color:var(--teal); border-color:var(--teal); background:rgba(78,205,196,.07); }
-    .pulse { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--dj); animation:pulse 1.4s infinite; margin-right:4px; vertical-align:middle; }
-    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(1.5)} }
+/* ── Top nav ── */
+.topnav{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--bg2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;flex-wrap:wrap}
+.topnav .brand{font-size:16px;font-weight:700;color:#fff;white-space:nowrap;margin-right:4px}
+.topnav a{color:var(--muted);text-decoration:none;font-size:13px;padding:5px 9px;border-radius:16px;transition:all .2s;white-space:nowrap}
+.topnav a:hover,.topnav a.active{background:rgba(123,97,255,.15);color:#c0aaff}
+.topnav .spacer{flex:1}
+.topnav .auth-zone{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.btn-nostr-login{padding:6px 14px;background:linear-gradient(135deg,#667eea,#764ba2);border:none;border-radius:18px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;white-space:nowrap}
+.btn-nostr-login:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(102,126,234,.45)}
+.auth-badge{display:flex;align-items:center;gap:6px;background:rgba(61,186,126,.1);border:1px solid rgba(61,186,126,.3);border-radius:18px;padding:5px 11px;font-size:12px;cursor:pointer}
+.auth-badge .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 5px rgba(61,186,126,.7)}
+.auth-badge:hover{background:rgba(61,186,126,.18)}
 
-    /* ── Navigation ── */
-    .nav-tabs { position:fixed; bottom:0; width:100%; height:65px; background:var(--panel); border-top:1px solid var(--border); display:flex; z-index:1000; }
-    .tab-btn { flex:1; border:none; background:none; color:var(--muted); display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:9px; cursor:pointer; transition:color .2s,background .2s; }
-    .tab-btn.active { color:var(--accent); background:rgba(127,255,110,.05); }
-    .tab-btn svg { width:20px; height:20px; margin-bottom:4px; }
+/* ── NIP-42 modal ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center;padding:16px}
+.modal-overlay.open{display:flex}
+.modal-box{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:24px;max-width:420px;width:100%;position:relative}
+.modal-box h3{font-size:17px;color:#fff;margin-bottom:8px}
+.modal-box p{font-size:13px;color:var(--muted);margin-bottom:18px;line-height:1.6}
+.modal-close{position:absolute;top:12px;right:14px;background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer}
+.modal-close:hover{color:#fff}
+.auth-steps{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.auth-step{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg3);border-radius:8px;border:1px solid var(--border);font-size:13px;transition:border-color .3s}
+.auth-step .step-icon{font-size:18px;flex-shrink:0}
+.auth-step-hint{font-size:11px;color:var(--muted);margin-top:3px}
+#auth-msg{font-size:12px;padding:8px 12px;border-radius:8px;margin-top:8px;display:none}
+#auth-msg.err {background:rgba(231,76,60,.1);border:1px solid rgba(231,76,60,.3);color:#f88}
+#auth-msg.ok  {background:rgba(61,186,126,.1);border:1px solid rgba(61,186,126,.3);color:#6fd17a}
+#auth-msg.info{background:rgba(123,97,255,.1);border:1px solid rgba(123,97,255,.3);color:#c0aaff}
+.btn-primary{width:100%;padding:11px;background:linear-gradient(135deg,#667eea,#764ba2);border:none;border-radius:9px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;transition:all .25s;margin-top:4px}
+.btn-primary:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 18px rgba(102,126,234,.45)}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed}
 
-    /* ── Contenu ── */
-    .tab-content { display:none; width:100%; max-width:600px; padding:14px 16px; animation:fadeIn .25s; }
-    .tab-content.active { display:block; }
-    @keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:none} }
+/* ── Tab nav ── */
+.tabnav{display:flex;gap:4px;padding:12px 14px 0;background:var(--bg2);border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+.tabnav::-webkit-scrollbar{display:none}
+.tablink{padding:8px 14px;background:none;border:none;border-radius:8px 8px 0 0;color:var(--muted);font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;transition:all .2s}
+.tablink:hover{background:rgba(255,255,255,.05);color:var(--text)}
+.tablink.active{background:var(--bg3);color:#fff;border:1px solid var(--border);border-bottom-color:var(--bg3)}
+.tablink .lock{font-size:10px;opacity:.6;margin-left:3px}
 
-    /* ── Cartes ── */
-    .card { background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:16px; margin-bottom:12px; }
-    h2 { font-size:1.05rem; margin-bottom:12px; color:#fff; }
-    p  { font-size:.88rem; color:#b0b0d0; margin-bottom:10px; }
-    p:last-child { margin-bottom:0; }
-    .hi { color:var(--accent); font-weight:700; }
-    a  { color:var(--teal); text-decoration:none; }
-    a:hover { color:var(--accent); }
+/* ── Tab panes ── */
+.tabpane{display:none;padding:16px 14px;max-width:820px;margin:0 auto}
+.tabpane.active{display:block}
 
-    /* ── Info-box ── */
-    .ibox { background:var(--deep); padding:10px 12px; border-radius:4px; margin:10px 0; font-family:var(--mono); font-size:.82rem; }
-    .irow { display:flex; justify-content:space-between; align-items:center; padding:5px 0; border-bottom:1px solid rgba(255,255,255,.05); }
-    .irow:last-child { border-bottom:none; }
-    .lbl { color:var(--muted); }
-    .val { color:var(--teal); }
+/* ── Cards ── */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:12px}
+.card-title{font-size:14px;font-weight:600;color:#ddd;margin-bottom:12px;display:flex;align-items:center;gap:8px}
 
-    /* ── Steps ── */
-    .steps { display:flex; flex-direction:column; gap:8px; margin:10px 0; }
-    .step { display:flex; align-items:flex-start; gap:10px; font-size:.88rem; color:#9090b0; line-height:1.55; }
-    .sn { font-family:var(--mono); font-size:10px; border-radius:2px; padding:2px 6px; white-space:nowrap; margin-top:2px; min-width:26px; text-align:center; flex-shrink:0; }
-    .sn-t  { color:var(--teal); border:1px solid var(--teal); }
-    .sn-g  { color:var(--gold); border:1px solid var(--gold); }
-    .sn-dj { color:var(--dj);   border:1px solid var(--dj); }
-    .sn-s  { color:var(--sat);  border:1px solid var(--sat); }
+/* ── Stream player ── */
+.player-wrap{text-align:center;padding:20px 0}
+.clock-display{font-size:32px;font-weight:700;color:#fff;font-variant-numeric:tabular-nums;letter-spacing:2px}
+.clock-sub{font-size:12px;color:var(--muted);margin-top:4px;margin-bottom:16px}
+.player-status{font-size:13px;color:var(--muted);margin-bottom:14px}
+.player-controls{display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap}
+.btn-play{padding:12px 28px;background:linear-gradient(135deg,rgba(61,186,126,.7),rgba(30,130,55,.7));border:none;border-radius:24px;color:#fff;font-size:15px;font-weight:700;cursor:pointer;transition:all .25s}
+.btn-play.playing{background:linear-gradient(135deg,rgba(231,76,60,.7),rgba(180,30,50,.7))}
+.btn-play:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,0,0,.3)}
+#vol-slider{width:120px;accent-color:var(--accent)}
 
-    /* ── Accordéons ── */
-    details { background:var(--deep); border-radius:6px; margin-bottom:8px; border:1px solid var(--border); }
-    summary { padding:11px 14px; cursor:pointer; font-weight:700; font-size:.85rem; color:var(--teal); list-style:none; display:flex; justify-content:space-between; align-items:center; }
-    summary::-webkit-details-marker { display:none; }
-    summary::after { content:'▾'; font-size:12px; transition:transform .2s; color:var(--muted); }
-    details[open] summary::after { transform:rotate(-180deg); }
-    .det-body { padding:12px 14px 14px; border-top:1px solid rgba(255,255,255,.05); }
+/* ── Internet / captive portal ── */
+.internet-hero{text-align:center;padding:24px 0}
+.internet-hero .big-icon{font-size:56px;margin-bottom:12px}
+.internet-hero h2{font-size:20px;color:#fff;margin-bottom:8px}
+.internet-hero p{font-size:13px;color:var(--muted);max-width:360px;margin:0 auto 20px;line-height:1.6}
+.btn-internet{padding:14px 36px;background:linear-gradient(135deg,#4ecdc4,#44a08d);border:none;border-radius:28px;color:#fff;font-size:15px;font-weight:700;cursor:pointer;transition:all .25s}
+.btn-internet:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 8px 22px rgba(78,205,196,.4)}
+.btn-internet:disabled{opacity:.55;cursor:not-allowed}
+.internet-msg{font-size:12px;margin-top:12px;color:var(--muted);min-height:18px}
+.internet-msg.ok {color:var(--green)}
+.internet-msg.err{color:var(--red)}
 
-    /* ── Grille astro ── */
-    .astro-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:12px 0; }
-    .astro-box { background:var(--dark); padding:12px; border-radius:6px; border:1px solid var(--border); text-align:center; }
-    .astro-box span { display:block; font-size:1.4rem; margin-bottom:4px; }
-    .astro-box label { font-size:.7rem; color:var(--muted); text-transform:uppercase; }
+/* ── Locked zone ── */
+.locked-zone{text-align:center;padding:32px 16px}
+.locked-zone .lock-icon{font-size:40px;margin-bottom:12px}
+.locked-zone h3{font-size:16px;color:var(--muted);margin-bottom:8px}
+.locked-zone p{font-size:12px;color:var(--muted);max-width:280px;margin:0 auto 16px;line-height:1.6}
+.btn-unlock{padding:10px 24px;background:rgba(123,97,255,.15);border:1px solid rgba(123,97,255,.4);border-radius:20px;color:#c0aaff;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
+.btn-unlock:hover{background:rgba(123,97,255,.25)}
 
-    /* ── Boutons ── */
-    .btn { display:block; width:100%; padding:12px; text-align:center; font-weight:700; font-size:12px; text-transform:uppercase; letter-spacing:.05em; border-radius:4px; text-decoration:none; border:none; cursor:pointer; margin-bottom:8px; transition:opacity .15s; }
-    .btn:hover { opacity:.85; }
-    .btn:last-child { margin-bottom:0; }
-    .btn-main    { background:var(--accent); color:var(--black); }
-    .btn-teal    { background:var(--teal);   color:var(--black); }
-    .btn-outline { background:transparent; border:1px solid var(--border); color:var(--muted); }
-    .btn-gold    { background:var(--gold);   color:var(--black); }
-    .btn-dj      { background:var(--dj);     color:#000; }
-    .btn-sat     { background:var(--sat);    color:#000; }
-    .btn-red     { background:#cc0000;       color:#fff; }
-    .btn-sm { padding:7px 12px; font-size:10px; display:inline-block; width:auto; margin-bottom:4px; margin-right:4px; }
-    .row { display:flex; gap:8px; flex-wrap:wrap; }
-    .row .btn { flex:1; }
+/* ── Jukebox ── */
+.jukebox-form{display:flex;gap:8px;flex-wrap:wrap}
+.jukebox-input{flex:1;min-width:200px;padding:10px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;outline:none}
+.jukebox-input:focus{border-color:var(--accent)}
+.btn-queue{padding:10px 18px;background:linear-gradient(135deg,rgba(123,97,255,.6),rgba(118,75,162,.6));border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .2s}
+.btn-queue:hover:not(:disabled){background:linear-gradient(135deg,rgba(123,97,255,.85),rgba(118,75,162,.85))}
+.btn-queue:disabled{opacity:.5;cursor:not-allowed}
+.queue-list{margin-top:12px;display:flex;flex-direction:column;gap:6px}
+.queue-item{padding:10px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;font-size:12px;word-break:break-all;color:var(--cyan)}
 
-    /* ── Inputs ── */
-    .yt-input { width:100%; padding:10px 12px; background:var(--deep); border:1px solid var(--border); border-radius:4px; color:#fff; font-family:var(--mono); font-size:.85rem; margin-bottom:8px; outline:none; }
-    .yt-input:focus { border-color:var(--teal); }
-    #yt-result { margin-top:6px; font-size:.82rem; font-family:var(--mono); color:var(--teal); }
-    #yt-result.err { color:var(--red); }
+/* ── uDRIVE upload ── */
+.drop-zone{border:2px dashed rgba(61,186,126,.35);border-radius:10px;padding:32px 20px;text-align:center;cursor:pointer;transition:all .2s;background:rgba(0,0,0,.15)}
+.drop-zone:hover,.drop-zone.drag-over{border-color:rgba(61,186,126,.7);background:rgba(61,186,126,.08)}
+.drop-zone .di{font-size:36px;margin-bottom:8px}
+.drop-zone p{font-size:13px;color:var(--muted)}
+.drop-zone input[type=file]{display:none}
+#upload-preview{display:none;margin-top:12px;border-radius:8px;max-height:160px;max-width:100%;object-fit:contain;border:1px solid var(--border)}
+.upload-bar-wrap{background:rgba(255,255,255,.06);border-radius:6px;height:5px;overflow:hidden;margin-top:10px;display:none}
+.upload-bar{height:100%;background:linear-gradient(90deg,var(--green),var(--accent));width:0;transition:width .3s;border-radius:6px}
+.upload-result{display:none;margin-top:10px;background:rgba(61,186,126,.08);border:1px solid rgba(61,186,126,.3);border-radius:8px;padding:10px 14px;font-size:12px;word-break:break-all}
+.upload-result a{color:var(--green)}
 
-    /* ── Batterie ── */
-    .volt-display { font-family:var(--mono); font-size:1.9rem; font-weight:800; color:var(--accent); text-align:center; display:block; }
-    .ct-chart { height:150px; margin-top:12px; }
+/* ── Admin ── */
+.service-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.service-row:last-child{border-bottom:none}
+.svc-name{flex:1;font-size:13px;font-family:monospace}
+.svc-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.svc-dot.active  {background:var(--green);box-shadow:0 0 5px rgba(61,186,126,.5)}
+.svc-dot.inactive{background:var(--red)}
+.bt-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.bt-row:last-child{border-bottom:none}
+.bt-mac{font-family:monospace;font-size:12px;color:var(--muted)}
+.bt-name{flex:1;font-size:13px}
+.btn-bt{padding:4px 10px;border:1px solid var(--border);border-radius:6px;font-size:11px;cursor:pointer;transition:all .2s;background:rgba(255,255,255,.06);color:var(--muted)}
+.btn-bt:hover{background:rgba(255,255,255,.12);color:var(--text)}
+.btn-bt.connect{border-color:rgba(78,205,196,.5);color:var(--cyan)}
+.admin-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.btn-admin{padding:8px 14px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;background:rgba(255,255,255,.04);color:var(--text)}
+.btn-admin:hover{background:rgba(255,255,255,.1)}
+.btn-admin.danger{border-color:rgba(231,76,60,.4);color:#f88}
+.btn-admin.danger:hover{background:rgba(231,76,60,.1)}
+.toggle-btn{padding:7px 16px;border:1px solid var(--border);border-radius:16px;font-size:12px;cursor:pointer;background:rgba(255,255,255,.04);color:var(--muted);transition:all .2s}
+.toggle-btn.active-mode{background:rgba(255,193,7,.15);border-color:rgba(255,193,7,.5);color:var(--yellow)}
 
-    /* ── Toast ── */
-    #toast { position:fixed; bottom:80px; left:50%; transform:translateX(-50%) translateY(16px); background:var(--panel); border:1px solid var(--accent); color:var(--accent); padding:9px 20px; border-radius:20px; font-weight:700; font-size:13px; opacity:0; transition:opacity .3s,transform .3s; z-index:2000; pointer-events:none; white-space:nowrap; }
-    #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
-
-    ul.applist { list-style:none; display:flex; flex-direction:column; gap:8px; }
-    ul.applist li { font-size:.85rem; color:#b0b0d0; }
-    ul.applist b { color:#fff; }
-    code.val { font-family:var(--mono); font-size:.88em; color:var(--teal); }
-  </style>
+/* ── Misc ── */
+.hint{font-size:11px;color:var(--muted);line-height:1.5}
+.external-link{display:inline-flex;align-items:center;gap:5px;padding:8px 14px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;color:var(--muted);text-decoration:none;font-size:12px;transition:all .2s}
+.external-link:hover{background:rgba(255,255,255,.08);color:var(--text)}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.15);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:5px}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(max-width:520px){.topnav .brand{font-size:14px}.tablink{font-size:12px;padding:6px 10px}}
+</style>
 </head>
 <body>
 
-<div id="toast"></div>
-
-<!-- ═══ HERO ═══ -->
-<div class="hero">
-  <div class="hero-logo">Sound<span>Spot</span></div>
-  <div class="hero-sub" id="hero-sub">Nœud coopératif UPlanet</div>
-  <div class="status-bar">
-    <div id="dj-badge" class="badge-mini">…</div>
-    <div id="batt-badge" class="badge-mini" style="display:none">-- %</div>
-    <div id="pico-badge" class="badge-mini" style="display:none">IPFS</div>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════════
-     TAB 1 — RADIO
-════════════════════════════════════════ -->
-<div id="tab-radio" class="tab-content active">
-
-  <div class="card">
-    <h2>🎧 Rejoindre le Stream</h2>
-    <div class="ibox">
-      <div class="irow"><span class="lbl">WiFi</span>         <span class="val" id="cfg-ssid">…</span></div>
-      <div class="irow"><span class="lbl">Serveur</span>      <span class="val" id="cfg-ip">…</span></div>
-      <div class="irow"><span class="lbl">Port Snapcast</span><span class="val" id="cfg-port">…</span></div>
-    </div>
-    <div class="steps">
-      <div class="step">
-        <div class="sn sn-t">01</div>
-        <span>Connecté au WiFi <span id="cfg-ssid2" class="hi">…</span> ✓</span>
-      </div>
-      <div class="step">
-        <div class="sn sn-t">02</div>
-        <span>Installer <span class="hi">Snapcast</span> :<br>
-          📱 Android : <a id="lnk-fdroid" href="#">F-Droid</a>
-            · <a id="lnk-play" href="#">Play Store</a><br>
-          🍎 iOS : <a id="lnk-ios" href="#">App Store</a><br>
-          🖥 PC : <code id="lnk-pc" class="val">snapclient -h …</code>
-        </span>
-      </div>
-      <div class="step">
-        <div class="sn sn-t">03</div>
-        <span>Serveur : <code class="val" id="cfg-ip2">…</code>  Port : <code class="val" id="cfg-port2">…</code></span>
-      </div>
-    </div>
-    <a id="lnk-mixer" href="#" target="_blank" class="btn btn-outline" style="margin-top:8px">🎛 Console de Mixage (Volume) →</a>
-  </div>
-
-  <div class="card">
-    <h2>🌐 Accès Internet — 4 heures</h2>
-    <p>Le stream est disponible <span class="hi">sans limite</span>. L'accès Internet est temporaire (4 heures).</p>
-    <button id="btn-auth" onclick="doAuth()" class="btn btn-main">Ouvrir l'accès Internet →</button>
-    <p id="auth-msg" style="display:none;font-size:.82rem;color:var(--teal);margin-top:6px"></p>
-  </div>
-
-  <div class="card">
-    <h2>⏰ Clocher Numérique</h2>
-    <div class="ibox">
-      <div class="irow"><span class="lbl">Bip + Cloches</span>    <span class="val" id="bells-lbl">…</span></div>
-      <div class="irow"><span class="lbl">Coups (heure pile)</span><span class="val" id="clock-lbl">…</span></div>
-      <div class="irow"><span class="lbl">Messages &amp; heure</span><span class="val" id="voice-lbl">…</span></div>
-    </div>
-    <p style="font-size:.78rem;color:var(--muted);margin-top:6px">Réglages disponibles dans l'onglet ⚙ Config.</p>
-  </div>
-
-  <details id="det-audio" style="display:none">
-    <summary>🔊 Sortie Audio</summary>
-    <div class="det-body">
-      <p style="font-size:.85rem;color:#b0b0d0;margin-bottom:10px">Sélectionner la sortie PipeWire. Redémarre le service (2–3 s).</p>
-      <div id="audio-sinks-list"><p style="color:var(--muted);font-size:.85rem">Détection…</p></div>
-    </div>
-  </details>
-
-  <details>
-    <summary>🎛 Espace DJ</summary>
-    <div class="det-body">
-      <div class="ibox">
-        <div class="irow"><span class="lbl">Serveur Icecast</span><span class="val" id="dj-icecast">…</span></div>
-        <div class="irow"><span class="lbl">Montage</span>        <span class="val">/live</span></div>
-        <div class="irow"><span class="lbl">Format</span>         <span class="val">Ogg Vorbis</span></div>
-        <div class="irow"><span class="lbl">Login / Mdp</span>    <span class="val">source / (cf. opérateur)</span></div>
-      </div>
-      <div class="steps" style="margin-top:10px">
-        <div class="step"><div class="sn sn-dj">01</div><span>Installer <span class="hi">Mixxx</span> + <code class="val">snapclient</code></span></div>
-        <div class="step"><div class="sn sn-dj">02</div><span>Retour casque : <code class="val" id="dj-snap">snapclient -h …</code></span></div>
-        <div class="step">
-          <div class="sn sn-dj">03</div>
-          <span>Mixxx → Préférences → Live Broadcasting<br>
-            Serveur <code class="val" id="dj-ip">…</code>  Port <code class="val" id="dj-port">…</code>  Montage <code class="val">/live</code></span>
-        </div>
-        <div class="step"><div class="sn sn-dj">04</div><span>Cliquer sur l'icône <span class="hi">Antenne</span> → en direct</span></div>
-      </div>
-      <p style="font-size:.78rem;color:var(--muted);margin-top:8px">⚠ Latence 1–3 s — beatmatch sur casque Cue, pas sur enceintes.</p>
-      <a href="docs.sh?howto" class="btn btn-dj btn-sm" style="display:block;margin-top:10px">Guide DJ complet →</a>
-    </div>
-  </details>
-
-</div>
-
-<!-- ═══════════════════════════════════════
-     TAB 2 — LIBERTÉ
-════════════════════════════════════════ -->
-<div id="tab-liberte" class="tab-content">
-  <div class="card">
-    <h2>✊ Libérer nos Données</h2>
-    <p class="hi">"Nos données valent de l'or, récupérons nos pépites."</p>
-
-    <details>
-      <summary>👁️ 📷 Oeil &amp; Stockage — Nextcloud</summary>
-      <div class="det-body">
-        <p>Sortez du Cloud propriétaire vers votre espace souverain.</p>
-        <a href="https://f-droid.org/fr/packages/com.nextcloud.client/" target="_blank" class="btn btn-main btn-sm">App Nextcloud (F-Droid)</a>
-        <a href="https://pad.p2p.legal/s/Smartphone2NextCloud#" target="_blank" class="btn btn-outline btn-sm">Guide Pas à Pas</a>
-      </div>
-    </details>
-
-    <details>
-      <summary>🤖 💾 Cerveau &amp; Mémoire — Outils Libres</summary>
-      <div class="det-body">
-        <ul class="applist">
-          <li><b>VLC</b> — Lecture universelle. <a href="https://f-droid.org/fr/packages/org.videolan.vlc/" target="_blank">F-Droid</a></li>
-          <li><b>Kodi + VStream</b> — Cinéma à domicile. <a href="https://f-droid.org/fr/packages/org.xbmc.kodi/" target="_blank">F-Droid</a> / <a href="https://kodi-vstream.github.io/docs/installation/" target="_blank">VStream</a></li>
-          <li><b>Organic Maps</b> — Cartes hors-ligne. <a href="https://f-droid.org/fr/packages/app.organicmaps/" target="_blank">F-Droid</a></li>
-        </ul>
-      </div>
-    </details>
-
-    <details>
-      <summary>🔬 Nature &amp; Sciences</summary>
-      <div class="det-body">
-        <ul class="applist">
-          <li><b>Plantnet</b> — Identifiez la flore. <a href="https://plantnet.org/" target="_blank">plantnet.org</a></li>
-          <li><b>Phyphox</b> — Capteurs physiques. <a href="https://f-droid.org/fr/packages/de.rwth_aachen.phyphox/" target="_blank">F-Droid</a></li>
-        </ul>
-      </div>
-    </details>
-
-    <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:14px">
-      <p>Vérifiez si votre smartphone est re-flashable vers un OS libre :</p>
-      <a href="https://doc.e.foundation/devices" target="_blank" class="btn btn-outline btn-sm">/e/ foundation →</a>
+<!-- ── Top navigation commune ───────────────────────────── -->
+<nav class="topnav">
+  <span class="brand" id="brand-name">🎵 SoundSpot</span>
+  <a href="/" class="active">🏠</a>
+  <a href="mesh.html">🕸️ Mesh</a>
+  <a href="vj.html">🎛️ VJ</a>
+  <a href="#" onclick="openUplanet();return false">🌍 UPlanet</a>
+  <div class="spacer"></div>
+  <div class="auth-zone">
+    <button class="btn-nostr-login" id="btn-login" onclick="openAuthModal()">🔑 MULTIPASS</button>
+    <div class="auth-badge" id="auth-badge" style="display:none" onclick="openAuthModal()">
+      <span class="dot"></span>
+      <span id="auth-name-short">MULTIPASS</span>
     </div>
   </div>
-</div>
-
-<!-- ═══════════════════════════════════════
-     TAB 3 — UPLANET
-════════════════════════════════════════ -->
-<div id="tab-constellation" class="tab-content">
-
-  <div class="card">
-    <h2>🐲 Délégation DRAGON</h2>
-    <p>Coopérative numérique UPlanet — algorithmes AGPL pour l'économie circulaire.</p>
-    <div class="astro-grid">
-      <div class="astro-box"><span>👄 👂</span><label>Bouche &amp; Oreilles</label></div>
-      <div class="astro-box"><span>👁 📷</span><label>Oeil &amp; Stockage</label></div>
-      <div class="astro-box"><span>🤖 💾</span><label>Cerveau &amp; Mémoire</label></div>
-      <div class="astro-box"><span>🔋 🌞</span><label>Énergie</label></div>
-    </div>
-    <div class="ibox">
-      <div class="irow"><span class="lbl">Souveraineté</span><span class="val">Collective</span></div>
-      <div class="irow"><span class="lbl">Vision</span><span class="val"><a href="https://ipfs.copylaradio.com/ipns/copylaradio.com/Unation.html" target="_blank">Unation →</a></span></div>
-    </div>
-  </div>
-
-  <div class="card">
-    <h2>🪪 MULTIPASS Ẑelkova</h2>
-    <p>Votre identité coopérative : clé <span class="hi">NOSTR</span>, compte <span class="hi">Ğ1</span>, accès aux services ẐEN.</p>
-    <div class="steps">
-      <div class="step">
-        <div class="sn sn-g">01</div>
-        <span>Installer <span class="hi">Ẑelkova</span> :<br>
-          📱 Android : <a id="lnk-zelkova" href="#" target="_blank">APK GitHub</a></span>
-      </div>
-      <div class="step"><div class="sn sn-g">02</div><span>Créer votre profil → clé NOSTR + identité Ğ1 générés localement.</span></div>
-      <div class="step"><div class="sn sn-g">03</div><span>Lié à la coopérative <a id="lnk-g1fablab" href="#" target="_blank">G1FabLab</a> et au réseau UPlanet ẐEN.</span></div>
-      <div class="step"><div class="sn sn-g">04</div><span>Ce nœud peut émettre des <span class="hi">ZenCards</span> — demandez à l'opérateur.</span></div>
-    </div>
-    <a id="btn-zelkova" href="#" target="_blank" class="btn btn-gold" style="margin-top:6px">Télécharger Ẑelkova →</a>
-  </div>
-
-  <div class="card" id="card-jukebox" style="display:none">
-    <h2>📥 Jukebox Collectif</h2>
-    <p>Archivez une musique sur ce nœud IPFS. Accessible hors-ligne via la gateway locale.</p>
-    <div class="ibox">
-      <div class="irow"><span class="lbl">Format</span>  <span class="val">MP3 (audio)</span></div>
-      <div class="irow"><span class="lbl">Gateway</span> <span class="val" id="cfg-gateway">http://…:8080/ipfs/&lt;CID&gt;</span></div>
-    </div>
-    <input type="text" id="yt-url" class="yt-input" placeholder="Lien YouTube ou recherche…">
-    <button onclick="doYtCopy()" id="btn-yt" class="btn btn-red">Télécharger &amp; épingler →</button>
-    <div id="yt-result"></div>
-  </div>
-
-  <details>
-    <summary>📡 Ajouter une Enceinte Satellite</summary>
-    <div class="det-body">
-      <div class="steps">
-        <div class="step"><div class="sn sn-s">01</div><span>Flasher un <span class="hi">RPi Zero 2W</span> avec Raspberry Pi OS Lite</span></div>
-        <div class="step"><div class="sn sn-s">02</div><span>Connecter au WiFi <code class="val" id="sat-ssid">…</code> ou <code class="val">qo-op</code></span></div>
-        <div class="step">
-          <div class="sn sn-s">03</div>
-          <span><code class="val">git clone https://github.com/papiche/sound-spot</code><br>
-            <code class="val">sudo bash deploy_on_pi.sh --satellite</code></span>
-        </div>
-        <div class="step"><div class="sn sn-s">04</div><span>Maître : <code class="val" id="sat-ip">…</code> ou <code class="val">soundspot.local</code></span></div>
-      </div>
-    </div>
-  </details>
-
-  <details>
-    <summary>🪙 Économie ẐEN &amp; Ğ1</summary>
-    <div class="det-body">
-      <a href="https://github.com/papiche/Astroport.ONE/blob/master/docs/ZEN.ECONOMY.v3.md" target="_blank" class="btn btn-gold btn-sm">Zen Economy v3</a>
-      <a href="https://zen.copylaradio.com/" target="_blank" class="btn btn-outline btn-sm">TrocZen</a>
-      <a id="lnk-oc" href="#" target="_blank" class="btn btn-main btn-sm">Soutenir G1FabLab</a>
-    </div>
-  </details>
-
-  <details>
-    <summary>🔍 QQOQCCP — Le Projet</summary>
-    <div class="det-body">
-      <p><b style="color:#fff">Qui :</b> Les membres G1FabLab.<br>
-         <b style="color:#fff">Quoi :</b> Nœuds PicoPort WiFi + audio.<br>
-         <b style="color:#fff">Pourquoi :</b> Souveraineté collective.<br>
-         <b style="color:#fff">Comment :</b> Énergie solaire &amp; logiciel libre AGPL.</p>
-      <a href="index_2.html" class="btn btn-dj btn-sm" style="display:block;margin-top:10px">🐷 Interface CyberCochon →</a>
-      <a href="macro.html" class="btn btn-sat btn-sm" style="display:block;margin-top:10px; background:#ffd700; color:#000;">🌌 Vision Macro (Essaim) →</a>
-
-      <a href="docs.sh" class="btn btn-outline btn-sm" style="display:block;margin-top:10px">Documentation locale →</a>
-    </div>
-  </details>
-
-</div>
-
-<!-- ═══════════════════════════════════════
-     TAB 4 — ÉNERGIE
-════════════════════════════════════════ -->
-<div id="tab-solaire" class="tab-content">
-
-  <div class="card" id="card-battery" style="display:none">
-    <h2>🔋 Télémétrie Solaire (INA219)</h2>
-    <div class="astro-grid">
-      <div class="astro-box"><span id="batt-volt" class="volt-display">-- V</span><label>Tension</label></div>
-      <div class="astro-box"><span id="batt-cur"  class="volt-display">-- mA</span><label>Courant</label></div>
-      <div class="astro-box"><span id="batt-pow"  class="volt-display">-- mW</span><label>Puissance</label></div>
-      <div class="astro-box"><span id="batt-pct"  class="volt-display">-- %</span><label>Charge</label></div>
-    </div>
-    <div id="energy-chart" class="ct-chart"></div>
-  </div>
-
-  <div class="card">
-    <h2>📊 Nœud</h2>
-    <div class="ibox">
-      <div class="irow"><span class="lbl">Charge CPU</span>   <span class="val" id="sys-cpu">…</span></div>
-      <div class="irow"><span class="lbl">Mémoire libre</span><span class="val" id="sys-mem">…</span></div>
-      <div class="irow"><span class="lbl">Version portail</span><span class="val" id="cfg-version">…</span></div>
-    </div>
-  </div>
-
-  <div class="card">
-    <h2>💻 Sous le Capot</h2>
-    <p>Infrastructure résiliente : IPFS, Duniter v2s et NOSTR sur 512 Mo de RAM avec énergie solaire.</p>
-    <div class="ibox">
-      <div class="irow"><span class="lbl">Licence</span>    <span class="val">AGPL-3.0</span></div>
-      <div class="irow"><span class="lbl">IPFS</span>       <span class="val" id="pico-status-detail">—</span></div>
-      <div class="irow"><span class="lbl">GPIO Pinout</span><span class="val"><a href="/pinout/" target="_blank">Référence →</a></span></div>
-      <div class="irow"><span class="lbl">Code Source</span><span class="val"><a id="lnk-src" href="#" target="_blank">GitHub →</a></span></div>
-      <div class="irow"><span class="lbl">Soutien</span>    <span class="val"><a id="lnk-oc2" href="#" target="_blank">OpenCollective →</a></span></div>
-    </div>
-      <a href="index_2.html" class="btn btn-dj btn-sm" style="display:block;margin-top:10px">🐷 Interface CyberCochon →</a>
-      <a href="macro.html" class="btn btn-sat btn-sm" style="display:block;margin-top:10px; background:#ffd700; color:#000;">🌌 Vision Macro (Essaim) →</a>
-
-    <a href="docs.sh" class="btn btn-outline btn-sm" style="display:block;margin-top:10px">Documentation locale →</a>
-  </div>
-
-</div>
-
-<!-- ═══════════════════════════════════════
-     TAB 5 — CONFIG
-════════════════════════════════════════ -->
-<div id="tab-config" class="tab-content">
-
-  <div class="card">
-    <h2>📡 Réseau</h2>
-    <div class="ibox" id="cfg-network-box">
-      <div class="irow"><span class="lbl">SSID Visiteurs</span> <span class="val" id="cn-ssid">…</span></div>
-      <div class="irow"><span class="lbl">IP Station</span>     <span class="val" id="cn-ip">…</span></div>
-      <div class="irow"><span class="lbl">Hostname</span>        <span class="val" id="cn-hostname">…</span></div>
-      <div class="irow"><span class="lbl">IPv4 amont</span>      <span class="val" id="cn-wan">…</span></div>
-    </div>
-  </div>
-
-  <div class="card">
-    <h2>🔊 Audio</h2>
-    <div id="cfg-audio-sinks"><p style="color:var(--muted);font-size:.85rem">Détection sorties…</p></div>
-    <a id="lnk-mixer-cfg" href="#" target="_blank" class="btn btn-teal btn-sm" style="margin-top:8px">Ouvrir Snapweb →</a>
-    <div class="ibox" style="margin-top:10px">
-      <div class="irow"><span class="lbl">Enceinte(s) BT</span><span class="val" id="cn-bt">…</span></div>
-      <div class="irow"><span class="lbl">Port Snapcast</span>  <span class="val" id="cn-snap">…</span></div>
-      <div class="irow"><span class="lbl">Port Icecast</span>   <span class="val" id="cn-ice">…</span></div>
-    </div>
-    <p style="font-size:.78rem;color:var(--muted);margin-top:6px">Reconnexion disponible dans 🔒 Administration.</p>
-  </div>
-
-  <div class="card">
-    <h2>🎛 Voix &amp; Clocher</h2>
-    <div class="ibox">
-      <div class="irow"><span class="lbl">Bip + Cloches</span>    <span class="val" id="cfg-bells-lbl">…</span></div>
-      <div class="irow"><span class="lbl">Coups (heure pile)</span><span class="val" id="cfg-clock-lbl">…</span></div>
-      <div class="irow"><span class="lbl">Voix (annonces)</span>   <span class="val" id="cfg-voice-lbl">…</span></div>
-    </div>
-    <p style="font-size:.78rem;color:var(--muted);margin-top:6px">Réglages protégés — voir 🔒 Administration.</p>
-  </div>
-
-  <div class="card">
-    <h2>🔧 GPIO &amp; Extensions</h2>
-    <p>Carte brochage Raspberry Pi disponible hors-ligne :</p>
-    <a href="/pinout/" target="_blank" class="btn btn-outline">📌 Ouvrir Pinout.xyz →</a>
-    <p style="font-size:.78rem;color:var(--muted);margin-top:8px">Cloner d'autres extensions : <code class="val">git clone …</code> dans <code class="val">~/.zen/workspace/</code></p>
-  </div>
-
-  <div class="card">
-    <h2>⚡ Services</h2>
-    <div id="cfg-services-list"><p style="color:var(--muted);font-size:.85rem">Chargement…</p></div>
-  </div>
-
-  <!-- ── Messages du clocher ── -->
-  <div class="card">
-    <h2>📢 Messages du clocher</h2>
-    <div id="msg-list" style="display:flex;flex-direction:column;gap:8px"></div>
-    <button class="btn btn-sm btn-outline" style="margin-top:8px" onclick="msgLoad()">Actualiser</button>
-  </div>
-
-  <!-- ── Administration (protégée par mot de passe UPLANETNAME) ── -->
-  <div class="card">
-    <h2>🔒 Administration BT</h2>
-    <div id="adm-login">
-      <div class="irow">
-        <input id="adm-pass-input" type="password" placeholder="Mot de passe (10 car.)"
-          style="flex:1;padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:.9rem"
-          onkeydown="if(event.key==='Enter') admLogin()" />
-        <button class="btn btn-sm" onclick="admLogin()">Connexion</button>
-      </div>
-      <p style="font-size:.75rem;color:var(--muted);margin-top:4px">10 derniers caractères de UPLANETNAME</p>
-    </div>
-    <div id="adm-panel" style="display:none">
-
-      <p style="font-size:.8rem;font-weight:700;color:var(--muted);margin:8px 0 4px;text-transform:uppercase;letter-spacing:.06em">Bluetooth</p>
-      <div class="ibox" style="margin:0 0 8px">
-        <div class="irow"><span class="lbl">MACs configurés</span><span class="val" id="adm-bt-macs">—</span></div>
-        <div class="irow"><span class="lbl">Connectés</span>       <span class="val" id="adm-bt-connected">—</span></div>
-      </div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
-        <button class="btn btn-sm" onclick="admBtScan()">Scanner (10s)</button>
-        <button class="btn btn-sm btn-outline" onclick="admBtRefresh()">Actualiser</button>
-      </div>
-      <div id="adm-bt-results" style="margin-bottom:10px"></div>
-
-      <p style="font-size:.8rem;font-weight:700;color:var(--muted);margin:8px 0 4px;text-transform:uppercase;letter-spacing:.06em">Audio</p>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
-        <button class="btn btn-sm btn-outline" onclick="fixAudio()">🔄 Reconnecter audio</button>
-        <button class="btn btn-red btn-sm" onclick="admAudioReset()">🔥 Reset audio total</button>
-      </div>
-
-      <p style="font-size:.8rem;font-weight:700;color:var(--muted);margin:8px 0 4px;text-transform:uppercase;letter-spacing:.06em">Clocher &amp; Voix</p>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
-        <button onclick="toggleBells()" id="adm-btn-bells" class="btn btn-outline btn-sm">…</button>
-        <button onclick="toggleClock()" id="adm-btn-clock" class="btn btn-outline btn-sm">…</button>
-        <button onclick="toggleVoice()" id="adm-btn-voice" class="btn btn-outline btn-sm">…</button>
-      </div>
-
-      <details style="margin-top:4px">
-        <summary style="font-size:.8rem;color:var(--muted)">🐛 Debug log</summary>
-        <pre id="adm-debug" style="font-size:.7rem;color:var(--muted);padding:8px;max-height:180px;overflow:auto;white-space:pre-wrap;margin-top:4px"></pre>
-      </details>
-    </div>
-  </div>
-
-</div>
-
-<!-- ═══ NAVIGATION ═══ -->
-<nav class="nav-tabs">
-  <button class="tab-btn active" onclick="showTab('tab-radio',this)">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9M19.1 4.9c3.9 3.9 3.9 10.3 0 14.2M8.3 15.7c-2.1-2.1-2.1-5.5 0-7.6M15.7 8.3c2.1 2.1 2.1 5.5 0 7.6M12 12v.01"/>
-    </svg>
-    Radio
-  </button>
-  <button class="tab-btn" onclick="showTab('tab-liberte',this)">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-    </svg>
-    Liberté
-  </button>
-  <button class="tab-btn" onclick="showTab('tab-constellation',this)">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <circle cx="12" cy="12" r="10"/>
-      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-      <path d="M2 12h20"/>
-    </svg>
-    UPlanet
-  </button>
-  <button class="tab-btn" onclick="showTab('tab-solaire',this)">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <circle cx="12" cy="12" r="5"/>
-      <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
-      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-      <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
-      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-    </svg>
-    Énergie
-  </button>
-  <button class="tab-btn" onclick="showTab('tab-config',this)">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <circle cx="12" cy="12" r="3"/>
-      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-    </svg>
-    Config
-  </button>
 </nav>
 
+<!-- ── Modale NIP-42 ─────────────────────────────────────── -->
+<div class="modal-overlay" id="auth-modal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeAuthModal()">✕</button>
+    <h3 id="modal-title">🔑 Connexion MULTIPASS</h3>
+    <p id="modal-desc">Connectez-vous avec votre identité NOSTR pour accéder aux fonctions avancées (Jukebox, uDRIVE, Admin).</p>
+    <div class="auth-steps" id="auth-steps">
+      <div class="auth-step" id="step-nip07">
+        <span class="step-icon" id="si-nip07">⏳</span>
+        <div><div>Extension NOSTR (NIP-07)</div>
+        <div class="auth-step-hint">Alby, nos2x, NOSTR Connect…</div></div>
+      </div>
+      <div class="auth-step" id="step-challenge">
+        <span class="step-icon" id="si-challenge">⏳</span>
+        <div><div>Challenge NIP-42</div>
+        <div class="auth-step-hint">Nonce aléatoire du portail (TTL 120s)</div></div>
+      </div>
+      <div class="auth-step" id="step-sign">
+        <span class="step-icon" id="si-sign">⏳</span>
+        <div><div>Signature kind 22242</div>
+        <div class="auth-step-hint">Votre extension signe l'événement</div></div>
+      </div>
+      <div class="auth-step" id="step-verify">
+        <span class="step-icon" id="si-verify">⏳</span>
+        <div><div>Vérification Schnorr</div>
+        <div class="auth-step-hint">nak verify — local, aucune donnée externe</div></div>
+      </div>
+    </div>
+    <div id="auth-msg"></div>
+    <button class="btn-primary" id="btn-do-auth" onclick="doNip42Auth()">Connexion NOSTR</button>
+    <div id="auth-logout-wrap" style="display:none;margin-top:10px;text-align:center">
+      <button style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer" onclick="doLogout()">Se déconnecter</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Onglets ───────────────────────────────────────────── -->
+<div class="tabnav">
+  <button class="tablink active" onclick="showTab('radio')"    id="tl-radio">📻 Radio</button>
+  <button class="tablink"        onclick="showTab('internet')" id="tl-internet">🌐 Internet</button>
+  <button class="tablink"        onclick="showTab('jukebox')"  id="tl-jukebox">🎵 Jukebox<span class="lock" id="lock-jukebox"> 🔒</span></button>
+  <button class="tablink"        onclick="showTab('udrive')"   id="tl-udrive">📤 uDRIVE<span class="lock" id="lock-udrive"> 🔒</span></button>
+  <button class="tablink"        onclick="showTab('admin')"    id="tl-admin">⚙️ Admin<span class="lock" id="lock-admin"> 🔒</span></button>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     ONGLET Radio (public)
+═══════════════════════════════════════════════════════ -->
+<div class="tabpane active" id="tab-radio">
+  <div class="card">
+    <div class="player-wrap">
+      <div class="clock-display" id="clock-time">--:--:--</div>
+      <div class="clock-sub"    id="clock-date"></div>
+      <div class="player-status" id="player-status">Flux audio en attente…</div>
+      <audio id="audio-player" preload="none"></audio>
+      <div class="player-controls">
+        <button class="btn-play" id="btn-play" onclick="togglePlay()">▶ Écouter</button>
+        <input type="range" id="vol-slider" min="0" max="1" step="0.05" value="0.8"
+               oninput="setVol(this.value)" title="Volume">
+        <span style="font-size:12px;color:var(--muted)" id="vol-label">80%</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🌍 UPlanet ORIGIN</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:12px;line-height:1.6">
+      Écosystème coopératif décentralisé — créez votre MULTIPASS NOSTR, gérez votre uDRIVE IPFS,
+      rejoignez la constellation Ğ1.
+    </p>
+    <a href="#" id="uplanet-card-link" class="external-link" target="_blank">
+      🌐 Ouvrir UPlanet ORIGIN →
+    </a>
+    <div class="hint" style="margin-top:10px">Servi via la passerelle IPFS locale (<span id="ipfs-gw-hint">port 8080</span>)</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🔔 Messages du clocher</div>
+    <div id="messages-list" style="font-size:13px;color:var(--muted)">Chargement…</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     ONGLET Internet (public)
+═══════════════════════════════════════════════════════ -->
+<div class="tabpane" id="tab-internet">
+  <div class="card">
+    <div class="internet-hero">
+      <div class="big-icon">🌐</div>
+      <h2>Accès Internet</h2>
+      <p>Un clic ouvre <strong>4 heures</strong> d'accès Internet complet via ce nœud SoundSpot.</p>
+      <button class="btn-internet" id="btn-get-internet" onclick="getInternet()">Ouvrir l'accès Internet</button>
+      <div class="internet-msg" id="internet-msg"></div>
+    </div>
+    <p class="hint" style="margin-top:8px">Accès limité à 4 heures (ipset timeout 14400 s). Aucun compte requis.</p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     ONGLET Jukebox (MULTIPASS)
+═══════════════════════════════════════════════════════ -->
+<div class="tabpane" id="tab-jukebox">
+  <div class="locked-zone" id="jukebox-locked">
+    <div class="lock-icon">🎵🔒</div>
+    <h3>Jukebox MULTIPASS</h3>
+    <p>Authentifiez-vous avec votre identité NOSTR pour ajouter des morceaux à la file du jukebox et copier depuis YouTube.</p>
+    <button class="btn-unlock" onclick="openAuthModal()">Se connecter avec NOSTR</button>
+    <div style="margin-top:14px">
+      <a id="jukebox-create-link" href="#" target="_blank" class="external-link" style="justify-content:center">
+        🆕 Créer un MULTIPASS →
+      </a>
+    </div>
+  </div>
+  <div id="jukebox-content" style="display:none">
+
+    <!-- ── Lien uDRIVE personnel ─────────────────────────── -->
+    <div class="card">
+      <div class="card-title">💾 Mon uDRIVE</div>
+      <a id="udrive-personal-link" href="#" target="_blank" class="external-link">
+        📂 Ouvrir mon uDRIVE IPFS →
+      </a>
+    </div>
+
+    <!-- ── Copie YouTube (délégation home station) ────────── -->
+    <div class="card">
+      <div class="card-title">📺 Copier depuis YouTube</div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.5">
+        La copie s'effectue sur votre station Home via NOSTR. Aucun yt-dlp local.<br>
+        Un kind 1 contenant <code>#BRO #youtube &lt;URL&gt;</code> est publié sur le relay public.
+        Votre <code>UPlanet_IA_Responder.sh</code> détecte le tag et appelle <code>process_youtube.sh</code>.
+      </p>
+      <div class="jukebox-form">
+        <input class="jukebox-input" id="yt-url" type="url"
+          placeholder="https://youtube.com/watch?v=… ou mot-clé de recherche">
+        <select id="yt-fmt" style="padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:13px">
+          <option value="mp3">🎵 MP3 (uDRIVE/Music)</option>
+          <option value="mp4">🎬 MP4 (uDRIVE/Videos)</option>
+        </select>
+        <button class="btn-queue" id="btn-ytcopy" onclick="ytcopyRequest()">Copier ▶</button>
+      </div>
+      <div id="yt-msg" style="display:none;font-size:12px;margin-top:8px;padding:8px 12px;border-radius:8px"></div>
+    </div>
+
+    <!-- ── Jukebox IPFS direct ───────────────────────────── -->
+    <div class="card">
+      <div class="card-title">🎵 Ajouter un morceau (URL directe)</div>
+      <div class="jukebox-form">
+        <input class="jukebox-input" id="jukebox-url" type="url"
+          placeholder="http://192.168.10.1:8080/ipfs/Qm…/track.mp3">
+        <button class="btn-queue" id="btn-queue" onclick="queueSong()">Ajouter ▶</button>
+      </div>
+      <p class="hint" style="margin-top:8px">
+        Kind 1 publié sur le relay local (port 9999). File limitée à 5 morceaux.
+      </p>
+    </div>
+
+    <!-- ── Bibliothèque uDRIVE ───────────────────────────── -->
+    <div class="card">
+      <div class="card-title">🎧 Ma bibliothèque uDRIVE <button onclick="loadUdriveAudio()" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;margin-left:8px">↺</button></div>
+      <div id="udrive-audio-list" style="font-size:13px;color:var(--muted)">
+        <span class="spinner"></span> Chargement du manifest…
+      </div>
+    </div>
+
+    <!-- ── File locale ───────────────────────────────────── -->
+    <div class="card">
+      <div class="card-title">📋 File en cours</div>
+      <div class="queue-list" id="queue-list">
+        <div style="font-size:13px;color:var(--muted)">Aucun morceau en attente</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     ONGLET uDRIVE (MULTIPASS)
+═══════════════════════════════════════════════════════ -->
+<div class="tabpane" id="tab-udrive">
+  <div class="locked-zone" id="udrive-locked">
+    <div class="lock-icon">📤🔒</div>
+    <h3>uDRIVE MULTIPASS</h3>
+    <p>Authentifiez-vous avec votre identité NOSTR pour uploader des fichiers dans votre espace IPFS personnel.</p>
+    <button class="btn-unlock" onclick="openAuthModal()">Se connecter avec NOSTR</button>
+  </div>
+  <div id="udrive-content" style="display:none">
+    <div class="card">
+      <div class="card-title">📤 Uploader un média</div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.5">
+        Le fichier est épinglé sur IPFS local. Si vous êtes en <strong>roaming</strong> (station visitée),
+        un DM NIP-04 est envoyé automatiquement à votre station home pour synchroniser votre uDRIVE
+        (<a href="#" style="color:var(--cyan);font-size:11px" target="_blank">ROAMING_UDRIVE_SYNC</a>).
+      </p>
+      <div class="drop-zone" id="drop-zone"
+           onclick="document.getElementById('udrive-file').click()"
+           ondragover="event.preventDefault();this.classList.add('drag-over')"
+           ondragleave="this.classList.remove('drag-over')"
+           ondrop="handleDrop(event)">
+        <div class="di">🖼️</div>
+        <p>Cliquer ou déposer un fichier ici</p>
+        <p style="font-size:11px;margin-top:4px">JPG · PNG · GIF · WebP · MP4 · MP3 · max 10 Mo</p>
+        <input type="file" id="udrive-file" accept="image/*,video/*,audio/*"
+               onchange="previewFile(this.files[0])">
+      </div>
+      <img id="upload-preview" alt="aperçu">
+      <div class="upload-bar-wrap" id="upload-bar-wrap">
+        <div class="upload-bar" id="upload-bar"></div>
+      </div>
+      <button class="btn-primary" id="btn-upload" onclick="doUpload()" disabled style="margin-top:12px">
+        ⬆️ Envoyer vers uDRIVE
+      </button>
+      <div class="upload-result" id="upload-result"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     ONGLET Admin (MULTIPASS)
+═══════════════════════════════════════════════════════ -->
+<div class="tabpane" id="tab-admin">
+  <div class="locked-zone" id="admin-locked">
+    <div class="lock-icon">⚙️🔒</div>
+    <h3>Administration MULTIPASS</h3>
+    <p>Authentifiez-vous avec votre identité NOSTR pour accéder aux paramètres du nœud SoundSpot.</p>
+    <button class="btn-unlock" onclick="openAuthModal()">Se connecter avec NOSTR</button>
+  </div>
+  <div id="admin-content" style="display:none">
+    <div class="card">
+      <div class="card-title">🔧 Services</div>
+      <div id="services-list" style="font-size:13px;color:var(--muted)">Chargement…</div>
+      <div class="admin-actions">
+        <button class="btn-admin danger" onclick="adminPost({cmd:'reset_audio'})">🔄 Reset audio</button>
+        <button class="btn-admin" onclick="loadAdminStatus()">↺ Rafraîchir</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🔵 Bluetooth</div>
+      <div id="bt-connected-list" style="font-size:13px;color:var(--muted);margin-bottom:10px">Chargement…</div>
+      <div class="admin-actions">
+        <button class="btn-admin" onclick="btScan()">🔍 Scanner (13s)</button>
+      </div>
+      <div id="bt-scan-results" style="margin-top:10px"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🔔 Clocher numérique</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:8px">
+        Mode : <span id="clock-mode-label">—</span>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="toggle-btn" id="toggle-bells"  onclick="setClockMode('bells')">🔔 Cloches</button>
+        <button class="toggle-btn" id="toggle-silent" onclick="setClockMode('silent')">🔇 Silencieux</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🖥️ Control Center</div>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:10px">
+        Interface TUI complète — nécessite un terminal SSH sur le RPi.
+      </p>
+      <code style="display:block;font-size:12px;background:var(--bg3);padding:10px 12px;border-radius:6px;color:var(--cyan)">
+        ssh pi@<span id="cc-host">soundspot.local</span><br>
+        sudo bash /opt/soundspot/backend/system/control_center.sh
+      </code>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     JavaScript
+═══════════════════════════════════════════════════════ -->
 <script>
-'use strict';
-let CFG = {}, clockMode = 'bells', voiceEnabled = true, bellsEnabled = true, ttsEngine = 'espeak', chart, chartData = { labels: [], series: [[]] };
+/* ── État global ─────────────────────────────────────── */
+const S = {
+  npub: '', pubkeyHex: '', authenticated: false,
+  spotName: 'SoundSpot', clockMode: 'bells',
+};
+const SPOT_HOST    = window.location.hostname;
+const API          = '/api.sh';
+const UPASSPORT    = 'http://' + SPOT_HOST + ':54321';
+const IPFS_GW      = 'http://' + SPOT_HOST + ':8080';
+const FLEET_RELAY  = 'ws://'   + SPOT_HOST + ':9999';
 
-function showTab(id, btn) {
-  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-  btn.classList.add('active');
-  if (id === 'tab-solaire') setTimeout(initChart, 200);
-  if (id === 'tab-config') { loadConfigTab(); loadServicesStatus(); setTimeout(loadAudioSinksCfg, 300); msgLoad(); }
+/* ── Onglets ─────────────────────────────────────────── */
+function showTab(name) {
+  document.querySelectorAll('.tabpane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tablink').forEach(l => l.classList.remove('active'));
+  document.getElementById('tab-' + name)?.classList.add('active');
+  document.getElementById('tl-'  + name)?.classList.add('active');
+  if (name === 'admin'   && S.authenticated) loadAdminStatus();
+  if (name === 'jukebox' && S.authenticated) loadUdriveAudio();
+  if (name === 'radio') loadMessages();
 }
 
-function toast(msg, ok = true) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.style.borderColor = ok ? 'var(--accent)' : 'var(--red)';
-  t.style.color = ok ? 'var(--accent)' : 'var(--red)';
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 3000);
-}
-
-function setTxt(ids, val) {
-  ids.forEach(id => { const el = document.getElementById(id); if (el) el.textContent = val; });
-}
-function setHref(id, href) {
-  if (!href) return;
-  const el = document.getElementById(id);
-  if (el) el.href = href;
-}
-
-async function loadConfig() {
+/* ── bech32 ──────────────────────────────────────────── */
+const B32 = 'qpzry9x8gf2tvdw0s3jn54khce6mua7l';
+function npubToHex(npub) {
   try {
-    const r = await fetch('/api.sh?action=config');
-    CFG = await r.json();
-    const n  = CFG.spot_name  || '—';
-    const ip = CFG.spot_ip    || '—';
-    const sp = String(CFG.snapcast_port || 1704);
-    const ic = String(CFG.icecast_port  || 8111);
-    const lk = CFG.links || {};
-    const mixerUrl = 'http://' + ip + ':1780';
-    setHref('lnk-mixer', mixerUrl);
-    setHref('lnk-mixer-cfg', mixerUrl);
+    npub = npub.toLowerCase();
+    const p = npub.lastIndexOf('1');
+    const data = [];
+    for (const c of npub.slice(p + 1)) { const i = B32.indexOf(c); if (i < 0) return ''; data.push(i); }
+    const d = data.slice(0, -6);
+    let acc = 0, bits = 0; const out = [];
+    for (const v of d) { acc = ((acc << 5) | v) & 0x3fffffff; bits += 5; while (bits >= 8) { bits -= 8; out.push((acc >> bits) & 0xff); } }
+    return out.map(b => b.toString(16).padStart(2, '0')).join('');
+  } catch (_) { return ''; }
+}
+function hexToNpub(hex) {
+  try {
+    const G = [0x3b6a57b2,0x26508e6d,0x1ea119fa,0x3d4233dd,0x2a1462b3];
+    const pm = v => { let c = 1; for (const b of v) { const t = c >> 25; c = ((c & 0x1ffffff) << 5) ^ b; for (let i = 0; i < 5; i++) if ((t >> i) & 1) c ^= G[i]; } return c; };
+    const he = h => { const r = []; for (let i = 0; i < h.length; i++) r.push(h.charCodeAt(i) >> 5); r.push(0); for (let i = 0; i < h.length; i++) r.push(h.charCodeAt(i) & 31); return r; };
+    const cv = (d, f, t) => { let a = 0, b = 0; const r = [], m = (1 << t) - 1; for (const v of d) { a = (a << f) | v; b += f; while (b >= t) { b -= t; r.push((a >> b) & m); } } if (b > 0) r.push((a << (t - b)) & m); return r; };
+    const bytes = hex.match(/.{2}/g).map(b => parseInt(b, 16));
+    const words = cv(bytes, 8, 5);
+    const ck = pm(he('npub').concat(words).concat([0,0,0,0,0,0])) ^ 1;
+    return 'npub1' + words.concat([(ck>>25)&31,(ck>>20)&31,(ck>>15)&31,(ck>>10)&31,(ck>>5)&31,ck&31]).map(w => B32[w]).join('');
+  } catch (_) { return ''; }
+}
+function shortKey(k) { return k.slice(0, 8) + '…' + k.slice(-4); }
 
-    document.getElementById('hero-sub').textContent = 'Nœud // ' + n;
-    setTxt(['cfg-ssid','cfg-ssid2','sat-ssid'], n);
-    setTxt(['cfg-ip','cfg-ip2','dj-ip','sat-ip'], ip);
-    setTxt(['cfg-port','cfg-port2','dj-port'], sp);
-    setTxt(['lnk-pc'],    'snapclient -h ' + ip);
-    setTxt(['dj-snap'],   'snapclient -h ' + ip);
-    setTxt(['dj-icecast'], ip + ':' + ic);
-    setTxt(['cfg-gateway'], 'http://' + ip + ':8080/ipfs/<CID>');
-    setTxt(['cfg-version'], CFG.version || 'dev');
-
-    setHref('lnk-fdroid',   lk.snapdroid_fdroid);
-    setHref('lnk-play',     lk.snapdroid_play);
-    setHref('lnk-ios',      lk.snapcast_ios);
-    setHref('lnk-zelkova',  lk.zelkova_release);
-    setHref('btn-zelkova',  lk.zelkova_release);
-    setHref('lnk-g1fablab', lk.g1fablab);
-    setHref('lnk-oc',       lk.g1fablab);
-    setHref('lnk-oc2',      lk.g1fablab);
-    setHref('lnk-src',      lk.source);
-
-    if (CFG.picoport_enabled && CFG.yt_available) {
-      document.getElementById('card-jukebox').style.display = '';
+/* ── Init station ────────────────────────────────────── */
+async function initStation() {
+  try {
+    const d = await (await fetch(API + '?action=status')).json();
+    if (d.spot_name) {
+      S.spotName = d.spot_name;
+      document.title = S.spotName + ' — Portail';
+      document.getElementById('brand-name').textContent = '🎵 ' + S.spotName;
+      document.getElementById('cc-host').textContent =
+        S.spotName.toLowerCase().replace(/\s+/g, '-') + '.local';
     }
+    if (d.clock_mode) { S.clockMode = d.clock_mode; updateClockModeUI(); }
+    const port = d.icecast_port || 8111;
+    const streamUrl = 'http://' + SPOT_HOST + ':' + port + '/live';
+    document.getElementById('audio-player').src = streamUrl;
+    document.getElementById('player-status').textContent = 'Flux : ' + streamUrl;
+  } catch (_) {}
+  const uplanetUrl = IPFS_GW + '/ipns/copylaradio.com/';
+  document.getElementById('uplanet-card-link').href = uplanetUrl;
+  document.getElementById('ipfs-gw-hint').textContent = SPOT_HOST + ':8080';
+  // Lien création MULTIPASS dans le locked-zone jukebox
+  const createLnk = document.getElementById('jukebox-create-link');
+  if (createLnk) createLnk.href = IPFS_GW + '/ipns/copylaradio.com/g1.html';
+  const saved = localStorage.getItem('ss_npub');
+  if (saved) await checkSession(saved);
+  loadMessages();
+}
+function openUplanet() { window.open(IPFS_GW + '/ipns/copylaradio.com/', '_blank'); }
 
-    clockMode    = CFG.clock_mode    || 'bells';
-    voiceEnabled = CFG.voice_enabled !== false;
-    bellsEnabled = CFG.bells_enabled !== false;
-    updateClockUI();
-    updateBellsUI();
-    // ttsEngine mis à jour par loadStatus() — appel immédiat pour initialiser
-    fetch('/api.sh?action=status').then(r=>r.json()).then(d => {
-      if (d.tts_engine) { ttsEngine = d.tts_engine; }
-      updateVoiceUI();
-    }).catch(() => updateVoiceUI());
-    loadConfigTab();
-  } catch(e) { console.error('Config failed', e); }
+/* ── Horloge ─────────────────────────────────────────── */
+function updateClock() {
+  const n = new Date();
+  const pad = v => String(v).padStart(2, '0');
+  document.getElementById('clock-time').textContent = pad(n.getHours()) + ':' + pad(n.getMinutes()) + ':' + pad(n.getSeconds());
+  const days   = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+  const months = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+  document.getElementById('clock-date').textContent =
+    days[n.getDay()] + ' ' + n.getDate() + ' ' + months[n.getMonth()] + ' ' + n.getFullYear();
+}
+setInterval(updateClock, 1000); updateClock();
+
+/* ── Lecteur audio ───────────────────────────────────── */
+let playing = false;
+function togglePlay() {
+  const audio = document.getElementById('audio-player');
+  const btn   = document.getElementById('btn-play');
+  if (playing) {
+    audio.pause();
+    btn.textContent = '▶ Écouter';
+    btn.classList.remove('playing');
+    document.getElementById('player-status').textContent = 'Lecture arrêtée';
+    playing = false;
+  } else {
+    audio.play()
+      .then(() => {
+        btn.textContent = '⏹ Arrêter';
+        btn.classList.add('playing');
+        document.getElementById('player-status').textContent = '🔴 En direct — ' + S.spotName;
+        playing = true;
+      })
+      .catch(() => {
+        document.getElementById('player-status').textContent = 'Flux indisponible — aucune émission en cours';
+      });
+  }
+}
+function setVol(v) {
+  document.getElementById('audio-player').volume = v;
+  document.getElementById('vol-label').textContent = Math.round(v * 100) + '%';
 }
 
-async function loadStatus() {
+/* ── Accès Internet ──────────────────────────────────── */
+async function getInternet() {
+  const btn = document.getElementById('btn-get-internet');
+  const msg = document.getElementById('internet-msg');
+  btn.disabled = true; btn.textContent = '⏳ Ouverture…'; msg.className = 'internet-msg';
   try {
-    const r = await fetch('/api.sh?action=status');
-    const d = await r.json();
-
-    const dj = document.getElementById('dj-badge');
-    if (d.dj_active) {
-      dj.innerHTML = '<span class="pulse"></span>DJ LIVE';
-      dj.className = 'badge-mini live';
+    const d = await (await fetch(API + '?action=auth')).json();
+    if (d.status === 'ok' || d.ok) {
+      msg.textContent = '✅ Accès Internet ouvert pour 4 heures !';
+      msg.className = 'internet-msg ok';
+      btn.textContent = 'Accès ouvert ✓';
+      setTimeout(() => { btn.disabled = false; btn.textContent = 'Renouveler l\'accès'; }, 5000);
     } else {
-      dj.textContent = 'Silence';
-      dj.className = 'badge-mini';
+      msg.textContent = '❌ ' + (d.error || 'Erreur inconnue');
+      msg.className = 'internet-msg err';
+      btn.disabled = false; btn.textContent = 'Réessayer';
     }
-
-    if (d.cpu_load) setTxt(['sys-cpu'], d.cpu_load + ' (1 min)');
-    if (d.mem_free_kb) setTxt(['sys-mem'], Math.round(d.mem_free_kb / 1024) + ' Mo libres');
-
-    if (d.picoport_active) {
-      const pb = document.getElementById('pico-badge');
-      pb.style.display = ''; pb.textContent = 'IPFS ✓'; pb.className = 'badge-mini on';
-      setTxt(['pico-status-detail'], 'Actif (picoport.service)');
-    }
-
-    if (d.batt_volt && parseFloat(d.batt_volt) > 0) {
-      document.getElementById('batt-badge').style.display = '';
-      document.getElementById('batt-badge').textContent = d.batt_pct + ' %';
-      setTxt(['batt-volt'], d.batt_volt + ' V');
-      setTxt(['batt-cur'],  d.batt_cur  + ' mA');
-      setTxt(['batt-pow'],  d.batt_pow  + ' mW');
-      setTxt(['batt-pct'],  d.batt_pct  + ' %');
-      document.getElementById('card-battery').style.display = '';
-      if (chart) {
-        chartData.labels.push(new Date().toLocaleTimeString());
-        chartData.series[0].push(parseFloat(d.batt_volt));
-        if (chartData.labels.length > 12) { chartData.labels.shift(); chartData.series[0].shift(); }
-        chart.update(chartData);
-      }
-    }
-
-    if (d.clock_mode && d.clock_mode !== clockMode) {
-      clockMode = d.clock_mode;
-      updateClockUI();
-    }
-    if (typeof d.voice_enabled !== 'undefined' && d.voice_enabled !== voiceEnabled) {
-      voiceEnabled = d.voice_enabled;
-      updateVoiceUI();
-    }
-    if (d.tts_engine && d.tts_engine !== ttsEngine) {
-      ttsEngine = d.tts_engine;
-      updateVoiceUI();
-    }
-    if (typeof d.bells_enabled !== 'undefined' && d.bells_enabled !== bellsEnabled) {
-      bellsEnabled = d.bells_enabled;
-      updateBellsUI();
-    }
-  } catch(e) {}
-}
-
-function initChart() {
-  if (chart || typeof Chartist === 'undefined') return;
-  chart = new Chartist.Line('#energy-chart', chartData, {
-    low: 3.2, high: 4.2, showArea: true, fullWidth: true,
-    axisX: { showGrid: false, showLabel: false }
-  });
-}
-
-async function doAuth() {
-  const btn = document.getElementById('btn-auth');
-  const msg = document.getElementById('auth-msg');
-  btn.disabled = true; btn.textContent = 'Ouverture…';
-  try {
-    const r = await fetch('/api.sh?action=auth', { method: 'POST', body: '' });
-    const d = await r.json();
-    if (d.status === 'authorized') {
-      btn.textContent = '✓ Accès ouvert (4 heures)';
-      btn.style.background = 'var(--teal)';
-      msg.style.display = ''; msg.textContent = 'Accès internet ouvert pour 4 heures. Bonne navigation !';
-      toast('✅ Accès Internet ouvert');
-    } else {
-      btn.disabled = false; btn.textContent = "Ouvrir l'accès Internet →";
-      toast('Erreur : ' + (d.error || 'inconnue'), false);
-    }
-  } catch(e) {
-    btn.disabled = false; btn.textContent = "Ouvrir l'accès Internet →";
-    toast('Erreur réseau', false);
+  } catch (_) {
+    msg.textContent = '❌ Portail inaccessible';
+    msg.className = 'internet-msg err';
+    btn.disabled = false; btn.textContent = 'Réessayer';
   }
 }
 
-function updateClockUI() {
-  const active = clockMode === 'bells';
-  const lbl  = active ? '🔔 Activées' : '🔇 Silencieuses';
-  const btxt = active ? 'Désactiver les cloches' : 'Activer les cloches';
-  ['clock-lbl','cfg-clock-lbl'].forEach(id => { const e=document.getElementById(id); if(e) e.textContent=lbl; });
-  ['adm-btn-clock'].forEach(id => { const e=document.getElementById(id); if(e) e.textContent=btxt; });
+/* ── NIP-42 ──────────────────────────────────────────── */
+function openAuthModal() {
+  document.getElementById('auth-modal').classList.add('open');
+  if (S.authenticated) {
+    document.getElementById('modal-title').textContent  = '✅ Connecté — ' + shortKey(S.npub);
+    document.getElementById('modal-desc').textContent   = 'Vous êtes authentifié en tant que MULTIPASS NOSTR.';
+    document.getElementById('btn-do-auth').style.display   = 'none';
+    document.getElementById('auth-logout-wrap').style.display = 'block';
+    document.getElementById('auth-steps').style.display = 'none';
+  } else {
+    document.getElementById('modal-title').textContent  = '🔑 Connexion MULTIPASS';
+    document.getElementById('modal-desc').textContent   = 'Connectez-vous avec votre identité NOSTR pour accéder aux fonctions avancées.';
+    document.getElementById('btn-do-auth').style.display   = 'block';
+    document.getElementById('auth-logout-wrap').style.display = 'none';
+    document.getElementById('auth-steps').style.display = 'flex';
+    resetAuthSteps();
+  }
+}
+function closeAuthModal() { document.getElementById('auth-modal').classList.remove('open'); }
+document.getElementById('auth-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeAuthModal(); });
+
+function setStep(id, icon, state) {
+  const ico = document.getElementById('si-' + id);
+  if (ico) ico.textContent = icon;
+  const row = document.getElementById('step-' + id);
+  if (row) row.style.borderColor =
+    state === 'ok'  ? 'rgba(61,186,126,.4)' :
+    state === 'err' ? 'rgba(231,76,60,.4)'  : 'var(--border)';
+}
+function resetAuthSteps() {
+  ['nip07','challenge','sign','verify'].forEach(s => setStep(s, '⏳', null));
+  const el = document.getElementById('auth-msg');
+  el.style.display = 'none'; el.textContent = '';
+}
+function setAuthMsg(msg, type) {
+  const el = document.getElementById('auth-msg');
+  if (!msg) { el.style.display = 'none'; return; }
+  el.textContent = msg; el.className = type || 'info'; el.style.display = 'block';
 }
 
-function updateBellsUI() {
-  const active = bellsEnabled !== false;
-  const lbl  = active ? '🔔 Actifs' : '🔕 Coupés';
-  const btxt = active ? 'Couper ding & cloches' : 'Activer ding & cloches';
-  ['bells-lbl','cfg-bells-lbl'].forEach(id => { const e=document.getElementById(id); if(e) e.textContent=lbl; });
-  ['adm-btn-bells'].forEach(id => { const e=document.getElementById(id); if(e) e.textContent=btxt; });
-}
+async function doNip42Auth() {
+  const btn = document.getElementById('btn-do-auth');
+  btn.disabled = true; resetAuthSteps();
 
-async function toggleBells() {
-  const next = bellsEnabled ? 'false' : 'true';
+  // 1. NIP-07
+  if (!window.nostr) {
+    setStep('nip07', '❌', 'err');
+    setAuthMsg('Extension NOSTR introuvable. Installez Alby, nos2x ou NOSTR Connect.', 'err');
+    btn.disabled = false; return;
+  }
+  setStep('nip07', '✅', 'ok');
+
+  // 2. Challenge
+  setStep('challenge', '⌛', null);
+  let pubkeyHex, npub, challenge;
   try {
-    const r = await fetch('/api.sh?action=bells', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: 'mode=' + next
-    });
-    const d = await r.json();
-    if (d.status === 'ok') {
-      bellsEnabled = d.bells_enabled === true || d.bells_enabled === 'true';
-      updateBellsUI();
-      toast(bellsEnabled ? '🔔 Ding & cloches activés' : '🔕 Ding & cloches coupés');
-    }
-  } catch(e) { toast('Erreur réseau', false); }
-}
+    pubkeyHex = await window.nostr.getPublicKey();
+    npub = hexToNpub(pubkeyHex);
+    const d = await (await fetch(API + '?action=nip42&cmd=challenge&npub=' + encodeURIComponent(npub))).json();
+    if (!d.ok) throw new Error(d.error || 'challenge failed');
+    challenge = d.challenge;
+    setStep('challenge', '✅', 'ok');
+  } catch (e) {
+    setStep('challenge', '❌', 'err');
+    setAuthMsg('Erreur challenge : ' + e.message, 'err');
+    btn.disabled = false; return;
+  }
 
-function updateVoiceUI() {
-  const active = voiceEnabled !== false;
-  const engineLbl = ttsEngine === 'orpheus' ? '🎤 Humain (UPlanet connecté)' : '🤖 Robot (Local)';
-  const lbl  = active ? engineLbl : '🔇 Coupée';
-  const btxt = active ? 'Couper les voix' : 'Activer les voix';
-  ['voice-lbl','cfg-voice-lbl'].forEach(id => { const e=document.getElementById(id); if(e) e.textContent=lbl; });
-  ['adm-btn-voice'].forEach(id => { const e=document.getElementById(id); if(e) e.textContent=btxt; });
-}
-
-async function toggleVoice() {
-  const next = voiceEnabled ? 'false' : 'true';
+  // 3. Signature
+  setStep('sign', '⌛', null);
+  let signedEvent;
   try {
-    const r = await fetch('/api.sh?action=voice', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: 'mode=' + next
+    signedEvent = await window.nostr.signEvent({
+      kind: 22242,
+      created_at: Math.floor(Date.now() / 1000),
+      tags: [['relay', FLEET_RELAY], ['challenge', challenge]],
+      content: 'SoundSpot Auth',
+      pubkey: pubkeyHex,
     });
-    const d = await r.json();
-    if (d.status === 'ok') {
-      voiceEnabled = d.voice_enabled === true || d.voice_enabled === 'true';
-      updateVoiceUI();
-      toast(voiceEnabled ? '🔊 Voix activées' : '🔇 Voix coupées');
-    }
-  } catch(e) { toast('Erreur réseau', false); }
-}
+    setStep('sign', '✅', 'ok');
+  } catch (e) {
+    setStep('sign', '❌', 'err');
+    setAuthMsg('Signature refusée : ' + e.message, 'err');
+    btn.disabled = false; return;
+  }
 
-async function toggleClock() {
-  const next = clockMode === 'bells' ? 'silent' : 'bells';
+  // 4. Vérification
+  setStep('verify', '⌛', null);
   try {
-    const r = await fetch('/api.sh?action=clock', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: 'mode=' + next
-    });
-    const d = await r.json();
-    if (d.status === 'ok') {
-      clockMode = d.clock_mode || next;
-      updateClockUI();
-      toast(clockMode === 'bells' ? '🔔 Cloches activées' : '🔇 Cloches désactivées');
-    }
-  } catch(e) { toast('Erreur réseau', false); }
-}
-
-async function fixAudio() {
-  toast('🚀 Relance audio…');
-  try { await fetch('/api.sh?action=audio_fix'); toast('✅ Service reconnecté'); }
-  catch(e) { toast('Erreur', false); }
-}
-
-function loadConfigTab() {
-  if (!CFG.spot_name) return;
-  const sp = String(CFG.snapcast_port || 1704);
-  const ic = String(CFG.icecast_port  || 8111);
-  setTxt(['cn-ssid'], CFG.spot_name || '—');
-  setTxt(['cn-ip'],   CFG.spot_ip   || '—');
-  setTxt(['cn-snap'], sp);
-  setTxt(['cn-ice'],  ic);
-  setTxt(['cn-bt'],   CFG.bt_macs   || '—');
-  setTxt(['cn-hostname'], CFG.hostname || location.hostname);
-  setTxt(['cn-wan'], CFG.wan_ip || '—');
-
-  // Cloner les sinks audio dans l'onglet config
-  const srcDiv = document.getElementById('audio-sinks-list');
-  const dstDiv = document.getElementById('cfg-audio-sinks');
-  if (srcDiv && dstDiv && srcDiv.innerHTML.trim() !== '<p style="color:var(--muted);font-size:.85rem">Détection…</p>') {
-    dstDiv.innerHTML = srcDiv.innerHTML;
+    const d = await (await fetch(
+      API + '?action=nip42&cmd=verify&npub=' + encodeURIComponent(npub),
+      { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(signedEvent) }
+    )).json();
+    if (!d.ok) throw new Error(d.error || 'verify failed');
+    setStep('verify', '✅', 'ok');
+    S.pubkeyHex = pubkeyHex; S.npub = npub; S.authenticated = true;
+    localStorage.setItem('ss_npub', npub);
+    setAuthMsg('✅ Authentifié — bienvenue sur ' + S.spotName, 'ok');
+    btn.textContent = 'Connecté ✓';
+    setTimeout(() => { closeAuthModal(); onAuthChanged(true); }, 1200);
+  } catch (e) {
+    setStep('verify', '❌', 'err');
+    setAuthMsg('Vérification échouée : ' + e.message, 'err');
+    btn.disabled = false;
   }
 }
 
-function loadServicesStatus() {
-  const services = [
-    { name: 'snapserver',         label: 'Snapserver' },
-    { name: 'soundspot-decoder',  label: 'Décodeur audio' },
-    { name: 'soundspot-client',   label: 'Snapclient' },
-    { name: 'soundspot-idle',     label: 'Clocher' },
-    { name: 'icecast2',           label: 'Icecast' },
-    { name: 'lighttpd',           label: 'Portail web' },
-    { name: 'picoport',           label: 'Picoport IPFS' },
-  ];
-  const box = document.getElementById('cfg-services-list');
-  if (!box) return;
-  box.innerHTML = '<div class="ibox">' + services.map(s =>
-    `<div class="irow"><span class="lbl">${s.label}</span><span class="val" id="svc-${s.name}" style="color:var(--muted)">…</span></div>`
-  ).join('') + '</div>';
-
-  fetch('/api.sh?action=status').then(r=>r.json()).then(d=>{
-    const svc = d.services || {};
-    const st = (name) => {
-      const v = svc[name] || '';
-      if (v === 'active')      return { t: '✅', c: 'var(--teal)' };
-      if (v === 'failed')      return { t: '❌', c: 'var(--red)' };
-      if (v === 'activating')  return { t: '⏳', c: 'var(--gold)' };
-      return { t: '—', c: 'var(--muted)' };
-    };
-    services.forEach(s => {
-      const el = document.getElementById('svc-' + s.name);
-      if (!el) return;
-      let r = st(s.name);
-      if (s.name === 'icecast2' && svc['icecast2'] === 'active')
-        r = d.dj_active ? { t: '🔴 Live', c: 'var(--dj)' } : { t: '🎙 Prêt', c: 'var(--teal)' };
-      if (s.name === 'picoport' && d.picoport_active)
-        r = { t: '✅ IPFS', c: 'var(--teal)' };
-      el.textContent = r.t;
-      el.style.color = r.c;
-    });
-  }).catch(()=>{
-    document.querySelectorAll('[id^="svc-"]').forEach(el => {
-      el.textContent = '?'; el.style.color = 'var(--muted)';
-    });
-  });
-}
-
-async function loadAudioSinks() {
+async function checkSession(npub) {
   try {
-    const r = await fetch('/api.sh?action=audio_output');
-    const sinks = await r.json();
-    if (!Array.isArray(sinks) || !sinks.length) return;
-    document.getElementById('det-audio').style.display = '';
-    document.getElementById('audio-sinks-list').innerHTML =
-      '<div class="row" style="flex-wrap:wrap;gap:8px">' +
-      sinks.map(s =>
-        `<button class="btn btn-sm ${s.active ? 'btn-teal' : 'btn-outline'}"
-           onclick="setAudioSink('${s.name}')"
-           style="flex:none;min-width:120px">${s.label}${s.active ? ' ✓' : ''}</button>`
-      ).join('') + '</div>';
-  } catch(e) {}
-}
-
-async function loadAudioSinksCfg() {
-  try {
-    const r = await fetch('/api.sh?action=audio_output');
-    const sinks = await r.json();
-    if (!Array.isArray(sinks) || !sinks.length) return;
-    const div = document.getElementById('cfg-audio-sinks');
-    if (!div) return;
-    div.innerHTML =
-      '<div class="row" style="flex-wrap:wrap;gap:8px">' +
-      sinks.map(s =>
-        `<button class="btn btn-sm ${s.active ? 'btn-teal' : 'btn-outline'}"
-           onclick="setAudioSink('${s.name}')"
-           style="flex:none;min-width:120px">${s.label}${s.active ? ' ✓' : ''}</button>`
-      ).join('') + '</div>';
-  } catch(e) {}
-}
-
-async function setAudioSink(name) {
-  try {
-    const r = await fetch('/api.sh?action=audio_output', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: 'sink=' + encodeURIComponent(name)
-    });
-    const d = await r.json();
-    if (d.status === 'ok') { toast('🔊 Sortie changée'); setTimeout(loadAudioSinks, 3500); }
-    else toast('Erreur : ' + (d.message || 'inconnue'), false);
-  } catch(e) { toast('Erreur réseau', false); }
-}
-
-async function doYtCopy() {
-  const url = document.getElementById('yt-url').value.trim();
-  const res = document.getElementById('yt-result');
-  const btn = document.getElementById('btn-yt');
-  if (!url) { toast('URL requise', false); return; }
-  btn.disabled = true; btn.textContent = 'En cours…';
-  res.textContent = ''; res.className = '';
-  try {
-    const r = await fetch('/api.sh?action=yt_copy', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: 'url=' + encodeURIComponent(url)
-    });
-    const d = await r.json();
-    if (d.status === 'ok') {
-      toast('✅ Ajouté au jukebox');
-      res.textContent = d.message || 'Musique ajoutée !';
-      document.getElementById('yt-url').value = '';
-    } else {
-      res.className = 'err';
-      res.textContent = 'Erreur : ' + (d.error || 'inconnue');
-      toast('Erreur', false);
+    const d = await (await fetch(API + '?action=nip42&cmd=status&npub=' + encodeURIComponent(npub))).json();
+    if (d.ok && d.authenticated) {
+      S.npub = npub; S.pubkeyHex = d.pubkey || npubToHex(npub); S.authenticated = true;
+      onAuthChanged(true);
     }
-  } catch(e) { toast('Erreur réseau', false); }
-  finally { btn.disabled = false; btn.textContent = 'Télécharger & épingler →'; }
+  } catch (_) {}
 }
 
-loadConfig().then(() => {
-  loadStatus();
-  loadAudioSinks();
-  setInterval(loadStatus, 10000);
-});
-
-// ═══ ADMINISTRATION BT ═══
-let admPass = null;
-
-function admDbg(msg) {
-  const el = document.getElementById('adm-debug');
-  if (!el) return;
-  const ts = new Date().toLocaleTimeString();
-  el.textContent = '[' + ts + '] ' + msg + '\n' + el.textContent;
+async function doLogout() {
+  try { await fetch(API + '?action=nip42&cmd=logout&npub=' + encodeURIComponent(S.npub)); } catch (_) {}
+  S.npub = ''; S.pubkeyHex = ''; S.authenticated = false;
+  localStorage.removeItem('ss_npub');
+  closeAuthModal(); onAuthChanged(false);
 }
 
-async function admFetch(url, opts) {
-  const r = await fetch(url, opts);
-  const text = await r.text();
-  admDbg((opts?.method === 'POST' ? 'POST' : 'GET') + ' ' + url.replace(/pass=[^&]+/, 'pass=***') + ' → ' + text.substring(0, 120));
-  try { return JSON.parse(text); }
-  catch(e) { throw new Error('Réponse non-JSON: ' + text.substring(0, 80)); }
+function onAuthChanged(auth) {
+  ['jukebox','udrive','admin'].forEach(z => {
+    document.getElementById(z + '-locked').style.display  = auth ? 'none' : '';
+    document.getElementById(z + '-content').style.display = auth ? 'block' : 'none';
+    const lk = document.getElementById('lock-' + z);
+    if (lk) lk.textContent = auth ? '' : ' 🔒';
+  });
+  document.getElementById('btn-login').style.display   = auth ? 'none' : '';
+  document.getElementById('auth-badge').style.display  = auth ? 'flex' : 'none';
+  if (auth) {
+    document.getElementById('auth-name-short').textContent = shortKey(S.npub);
+    // Lien uDRIVE personnel
+    const udriveUrl = IPFS_GW + '/ipns/' + S.npub + '/APP/uDRIVE/';
+    const lnk = document.getElementById('udrive-personal-link');
+    if (lnk) lnk.href = udriveUrl;
+    // Lien création MULTIPASS (masqué quand connecté)
+    const createLnk = document.getElementById('jukebox-create-link');
+    if (createLnk) createLnk.style.display = 'none';
+    // Charger la bibliothèque audio
+    loadUdriveAudio();
+  } else {
+    // Afficher lien MULTIPASS dans locked-zone avec l'URL IPFS
+    const createLnk = document.getElementById('jukebox-create-link');
+    if (createLnk) {
+      createLnk.href = IPFS_GW + '/ipns/copylaradio.com/g1.html';
+      createLnk.style.display = '';
+    }
+  }
 }
 
-async function admLogin() {
-  const p = document.getElementById('adm-pass-input').value.trim();
-  if (!p) return;
+/* ── Messages du clocher ─────────────────────────────── */
+async function loadMessages() {
   try {
-    const d = await admFetch('/api.sh?action=admin&cmd=status&pass=' + encodeURIComponent(p));
-    if (d.error === 'unauthorized') { toast('Mot de passe incorrect', false); return; }
-    if (d.error) { toast('Erreur: ' + d.error, false); return; }
-    admPass = p;
-    document.getElementById('adm-login').style.display = 'none';
-    document.getElementById('adm-panel').style.display = '';
-    admApplyStatus(d);
-    updateBellsUI(); updateClockUI(); updateVoiceUI();
-    toast('Administration déverrouillée');
-  } catch(e) { toast(e.message, false); admDbg('admLogin erreur: ' + e); }
+    const d = await (await fetch(API + '?action=messages')).json();
+    const el = document.getElementById('messages-list');
+    if (d.messages?.length) {
+      el.innerHTML = d.messages.map(m =>
+        `<div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">${m}</div>`
+      ).join('');
+    } else {
+      el.textContent = 'Aucun message récent';
+    }
+  } catch (_) { document.getElementById('messages-list').textContent = 'Indisponible'; }
 }
 
-function admApplyStatus(d) {
-  setTxt(['adm-bt-macs'],      d.bt_macs      || '—');
-  setTxt(['adm-bt-connected'], d.bt_connected || '—');
-}
+/* ── Jukebox : délégation YouTube ───────────────────── */
+async function ytcopyRequest() {
+  const input  = document.getElementById('yt-url');
+  const fmtSel = document.getElementById('yt-fmt');
+  const msg    = document.getElementById('yt-msg');
+  const btn    = document.getElementById('btn-ytcopy');
+  const url    = input.value.trim();
+  const fmt    = fmtSel ? fmtSel.value : 'mp3'; // 'mp3' ou 'mp4'
+  if (!url) return;
+  btn.disabled = true;
+  msg.style.display = 'none';
 
-async function admBtRefresh() {
-  if (!admPass) return;
+  // 1. Demander le relay cible au portail (vérif NIP-42 côté serveur)
+  let relay = 'wss://relay.copylaradio.com';
   try {
-    const d = await admFetch('/api.sh?action=admin&cmd=status&pass=' + encodeURIComponent(admPass));
-    if (d.error) { toast('Session expirée', false); admPass = null; return; }
-    admApplyStatus(d);
-  } catch(e) { toast(e.message, false); }
+    const d = await (await fetch(API + '?action=ytcopy&npub=' + encodeURIComponent(S.npub))).json();
+    if (d.error) {
+      msg.textContent = '❌ ' + (d.hint || d.error);
+      msg.style.cssText = 'display:block;background:rgba(231,76,60,.1);border:1px solid rgba(231,76,60,.3);color:#f88';
+      btn.disabled = false; return;
+    }
+    if (d.relay) relay = d.relay;
+  } catch (_) {}
+
+  // 2. Signer un kind 1 #BRO #youtube [#mp3] <URL>
+  //    UPlanet_IA_Responder.sh : #youtube → process_youtube.sh
+  //    #mp3 → sortie uDRIVE/Music (MP3), sinon uDRIVE/Videos (MP4)
+  if (!window.nostr) {
+    msg.textContent = '❌ Extension NOSTR requise pour signer la demande';
+    msg.style.cssText = 'display:block;background:rgba(231,76,60,.1);border:1px solid rgba(231,76,60,.3);color:#f88';
+    btn.disabled = false; return;
+  }
+  try {
+    const fmtTag = fmt === 'mp3' ? ' #mp3' : '';
+    const signed = await window.nostr.signEvent({
+      kind: 1,
+      created_at: Math.floor(Date.now() / 1000),
+      tags: [['u', url]],
+      content: '#BRO #youtube' + fmtTag + ' ' + url,
+      pubkey: S.pubkeyHex,
+    });
+    await new Promise((resolve, reject) => {
+      const ws = new WebSocket(relay);
+      const tid = setTimeout(() => { ws.close(); resolve(); }, 6000);
+      ws.onopen    = () => ws.send(JSON.stringify(['EVENT', signed]));
+      ws.onmessage = e => {
+        try { if (JSON.parse(e.data)[0] === 'OK') { clearTimeout(tid); ws.close(); resolve(); } } catch(_){}
+      };
+      ws.onerror = () => { clearTimeout(tid); reject(new Error('Relay ' + relay + ' inaccessible')); };
+    });
+    const dest = fmt === 'mp3' ? 'uDRIVE/Music (MP3)' : 'uDRIVE/Videos (MP4)';
+    msg.textContent = '✅ Demande envoyée ! Votre station home va copier et synchroniser dans votre ' + dest + '.';
+    msg.style.cssText = 'display:block;background:rgba(61,186,126,.1);border:1px solid rgba(61,186,126,.3);color:#6fd17a';
+    input.value = '';
+  } catch (e) {
+    msg.textContent = '❌ ' + e.message;
+    msg.style.cssText = 'display:block;background:rgba(231,76,60,.1);border:1px solid rgba(231,76,60,.3);color:#f88';
+  }
+  btn.disabled = false;
 }
 
-async function admBtScan() {
-  if (!admPass) return;
-  const btn = document.querySelector('#adm-panel button');
-  btn.disabled = true; btn.textContent = 'Scan…';
+/* ── Jukebox : bibliothèque uDRIVE ──────────────────── */
+async function loadUdriveAudio() {
+  const el = document.getElementById('udrive-audio-list');
+  if (!S.npub || !el) return;
+  el.innerHTML = '<span class="spinner"></span> Chargement du manifest…';
   try {
-    const d = await admFetch('/api.sh?action=admin&cmd=bt_scan&pass=' + encodeURIComponent(admPass));
-    if (!d.devices) { toast('Erreur scan: ' + (d.error || '?'), false); return; }
-    const div = document.getElementById('adm-bt-results');
-    div.innerHTML = d.devices.length ? d.devices.map(dev =>
-      `<div class="irow" style="flex-wrap:wrap;gap:6px">
-        <span class="lbl">${dev.name || dev.mac}</span>
-        <span style="font-size:.72rem;color:var(--muted)">${dev.mac}</span>
-        <button class="btn btn-sm" onclick="admBtConnect('${dev.mac}')">Connecter</button>
-        ${dev.connected
-          ? `<button class="btn btn-sm btn-outline" onclick="admBtRemove('${dev.mac}')">— Config</button>`
-          : `<button class="btn btn-sm btn-outline" onclick="admBtAdd('${dev.mac}')">+ Config</button>`}
+    const manifestUrl = IPFS_GW + '/ipns/' + S.npub + '/APP/uDRIVE/manifest.json';
+    const d = await (await fetch(manifestUrl, { signal: AbortSignal.timeout(10000) })).json();
+    const audio = (d.files || []).filter(f => f.type === 'audio' && f.ipfs_link);
+    if (!audio.length) {
+      el.innerHTML = '<span style="color:var(--muted)">Aucun fichier audio dans votre uDRIVE pour l\'instant.</span>';
+      return;
+    }
+    const gw = d.my_ipfs_gateway || IPFS_GW;
+    el.innerHTML = audio.map(f => {
+      const trackUrl = gw + '/ipfs/' + f.ipfs_link;
+      const name = f.path.split('/').pop();
+      const dur = (f.metadata?.formatted_duration) || '';
+      return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)">
+        <span style="flex:1;font-size:13px;color:var(--cyan);word-break:break-all">🎵 ${name}${dur ? ' <span style="color:var(--muted);font-size:11px">['+dur+']</span>' : ''}</span>
+        <button class="btn-queue" style="white-space:nowrap;padding:6px 12px;font-size:12px"
+          onclick="queueSongUrl('${trackUrl.replace(/'/g,'%27')}')">▶ File</button>
+      </div>`;
+    }).join('');
+  } catch (_) {
+    el.innerHTML = '<span style="color:var(--muted)">Manifest uDRIVE indisponible (uDRIVE vide ou IPFS non démarré).</span>';
+  }
+}
+
+async function queueSongUrl(url) {
+  if (!window.nostr) { alert('Extension NOSTR requise'); return; }
+  try {
+    const signed = await window.nostr.signEvent({
+      kind: 1,
+      created_at: Math.floor(Date.now() / 1000),
+      tags: [], content: url, pubkey: S.pubkeyHex,
+    });
+    await new Promise((resolve, reject) => {
+      const ws = new WebSocket(FLEET_RELAY);
+      const tid = setTimeout(() => { ws.close(); resolve(); }, 4000);
+      ws.onopen    = () => ws.send(JSON.stringify(['EVENT', signed]));
+      ws.onmessage = e => { try { if (JSON.parse(e.data)[0] === 'OK') { clearTimeout(tid); ws.close(); resolve(); } } catch(_){} };
+      ws.onerror   = () => { clearTimeout(tid); reject(new Error('Relay local inaccessible')); };
+    });
+    const list = document.getElementById('queue-list');
+    if (list.textContent.includes('Aucun')) list.innerHTML = '';
+    const div = document.createElement('div');
+    div.className = 'queue-item';
+    div.textContent = '🎵 ' + url.split('/').pop();
+    list.prepend(div);
+  } catch (e) { alert('Erreur : ' + e.message); }
+}
+
+/* ── Jukebox ─────────────────────────────────────────── */
+async function queueSong() {
+  const input = document.getElementById('jukebox-url');
+  const url = input.value.trim();
+  if (!url) return;
+  const btn = document.getElementById('btn-queue');
+  btn.disabled = true;
+  try {
+    if (!window.nostr) throw new Error('Extension NOSTR requise pour signer');
+    const signed = await window.nostr.signEvent({
+      kind: 1,
+      created_at: Math.floor(Date.now() / 1000),
+      tags: [], content: url, pubkey: S.pubkeyHex,
+    });
+    await new Promise((resolve, reject) => {
+      const ws = new WebSocket(FLEET_RELAY);
+      const tid = setTimeout(() => { ws.close(); resolve(); }, 4000);
+      ws.onopen  = () => ws.send(JSON.stringify(['EVENT', signed]));
+      ws.onmessage = e => { try { if (JSON.parse(e.data)[0] === 'OK') { clearTimeout(tid); ws.close(); resolve(); } } catch(_){} };
+      ws.onerror = () => { clearTimeout(tid); reject(new Error('Relay local inaccessible (port 9999)')); };
+    });
+    input.value = '';
+    const list = document.getElementById('queue-list');
+    if (list.textContent.includes('Aucun')) list.innerHTML = '';
+    const div = document.createElement('div');
+    div.className = 'queue-item';
+    div.textContent = '🎵 ' + url;
+    list.prepend(div);
+  } catch (e) { alert('Erreur jukebox : ' + e.message); }
+  btn.disabled = false;
+}
+
+/* ── uDRIVE upload ───────────────────────────────────── */
+let uploadFile = null;
+function previewFile(file) {
+  if (!file) return;
+  uploadFile = file;
+  if (file.type.startsWith('image/')) {
+    const reader = new FileReader();
+    const prev = document.getElementById('upload-preview');
+    reader.onload = e => { prev.src = e.target.result; prev.style.display = 'block'; };
+    reader.readAsDataURL(file);
+  }
+  const btn = document.getElementById('btn-upload');
+  btn.disabled = false;
+  btn.textContent = '⬆️ Envoyer : ' + file.name;
+}
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.remove('drag-over');
+  if (e.dataTransfer.files[0]) previewFile(e.dataTransfer.files[0]);
+}
+async function doUpload() {
+  if (!uploadFile) return;
+  const btn  = document.getElementById('btn-upload');
+  const bw   = document.getElementById('upload-bar-wrap');
+  const bar  = document.getElementById('upload-bar');
+  const res  = document.getElementById('upload-result');
+  btn.disabled = true; bw.style.display = 'block'; bar.style.width = '10%'; res.style.display = 'none';
+  try {
+    const form = new FormData();
+    form.append('file', uploadFile);
+    form.append('npub', S.npub);
+    bar.style.width = '40%';
+    const r = await fetch(UPASSPORT + '/api/upload/image', { method: 'POST', body: form });
+    bar.style.width = '90%';
+    if (!r.ok) throw new Error('HTTP ' + r.status + ' — UPassport (port 54321) actif ?');
+    const d = await r.json();
+    bar.style.width = '100%';
+    const cid = d.cid || d.ipfs_cid || '';
+    res.innerHTML = `✅ Fichier épinglé<br>
+      <a href="${IPFS_GW}/ipfs/${cid}" target="_blank">${IPFS_GW}/ipfs/${cid}</a>
+      ${d.roaming_dm_sent ? '<br><span style="color:var(--cyan)">📨 DM uDRIVE envoyé à votre station home</span>' : ''}`;
+    res.style.display = 'block';
+    uploadFile = null;
+    btn.textContent = '⬆️ Envoyer vers uDRIVE';
+    document.getElementById('upload-preview').style.display = 'none';
+  } catch (e) {
+    res.innerHTML = `❌ ${e.message}`;
+    res.style.display = 'block';
+  }
+  bw.style.display = 'none'; btn.disabled = false;
+}
+
+/* ── Admin ───────────────────────────────────────────── */
+async function adminGet(params) {
+  const qs = new URLSearchParams({ ...params, npub: S.npub }).toString();
+  return (await fetch(API + '?action=admin&' + qs)).json();
+}
+async function adminPost(params) {
+  params.npub = S.npub;
+  return (await fetch(API + '?action=admin', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: new URLSearchParams(params).toString(),
+  })).json();
+}
+
+const SVC_LABELS = { idle:'clocher', decoder:'décodeur', snapserver:'snapserver', icecast:'icecast2', lighttpd:'portail', bt_reactive:'BT réactif' };
+
+async function loadAdminStatus() {
+  try {
+    const d = await adminGet({ cmd: 'status' });
+    if (d.error) return;
+    const svcs = d.services || {};
+    document.getElementById('services-list').innerHTML =
+      Object.entries(svcs).map(([k, v]) =>
+        `<div class="service-row">
+          <span class="svc-dot ${v === 'active' ? 'active' : 'inactive'}"></span>
+          <span class="svc-name">${SVC_LABELS[k] || k}</span>
+          <span style="font-size:11px;color:${v === 'active' ? 'var(--green)' : 'var(--red)'}">${v}</span>
+        </div>`
+      ).join('');
+    document.getElementById('bt-connected-list').innerHTML = d.bt_connected
+      ? `<div class="bt-row"><span class="bt-name">🔵 ${d.bt_connected}</span></div>`
+      : '<span style="font-size:13px;color:var(--muted)">Aucune enceinte connectée</span>';
+    S.clockMode = d.clock_mode || S.clockMode;
+    updateClockModeUI();
+  } catch (_) {}
+}
+
+async function btScan() {
+  const el = document.getElementById('bt-scan-results');
+  el.innerHTML = '<span class="spinner"></span> Scan en cours (13 s)…';
+  try {
+    const d = await adminGet({ cmd: 'bt_scan' });
+    if (!d.devices?.length) { el.innerHTML = '<div class="hint">Aucun périphérique trouvé</div>'; return; }
+    el.innerHTML = d.devices.map(dev =>
+      `<div class="bt-row">
+        <span class="bt-mac">${dev.mac}</span>
+        <span class="bt-name">${dev.name || '(inconnu)'}</span>
+        <button class="btn-bt connect" onclick="adminPost({cmd:'bt_connect',mac:'${dev.mac}'})">Connecter</button>
+        ${!dev.paired ? `<button class="btn-bt" onclick="adminPost({cmd:'bt_add',mac:'${dev.mac}'}).then(()=>loadAdminStatus())">Ajouter</button>` : ''}
       </div>`
-    ).join('') : '<p style="color:var(--muted);font-size:.85rem">Aucun appareil trouvé</p>';
-  } catch(e) { toast(e.message, false); }
-  finally { btn.disabled = false; btn.textContent = 'Scanner (10s)'; }
+    ).join('');
+  } catch (e) {
+    el.innerHTML = `<div style="font-size:12px;color:var(--red)">Erreur : ${e.message}</div>`;
+  }
 }
 
-async function admBtConnect(mac) {
-  if (!admPass) return;
-  toast('Connexion en cours…');
-  try {
-    const d = await admFetch('/api.sh?action=admin', {
-      method: 'POST',
-      headers: {'Content-Type':'application/x-www-form-urlencoded'},
-      body: `cmd=bt_connect&mac=${mac}&pass=${encodeURIComponent(admPass)}`
-    });
-    toast(d.error ? 'Erreur: ' + d.error : `${mac} → reconnexion lancée`, !d.error);
-  } catch(e) { toast(e.message, false); }
+function updateClockModeUI() {
+  document.getElementById('clock-mode-label').textContent = S.clockMode === 'bells' ? '🔔 Cloches' : '🔇 Silencieux';
+  document.getElementById('toggle-bells').classList.toggle('active-mode',  S.clockMode === 'bells');
+  document.getElementById('toggle-silent').classList.toggle('active-mode', S.clockMode === 'silent');
+}
+async function setClockMode(mode) {
+  try { await fetch(API + '?action=clock&cmd=set&mode=' + mode); S.clockMode = mode; updateClockModeUI(); } catch (_) {}
 }
 
-async function admBtAdd(mac) {
-  if (!admPass) return;
-  try {
-    const d = await admFetch('/api.sh?action=admin', {
-      method: 'POST',
-      headers: {'Content-Type':'application/x-www-form-urlencoded'},
-      body: `cmd=bt_add&mac=${mac}&pass=${encodeURIComponent(admPass)}`
-    });
-    toast(d.error ? 'Erreur: ' + d.error : `${mac} ajouté`, !d.error);
-    if (!d.error) admBtRefresh();
-  } catch(e) { toast(e.message, false); }
-}
-
-async function admBtRemove(mac) {
-  if (!admPass) return;
-  try {
-    const d = await admFetch('/api.sh?action=admin', {
-      method: 'POST',
-      headers: {'Content-Type':'application/x-www-form-urlencoded'},
-      body: `cmd=bt_remove&mac=${mac}&pass=${encodeURIComponent(admPass)}`
-    });
-    toast(d.error ? 'Erreur: ' + d.error : `${mac} retiré`, !d.error);
-    if (!d.error) admBtRefresh();
-  } catch(e) { toast(e.message, false); }
-}
-
-async function admAudioReset() {
-  if (!admPass) return;
-  toast('🔥 Reset audio…');
-  try {
-    const d = await admFetch('/api.sh?action=admin', {
-      method: 'POST',
-      headers: {'Content-Type':'application/x-www-form-urlencoded'},
-      body: `cmd=reset_audio&pass=${encodeURIComponent(admPass)}`
-    });
-    toast(d.error ? 'Erreur: ' + d.error : '✅ Audio réinitialisé', !d.error);
-  } catch(e) { toast(e.message, false); }
-}
-
-// ═══ MESSAGES DU CLOCHER ═══
-async function msgLoad() {
-  const r = await fetch('/api.sh?action=messages&cmd=list');
-  const d = await r.json();
-  const el = document.getElementById('msg-list');
-  if (!d.messages || !d.messages.length) { el.innerHTML = '<p style="color:var(--muted);font-size:.85rem">Aucun message trouvé</p>'; return; }
-  el.innerHTML = d.messages.map(m => `
-    <div style="background:var(--deep);border-radius:6px;padding:10px 12px">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-        <span style="font-size:.75rem;color:var(--muted);font-family:var(--mono)">msg_${m.id}</span>
-        <span style="font-size:.7rem;color:${m.has_wav ? 'var(--teal)' : 'var(--muted)'}">
-          ${m.has_wav ? '🔊 wav' : '⚠ pas de wav'}
-        </span>
-      </div>
-      <textarea id="msg-txt-${m.id}"
-        style="width:100%;margin-top:6px;padding:6px 8px;border-radius:6px;border:1px solid var(--border);background:var(--panel);color:var(--text);font-size:.85rem;resize:vertical;min-height:52px"
-        rows="2">${m.text}</textarea>
-      <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
-        <button class="btn btn-sm" onclick="msgSave('${m.id}')">Enregistrer</button>
-        <button class="btn btn-sm btn-outline" onclick="msgTts('${m.id}','pierre')">Pierre</button>
-        <button class="btn btn-sm btn-outline" onclick="msgTts('${m.id}','amelie')">Amélie</button>
-      </div>
-    </div>`).join('');
-}
-
-async function msgSave(id) {
-  const txt = document.getElementById('msg-txt-' + id).value;
-  const r = await fetch('/api.sh?action=messages', {
-    method: 'POST',
-    headers: {'Content-Type':'application/x-www-form-urlencoded'},
-    body: `cmd=set_text&id=${id}&text=${encodeURIComponent(txt)}`
-  });
-  const d = await r.json();
-  toast(d.error ? 'Erreur: ' + d.error : `msg_${id} sauvegardé — regeneration au prochain cycle`, !d.error);
-}
-
-async function msgTts(id, voice) {
-  toast(`Génération ${voice}…`);
-  const r = await fetch('/api.sh?action=messages', {
-    method: 'POST',
-    headers: {'Content-Type':'application/x-www-form-urlencoded'},
-    body: `cmd=tts_now&id=${id}&voice=${voice}`
-  });
-  const d = await r.json();
-  toast(d.error ? 'TTS échoué: ' + d.error : `msg_${id} → ${d.source} (${voice})`, !d.error);
-  if (!d.error) { if (d.url) new Audio(d.url + '?t=' + Date.now()).play(); msgLoad(); }
-}
+/* ── Démarrage ───────────────────────────────────────── */
+initStation();
 </script>
 
+<!-- Chargement optionnel de common.js depuis la passerelle IPFS locale -->
+<!-- Enrichit les outils NOSTR si Picoport est actif (port 8080) -->
+<script>
+(function() {
+  var s = document.createElement('script');
+  s.src = 'http://' + window.location.hostname + ':8080/ipns/copylaradio.com/common.js';
+  s.async = true;
+  s.onerror = function() {}; // dégradation gracieuse si IPFS absent
+  document.head.appendChild(s);
+})();
+</script>
 </body>
 </html>

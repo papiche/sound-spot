@@ -38,12 +38,6 @@ if [ -f /etc/hostapd/hostapd.conf ]; then
     echo "[Mesh] B.A.T.M.A.N. Master activé (IP: 10.200.0.1)"
 else
     # -- NŒUD SATELLITE / ÉNERGIE --
-if [ -f /etc/hostapd/hostapd.conf ]; then
-    # -- NŒUD MAÎTRE --
-    ip addr add 10.200.0.1/16 dev bat0
-    echo "[Mesh] B.A.T.M.A.N. Master activé (IP: 10.200.0.1)"
-else
-    # -- NŒUD SATELLITE / ÉNERGIE --
     MAC_SUFFIX=$(cat /sys/class/net/$IFACE_MESH/address | awk -F: '{print $5"."$6}')
     IP_DEC1=$(printf "%d" 0x${MAC_SUFFIX%.*})
     IP_DEC2=$(printf "%d" 0x${MAC_SUFFIX#*.})

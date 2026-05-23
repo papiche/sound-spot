@@ -47,12 +47,6 @@ EOF
     echo "vm.swappiness=100" >> /etc/sysctl.d/90-soundspot.conf
     echo "vm.vfs_cache_pressure=50" >> /etc/sysctl.d/90-soundspot.conf
 
-    echo "vm.swappiness=100" >> /etc/sysctl.d/90-soundspot.conf
-    echo "vm.vfs_cache_pressure=50" >> /etc/sysctl.d/90-soundspot.conf
-
-    echo "vm.swappiness=100" >> /etc/sysctl.d/90-soundspot.conf
-    echo "vm.vfs_cache_pressure=50" >> /etc/sysctl.d/90-soundspot.conf
-
     sysctl -w net.ipv4.ip_forward=1
 
     # 6. ipset — service de persistance avec bon ordre de démarrage

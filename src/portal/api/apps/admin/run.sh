@@ -1,30 +1,30 @@
 #!/bin/bash
-# api/apps/admin/run.sh — Configuration du nœud via le portail
+# api/apps/admin/run.sh — Configuration du nœud via le portail (NIP-42 auth)
 #
-# Toutes les actions nécessitent le mot de passe admin (pass=xxxx).
-# Mot de passe = 10 derniers caractères de UPLANETNAME (swarm.key IPFS).
-# Écrit par picoport.sh dans /dev/shm/soundspot_admin_pass (RAM, 644).
-# Fallback si picoport absent : sha256(SPOT_NAME+SPOT_IP)[0:10].
+# Toutes les actions requièrent une authentification NIP-42 MULTIPASS.
+# Le marker de session est créé par api/core/nip42.sh dans /dev/shm/.nip42_auth_PUBKEYHEX
+# (TTL 3600s). Passer le npub en paramètre GET ou dans le body POST.
 #
 # Actions GET :
-#   ?action=admin&cmd=status&pass=xxxx
-#   ?action=admin&cmd=bt_scan&pass=xxxx
-#   ?action=admin&cmd=bt_list_connected&pass=xxxx
+#   ?action=admin&cmd=status&npub=npub1xxx
+#   ?action=admin&cmd=bt_scan&npub=npub1xxx
+#   ?action=admin&cmd=bt_list_connected&npub=npub1xxx
 #
 # Actions POST :
-#   body: cmd=bt_connect&mac=AA:BB:CC&pass=xxxx
-#   body: cmd=bt_add&mac=AA:BB:CC&pass=xxxx
-#   body: cmd=bt_remove&mac=AA:BB:CC&pass=xxxx
-#   body: cmd=restart&service=soundspot-idle&pass=xxxx
+#   body: cmd=bt_connect&mac=AA:BB:CC&npub=npub1xxx
+#   body: cmd=bt_add&mac=AA:BB:CC&npub=npub1xxx
+#   body: cmd=bt_remove&mac=AA:BB:CC&npub=npub1xxx
+#   body: cmd=restart&service=soundspot-idle&npub=npub1xxx
+#   body: cmd=reset_audio&npub=npub1xxx
 #
 # Hérite des exports de api.sh (SPOT_NAME, SPOT_IP, INSTALL_DIR, urldecode).
 
-# ── Lecture des paramètres ───────────────────────────────────
 _SS_SERVICE="portal-admin"
 source "${INSTALL_DIR:-/opt/soundspot}/backend/system/log.sh" 2>/dev/null || true
 
+# ── Lecture des paramètres ───────────────────────────────────
 CMD=$(echo "$QUERY_STRING" | grep -oP '(?<=cmd=)[a-zA-Z0-9_]+' | head -1)
-PASS_GET=$(echo "$QUERY_STRING" | grep -oP '(?<=pass=)[^&]+' | head -1 | urldecode)
+NPUB_GET=$(echo "$QUERY_STRING" | grep -oP '(?<=npub=)[^&]+' | head -1)
 
 if [ "$REQUEST_METHOD" = "POST" ]; then
     read -r -n "${CONTENT_LENGTH:-0}" POST_DATA 2>/dev/null || true
@@ -32,24 +32,66 @@ if [ "$REQUEST_METHOD" = "POST" ]; then
     VALUE=$(printf '%s' "$POST_DATA" | grep -oP '(?<=value=)[^&]+' | head -1 | urldecode)
     MAC=$(printf '%s' "$POST_DATA" | grep -oP '(?<=mac=)[0-9A-Fa-f:]+' | head -1)
     SERVICE=$(printf '%s' "$POST_DATA" | grep -oP '(?<=service=)[a-zA-Z0-9_-]+' | head -1)
-    PASS_POST=$(printf '%s' "$POST_DATA" | grep -oP '(?<=pass=)[^&]+' | head -1 | urldecode)
+    NPUB_POST=$(printf '%s' "$POST_DATA" | grep -oP '(?<=npub=)[^&]+' | head -1)
 fi
-PASS="${PASS_POST:-$PASS_GET}"
+NPUB="${NPUB_POST:-$NPUB_GET}"
 
-# ── Vérification du mot de passe ─────────────────────────────
-ADMIN_PASS=$(cat /dev/shm/soundspot_admin_pass 2>/dev/null | tr -d '[:space:]')
-if [ -z "$ADMIN_PASS" ]; then
-    # Fallback déterministe si picoport n'a pas encore tourné
-    ADMIN_PASS=$(printf '%s%s' "${SPOT_NAME}" "${SPOT_IP}" | sha256sum | cut -c1-10)
+# ── NIP-42 auth — npub → hex → marker check ─────────────────
+_npub_to_hex() {
+    python3 - "$1" <<'PYEOF'
+import sys
+CHARSET = 'qpzry9x8gf2tvdw0s3jn54khce6mua7l'
+def bech32_to_hex(s):
+    s = s.lower()
+    pos = s.rfind('1')
+    if pos < 1: return ''
+    data = []
+    for c in s[pos+1:]:
+        if c not in CHARSET: return ''
+        data.append(CHARSET.index(c))
+    data = data[:-6]
+    acc, bits, result = 0, 0, []
+    for v in data:
+        acc = ((acc << 5) | v) & 0x3fffffff
+        bits += 5
+        while bits >= 8:
+            bits -= 8
+            result.append((acc >> bits) & 0xff)
+    return bytes(result).hex()
+try:
+    print(bech32_to_hex(sys.argv[1]), end='')
+except Exception:
+    print('', end='')
+PYEOF
+}
+
+AUTH_PUBKEY=""
+if [[ "${NPUB:-}" == npub1* ]]; then
+    AUTH_PUBKEY=$(_npub_to_hex "$NPUB")
+elif [[ "${NPUB:-}" =~ ^[0-9a-fA-F]{64}$ ]]; then
+    AUTH_PUBKEY="${NPUB,,}"
 fi
 
-if [ -z "$PASS" ] || [ "$PASS" != "$ADMIN_PASS" ]; then
-    ss_warn "auth failed cmd=${CMD:-?} ip=${REMOTE_ADDR:-?}"
-    jq -n '{"error":"unauthorized","hint":"Mot de passe requis (10 derniers caractères UPLANETNAME)"}'
+AUTH_MARKER="/dev/shm/.nip42_auth_${AUTH_PUBKEY}"
+AUTH_TTL=3600
+
+if [ -z "$AUTH_PUBKEY" ] || [ ! -f "$AUTH_MARKER" ]; then
+    ss_warn "auth NIP-42 requise cmd=${CMD:-?} ip=${REMOTE_ADDR:-?}"
+    jq -n '{"error":"unauthorized","hint":"Authentification NIP-42 MULTIPASS requise"}'
     exit 0
 fi
 
-ss_info "cmd=${CMD:-status} ip=${REMOTE_ADDR:-?}"
+# Vérifier la TTL du marker
+NOW=$(date +%s)
+TS=$(python3 -c "import json; d=json.load(open('$AUTH_MARKER')); print(d.get('ts',0))" 2>/dev/null || echo 0)
+AGE=$(( NOW - TS ))
+if [ "$AGE" -gt "$AUTH_TTL" ]; then
+    rm -f "$AUTH_MARKER"
+    jq -n '{"error":"session_expired","hint":"Reconnectez-vous avec votre identité NOSTR"}'
+    exit 0
+fi
+
+ss_info "cmd=${CMD:-status} pubkey=${AUTH_PUBKEY:0:12}… ip=${REMOTE_ADDR:-?}"
 
 # ── Commandes ────────────────────────────────────────────────
 case "${CMD:-status}" in
@@ -58,7 +100,8 @@ case "${CMD:-status}" in
         BT_MACS_CONF="${BT_MACS:-${BT_MAC:-}}"
         BT_CONNECTED=$(bluetoothctl devices Connected 2>/dev/null \
             | grep "Device " | awk '{print $2}' | paste -sd' ' - || echo "")
-        SERVICES_JSON=$(systemctl is-active soundspot-idle soundspot-decoder snapserver \
+        SERVICES_JSON=$(systemctl is-active \
+                soundspot-idle soundspot-decoder snapserver \
                 icecast2 lighttpd soundspot-bt-reactive \
             | paste - - - - - - \
             | awk '{print "{\"idle\":\""$1"\",\"decoder\":\""$2"\",\"snapserver\":\""$3"\",\"icecast\":\""$4"\",\"lighttpd\":\""$5"\",\"bt_reactive\":\""$6"\"}"}')
@@ -150,14 +193,14 @@ case "${CMD:-status}" in
         ss_info "reset_audio: restart audio chain"
         sudo systemctl restart soundspot-decoder snapserver 2>/dev/null || true
         sleep 1
-        sudo systemctl restart soundspot-client 2>/dev/null || true
-        sudo "${INSTALL_DIR}/bt_manage.sh" connect 2>/dev/null || true
+        sudo systemctl restart soundspot-client-master 2>/dev/null || true
+        sudo "${INSTALL_DIR}/backend/system/bt-connect.sh" 2>/dev/null || true
         jq -n '{"status":"ok","message":"Chaîne audio réinitialisée"}'
         ;;
 
     *)
         jq -n --arg cmd "${CMD:-}" \
             '{"error":"unknown_cmd","cmd":$cmd,
-              "available":["status","bt_scan","bt_list_connected","bt_connect","bt_add","bt_remove","restart"]}'
+              "available":["status","bt_scan","bt_list_connected","bt_connect","bt_add","bt_remove","restart","reset_audio"]}'
         ;;
 esac

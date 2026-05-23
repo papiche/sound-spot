@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Topologie Mesh B.A.T.M.A.N.</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root { --bg: #080810; --text: #e0e0f0; --accent: #7fff6e; --teal: #4ecdc4; --box: #161622; --border: #26263a; }
+    body { background: var(--bg); color: var(--text); font-family: monospace; padding: 20px; max-width: 800px; margin: auto; }
+    h1 { color: var(--teal); text-align: center; border-bottom: 1px dashed var(--border); padding-bottom: 10px; }
+    .card { border: 1px solid var(--border); margin: 15px 0; padding: 15px; border-radius: 8px; background: var(--box); }
+    .badge { display: inline-block; padding: 3px 8px; border-radius: 12px; background: rgba(78, 205, 196, 0.1); color: var(--teal); font-size: 0.8rem; border: 1px solid var(--teal); }
+    .tq-high { color: var(--accent); font-weight: bold; }
+    .tq-med { color: #ffb347; font-weight: bold; }
+    .tq-low { color: #ff6b6b; font-weight: bold; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.85rem; }
+    th, td { border-bottom: 1px solid var(--border); padding: 8px; text-align: left; }
+    th { color: var(--muted); text-transform: uppercase; }
+    .btn { display: block; padding: 12px; background: var(--border); color: #fff; text-align: center; text-decoration: none; border-radius: 5px; font-weight: bold; margin-top: 30px; border: 1px solid var(--teal); }
+    .btn:hover { background: var(--teal); color: #000; }
+  </style>
+</head>
+<body>
+<nav style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:#0f0f1e;border-bottom:1px solid #1e1e36;position:sticky;top:0;z-index:100">
+  <span style="font-size:15px;font-weight:700;color:#fff;margin-right:4px" id="nav-brand">🎵 SoundSpot</span>
+  <a href="/" style="color:#5a5a7a;text-decoration:none;font-size:13px;padding:5px 9px;border-radius:16px">🏠</a>
+  <a href="/" style="color:#5a5a7a;text-decoration:none;font-size:13px;padding:5px 9px;border-radius:16px">📻 Portail</a>
+  <a href="mesh.html" style="background:rgba(123,97,255,.15);color:#c0aaff;text-decoration:none;font-size:13px;padding:5px 9px;border-radius:16px">🕸️ Mesh</a>
+  <a href="vj.html" style="color:#5a5a7a;text-decoration:none;font-size:13px;padding:5px 9px;border-radius:16px">🎛️ VJ</a>
+  <a href="#" onclick="window.open('http://'+location.hostname+':8080/ipns/copylaradio.com/','_blank');return false" style="color:#5a5a7a;text-decoration:none;font-size:13px;padding:5px 9px;border-radius:16px">🌍 UPlanet</a>
+</nav>
+<script>
+(function(){
+  try{fetch('/api.sh?action=status').then(r=>r.json()).then(d=>{if(d.spot_name)document.getElementById('nav-brand').textContent='🎵 '+d.spot_name;});}catch(_){}
+})();
+</script>
+  <h1>🕸️ Radar Mesh B.A.T.M.A.N.-adv</h1>
+  <p style="text-align: center; color: #888;">Analyse de la Couche 2 (Ad-Hoc / 5GHz)</p>
+
+  <div class="card" id="local-info">
+    <div style="text-align: center;">Vérification de l'interface bat0...</div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;">📡 Voisins directs (1 saut)</h3>
+    <table id="neighbors-table">
+      <tr><th>MAC Voisin</th><th>Dernier Ping</th></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;">🗺️ Topologie Globale (Originators)</h3>
+    <p style="font-size: 0.75rem; color: #888;">TQ (Transmit Quality) : de 0 à 255. 255 = Liaison parfaite.</p>
+    <table id="originators-table">
+      <tr><th>Nœud Destinataire</th><th>Passe Par</th><th>Interface</th><th>Qualité (TQ)</th></tr>
+    </table>
+  </div>
+
+  <a href="macro.html" class="btn">← Retour à la Vision Macro</a>
+
+  <script>
+    function getTqClass(tq) {
+      if (tq > 200) return 'tq-high';
+      if (tq > 100) return 'tq-med';
+      return 'tq-low';
+    }
+
+    function loadMesh() {
+      fetch('/api.sh?action=mesh').then(r=>r.json()).then(d => {
+        if (d.error) {
+          document.getElementById('local-info').innerHTML = `<span style="color:#ff6b6b">Erreur: ${d.error}</span>`;
+          return;
+        }
+
+        // Info locales
+        document.getElementById('local-info').innerHTML = `
+          <span class="badge">IP Mesh: ${d.local.ip}</span>
+          <span class="badge">MAC Mesh: ${d.local.mac}</span>
+        `;
+
+        // Voisins
+        let nHtml = '<tr><th>MAC Voisin</th><th>Dernier Ping</th></tr>';
+        if (d.neighbors && d.neighbors.length > 0) {
+          d.neighbors.forEach(n => {
+            nHtml += `<tr><td>${n.mac}</td><td>il y a ${n.last_seen}</td></tr>`;
+          });
+        } else {
+          nHtml += `<tr><td colspan="2" style="text-align:center; color:#888;">Aucun voisin direct détecté</td></tr>`;
+        }
+        document.getElementById('neighbors-table').innerHTML = nHtml;
+
+        // Originators
+        let oHtml = '<tr><th>Nœud Destinataire</th><th>Passe Par</th><th>Interface</th><th>Qualité (TQ)</th></tr>';
+        if (d.originators && d.originators.length > 0) {
+          d.originators.forEach(o => {
+            oHtml += `<tr>
+              <td>${o.originator}</td>
+              <td>${o.next_hop}</td>
+              <td>${o.iface}</td>
+              <td class="${getTqClass(o.tq)}">${o.tq} / 255</td>
+            </tr>`;
+          });
+        } else {
+          oHtml += `<tr><td colspan="4" style="text-align:center; color:#888;">Réseau vide</td></tr>`;
+        }
+        document.getElementById('originators-table').innerHTML = oHtml;
+
+      }).catch(e => console.error(e));
+    }
+
+    loadMesh();
+    setInterval(loadMesh, 5000); // Rafraîchissement ultra rapide pour suivre la qualité radio
+  </script>
+</body>
+</html>

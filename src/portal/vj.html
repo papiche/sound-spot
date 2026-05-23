@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Régie VJ - ZICMAMA</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root { --bg: #080810; --text: #e0e0f0; --accent: #7fff6e; --teal: #4ecdc4; --box: #161622; --border: #26263a; }
+    body { background: var(--bg); color: var(--text); font-family: monospace; padding: 20px; max-width: 600px; margin: auto; }
+    h1 { color: #ffb347; text-align: center; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+    .stream-card { display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border); padding: 15px; border-radius: 8px; background: var(--box); margin-bottom: 10px; }
+    .active-card { border-color: var(--accent); box-shadow: 0 0 10px rgba(127,255,110,0.2); }
+    .stream-name { font-size: 1.2rem; font-weight: bold; }
+    .btn { padding: 10px 15px; border-radius: 5px; font-weight: bold; cursor: pointer; border: none; }
+    .btn-play { background: var(--teal); color: #000; }
+    .btn-stop { background: #ff6b6b; color: #fff; }
+    .btn-nav { display: block; background: var(--border); color: #fff; text-align: center; text-decoration: none; margin-top: 30px; }
+  </style>
+</head>
+<body>
+<nav style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:#0f0f1e;border-bottom:1px solid #1e1e36;position:sticky;top:0;z-index:100">
+  <span style="font-size:15px;font-weight:700;color:#fff;margin-right:4px" id="nav-brand">🎵 SoundSpot</span>
+  <a href="/" style="color:#5a5a7a;text-decoration:none;font-size:13px;padding:5px 9px;border-radius:16px">🏠</a>
+  <a href="/" style="color:#5a5a7a;text-decoration:none;font-size:13px;padding:5px 9px;border-radius:16px">📻 Portail</a>
+  <a href="mesh.html" style="color:#5a5a7a;text-decoration:none;font-size:13px;padding:5px 9px;border-radius:16px">🕸️ Mesh</a>
+  <a href="vj.html" style="background:rgba(123,97,255,.15);color:#c0aaff;text-decoration:none;font-size:13px;padding:5px 9px;border-radius:16px">🎛️ VJ</a>
+  <a href="#" onclick="window.open('http://'+location.hostname+':8080/ipns/copylaradio.com/','_blank');return false" style="color:#5a5a7a;text-decoration:none;font-size:13px;padding:5px 9px;border-radius:16px">🌍 UPlanet</a>
+</nav>
+<script>
+(function(){
+  try{fetch('/api.sh?action=status').then(r=>r.json()).then(d=>{if(d.spot_name)document.getElementById('nav-brand').textContent='🎵 '+d.spot_name;});}catch(_){}
+})();
+</script>
+  <h1>🎛️ Régie Vidéo (V.J.)</h1>
+  <p style="text-align: center; color: #888;">Gérez les flux RTMP envoyés par les drones et smartphones, et choisissez celui affiché sur le projecteur HDMI.</p>
+
+  <div id="streams-container">
+    <div style="text-align:center;">Recherche de flux vidéo...</div>
+  </div>
+
+  <div style="text-align:center; margin-top: 20px;">
+    <button class="btn btn-stop" onclick="setStream('stop', '')">Mettre le projecteur au Noir</button>
+  </div>
+
+  <a href="macro.html" class="btn btn-nav">← Retour à la Vision Macro</a>
+
+  <script>
+    function loadStreams() {
+      fetch('/api.sh?action=vj&cmd=list').then(r=>r.json()).then(d => {
+        let html = '';
+        if (d.streams && d.streams.length > 0) {
+          d.streams.forEach(s => {
+            let isCurrent = (d.current === s);
+            html += `
+              <div class="stream-card ${isCurrent ? 'active-card' : ''}">
+                <div class="stream-name">🎥 ${s} ${isCurrent ? '<span style="color:var(--accent); font-size:0.8rem;">(PROJETÉ)</span>' : ''}</div>
+                ${!isCurrent ? `<button class="btn btn-play" onclick="setStream('play', '${s}')">Projeter 🎦</button>` : ''}
+              </div>
+            `;
+          });
+        } else {
+          html = '<div class="stream-card" style="justify-content:center; color:#888;">Aucun flux vidéo entrant actuellement.</div>';
+        }
+        document.getElementById('streams-container').innerHTML = html;
+      });
+    }
+
+    function setStream(action, name) {
+      fetch('/api.sh?action=vj', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: `cmd=${action}&name=${name}`
+      }).then(() => loadStreams());
+    }
+
+    loadStreams();
+    setInterval(loadStreams, 3000); // Rafraîchissement rapide
+  </script>
+</body>
+</html>

@@ -2,6 +2,15 @@
 
 En festival ou en zone isolée, si le son coupe ou si le réseau plante, vous devez savoir où regarder. Ce guide répertorie les outils de diagnostic intégrés au CyberCochon.
 
+## 0. Le Centre de Contrôle Interactif (TUI)
+La méthode la plus simple pour administrer un nœud est d'utiliser le tableau de bord interactif :
+`ss-center`
+Cet outil visuel vous permet :
+- De voir l'état (**EN LIGNE** / **ARRETE** / **EN ECHEC**) de tous les services (Audio, Réseau, Capteurs, P2P).
+- De redémarrer un service en appuyant sur `R`.
+- De lire le journal en direct d'un composant en appuyant sur `L`.
+
+
 ## 1. Le Diagnostic Automatique (L'outil "Check")
 La commande `check` (ou `sudo bash /opt/soundspot/check.sh`) est votre meilleur ami. Elle teste :
 - L'état de tous les services systemd.

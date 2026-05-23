@@ -42,6 +42,14 @@ SVC_ICECAST=$(_svc icecast2)
 SVC_LIGHTTPD=$(_svc lighttpd)
 SVC_PICOPORT=$(_svc picoport)
 SVC_BT_REACTIVE=$(_svc soundspot-bt-reactive)
+VIDEO_STREAM="false"
+if ss -tlnp 2>/dev/null | grep -q ":1935"; then
+    VIDEO_STREAM="ready"
+    if ss -tn state established 2>/dev/null | grep -q ":1935"; then
+        VIDEO_STREAM="live"
+    fi
+fi
+
 
 # Fonction pour nettoyer les chaînes pour JSON (enlève caractères de contrôle)
 clean_json() {
@@ -77,6 +85,7 @@ jq -n \
   --arg svc_lighttpd "$SVC_LIGHTTPD" \
   --arg svc_picoport "$SVC_PICOPORT" \
   --arg svc_bt_reactive "$SVC_BT_REACTIVE" \
+  --arg video_stream "$VIDEO_STREAM" \
   '{
     tts_engine: $tts_engine,
     spot_name: $spot_name,
@@ -102,6 +111,7 @@ jq -n \
       icecast2: $svc_icecast,
       lighttpd: $svc_lighttpd,
       picoport: $svc_picoport,
+      video_stream: $video_stream,
       "soundspot-bt-reactive": $svc_bt_reactive
     }
   }'

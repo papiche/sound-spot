@@ -3,6 +3,7 @@
 Ce tutoriel vous guidera dans la création de votre premier nœud autonome CyberCochon.
 
 ## Étape 1 : Préparation matérielle
+*(Consultez la [Nomenclature et Guide d'Achats](reference-nomenclature.md) pour la liste exacte des composants et le budget).*
 1. Branchez votre Raspberry Pi 4 à une alimentation suffisante (ex: convertisseur 12V/5V 5A).
 2. Connectez le dongle Wi-Fi Vemfay sur un port USB 3.0 (bleu).
 3. Branchez la Caméra Module 3 sur le port CSI.

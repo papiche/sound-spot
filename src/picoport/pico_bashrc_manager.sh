@@ -10,6 +10,8 @@ read -r -d '' PICO_BLOCK << 'EOF'
 # ── Diagnostic & Surveillance ─────────────────────────────────────────────
 # Correction de l'alias check pour pointer vers le workspace si absent de /opt
 alias check='bash /opt/soundspot/check.sh'
+alias ss-center='sudo bash /opt/soundspot/backend/system/control_center.sh'
+
 alias svc='systemctl status soundspot-* bt-autoconnect picoport 2>/dev/null | grep -E "●|Active:"'
 alias pico-log='tail -f ~/.zen/log/picoport_20h12.log'
 alias pico-svc='journalctl -u picoport.service -f'
@@ -58,7 +60,7 @@ pico-welcome() {
     echo -e "  \e[36m[Audio/BT] \e[0m  sound, vol, sound-test, sound-fix, bt-fix"
     echo -e "  \e[36m[Clocher]  \e[0m  clock-bells, clock-silent"
     echo -e "  \e[36m[IA/Swarm] \e[0m  swarm-nodes, ai, asys, asys-list, asys-swarm"
-    echo -e "  \e[36m[Admin/Dev]\e[0m  conf, cd-pico, pico-update, ss-status, ss-reload"
+    echo -e "  \e[36m[Admin/Dev]\e[0m  ss-center, conf, cd-pico, pico-update, ss-status, ss-reload"
     echo -e "\e[33m──────────────────────────────────────────────────────────────────────\e[0m"
     echo ""
 }

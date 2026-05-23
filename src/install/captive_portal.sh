@@ -6,6 +6,7 @@ setup_captive_portal() {
     USER_HOME=$(getent passwd "$SOUNDSPOT_USER" | cut -d: -f6)
     cat > /etc/sudoers.d/soundspot-www <<SUDOEOF
 www-data ALL=(ALL) NOPASSWD: /usr/sbin/ipset
+www-data ALL=(ALL) NOPASSWD: /usr/sbin/batctl *
 www-data ALL=(ALL) NOPASSWD: /opt/soundspot/backend/system/set_clock_mode.sh
 www-data ALL=(ALL) NOPASSWD: /opt/soundspot/backend/system/set_voice_mode.sh
 www-data ALL=(ALL) NOPASSWD: /opt/soundspot/backend/system/set_bells_mode.sh
@@ -18,11 +19,10 @@ www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart soundspot-decoder
 www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart snapserver
 www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart icecast2
 www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart soundspot-bt-reactive
-www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop soundspot-client
-www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart soundspot-client
+www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop soundspot-client-master
+www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart soundspot-client-master
 www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop snapserver
 www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop soundspot-decoder
-www-data ALL=(ALL) NOPASSWD: /bin/echo * > /sys/class/gpio/*
 www-data ALL=(ALL) NOPASSWD: /opt/soundspot/backend/system/set_audio_output.sh *
 www-data ALL=(ALL) NOPASSWD: /usr/sbin/poweroff
 www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl start soundspot-autodj

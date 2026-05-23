@@ -1,0 +1,14 @@
+[Unit]
+Description=SoundSpot - RTMP HDMI Player (Drone FPV)
+After=nginx.service
+
+[Service]
+Type=simple
+User=${SOUNDSPOT_USER}
+EnvironmentFile=${INSTALL_DIR}/soundspot.conf
+ExecStart=/bin/bash ${INSTALL_DIR}/backend/video/rtmp_player.sh
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

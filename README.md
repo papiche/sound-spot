@@ -151,7 +151,7 @@ Cliquer sur l'icône **Antenne** dans Mixxx pour démarrer l'émission.
 
 1. Se connecter au WiFi `SPOT_NAME` — **réseau ouvert, aucun mot de passe**
 2. Le portail SoundSpot surgit automatiquement (test de connectivité HTTP intercepté)
-3. Cliquer **« J'ai lu »** — ouvre **15 minutes** d'accès Internet complet
+3. Cliquer **« J'ai lu »** — ouvre **4 heures** d'accès Internet complet
 4. Installer et lancer Snapclient pour écouter le stream audio :
    ```
    Android : Snapdroid (Play Store)
@@ -159,7 +159,7 @@ Cliquer sur l'icône **Antenne** dans Mixxx pour démarrer l'émission.
    Windows : snapclient GUI sur snapcast.de
    ```
 
-> Après 15 min, le téléphone affiche « Se connecter au réseau » → rouvrir le portail pour revalider.
+> Après 4 heures, le téléphone affiche « Se connecter au réseau » → rouvrir le portail pour revalider.
 > Le stream Snapcast (port 1704) reste accessible à tout moment, sans quota.
 
 ---
@@ -217,7 +217,7 @@ espeak-ng -v fr+f3 -s 120 -p 45 \
 | `uap0` | Interface WiFi AP virtuelle (MAC dérivée de wlan0) |
 | `hostapd` | Point d'accès WiFi (SSID) |
 | `dnsmasq` | DHCP + DNS — appelle `dhcp_trigger.sh` à chaque bail |
-| `ipset-soundspot` | Liste blanche `soundspot_auth` — timeout 15 min par entrée |
+| `ipset-soundspot` | Liste blanche `soundspot_auth` — timeout 4 h (14400 s) par entrée |
 | `lighttpd` | Portail captif HTTP (intercepte port 80 via iptables REDIRECT) |
 | ~~`opennds`~~ | ~~Portail captif~~ — **désactivé/masqué** (conflit iptables avec lighttpd) |
 | `icecast2` | Relais audio Ogg (reçoit Mixxx Live Broadcasting) |
@@ -338,9 +338,14 @@ Afin de faciliter la compréhension, la maintenance et l'extension du projet, no
 2. 🛠 **Guides Pratiques (Tâches)** : 
    - [Ajouter un Satellite au réseau Mesh](docs/howto-mesh-satellite.md) 
    - [Configuration DJ, Bluetooth et Clocher](docs/howto-dj-configuration.md) 
+   - [Régie Vidéo (V.J.), Drone et Projecteur](docs/howto-vj-drone.md) 
+   - [Utiliser une Steam Deck comme Console DJ/VJ et relier un Brain-Node](docs/howto-steamdeck.md)
+   - [Montage Électronique et Câblage Matériel](docs/howto-montage-materiel.md)
+   - [Manuel de Survie en Festival (AutoDJ, Radio FM, Jukebox)](docs/howto-festival-survival.md)
    - [Lire les logs, utiliser check.sh et diagnostiquer](docs/howto-logs-diagnostic.md)
 3. 🧠 **[Explications (Compréhension)](docs/explanation-architecture.md)** : La philosophie du réseau B.A.T.M.A.N., la gestion de flotte NOSTR et l'autonomie énergétique.
 4. ⚙️ **[Référence (Information)](docs/reference-api-config.md)** : Documentation des API bash/python, ports réseaux, GPIO et fichiers de configuration.
+   - [Nomenclature, Achats et Budget](docs/reference-nomenclature.md) : Liste exacte du matériel Amazon et correspondances.
 
 ## External Interface & API Reference
 The API HTTP (Port 80) and the Web3 NOSTR Interface (Jukebox) are fully documented for developers in [DEV.md](DEV.md).

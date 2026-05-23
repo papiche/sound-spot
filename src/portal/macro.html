@@ -34,6 +34,10 @@
     <div style="text-align: center;">Scan des fréquences P2P en cours... 📡</div>
   </div>
 
+  <a href="mesh.html" class="btn" style="background:var(--accent); margin-bottom:10px;">🕸️ Voir la Topologie Mesh B.A.T.M.A.N. →</a>
+
+  <a href="vj.html" class="btn" style="background:#ffb347; color:#000; margin-bottom:10px;">🎛️ Ouvrir la Régie Vidéo (VJ) →</a>
+
   <a href="index.html" class="btn">← Retourner au Portail</a>
 
   <script>
@@ -49,6 +53,7 @@
             <span class="badge">CPU: ${d.cpu_load}</span>
           </div>
           ${battHtml}${fmHtml}
+          <div class="data-row"><span>Flux Vidéo (RTMP)</span> <span>${(d.services && d.services.video_stream === "live") ? "<span class=\"status-ok\">🔴 En direct</span>" : "En attente"}</span></div>
           <div class="data-row"><span>Routage Mesh B.A.T.M.A.N.</span> <span class="status-ok">10.200.0.1</span></div>
           <div class="data-row"><span>Moteur IA (Voix)</span> <span>${(d.tts_engine||'').toUpperCase()}</span></div>
           <div class="data-row"><span>Flux Radio (Snapcast)</span> <span>Port ${d.snapcast_port}</span></div>

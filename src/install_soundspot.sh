@@ -27,6 +27,7 @@ source "$SCRIPT_DIR/install/idle.sh"
 source "$SCRIPT_DIR/install/jukebox.sh"
 source "$SCRIPT_DIR/install/zram.sh"
 source "$SCRIPT_DIR/install/autodj.sh"
+source "$SCRIPT_DIR/install/video_rtmp.sh"
 source "$SCRIPT_DIR/install/wifi_driver.sh"
 
 # ── Variables configurables ─────────────────────────────────
@@ -61,7 +62,7 @@ echo "icecast2 icecast2/icecast-setup boolean false" | debconf-set-selections
 
 apt_retry update -qq
 apt_retry install -y --no-install-recommends \
-    hostapd dnsmasq lighttpd ipset mpg123 lsof \
+    hostapd dnsmasq lighttpd libnginx-mod-rtmp nginx mpv ipset mpg123 lsof \
     icecast2 rpicam-apps \
     bluez bluez-alsa-utils libspa-0.2-bluetooth \
     pipewire pipewire-alsa pipewire-pulse wireplumber \
@@ -135,6 +136,7 @@ setup_battery        # Batterie INA219 (indépendant caméra)
 setup_idle           # Clocher numérique
 setup_jukebox        # Nostr Jukebox
 setup_autodj         # Auto DJ service
+setup_video_rtmp     # Serveur de flux video drone
 
 # ── Services Master spécifiques ──────────────────────────────
 hdr "Services Master (état JSON + micro USB)"

@@ -41,6 +41,9 @@ iptables -A FORWARD -i bat0 -j ACCEPT
 iptables -A FORWARD -o bat0 -j ACCEPT
 
 iptables -A FORWARD -i "${IFACE_AP}" -p udp --dport 53 -j ACCEPT
+# Autoriser le flux video RTMP (Drones)
+iptables -A FORWARD -i "${IFACE_AP}" -p tcp --dport 1935 -j ACCEPT
+
 iptables -A FORWARD -i "${IFACE_AP}" -p tcp --dport 53 -j ACCEPT
 
 # 2. Trafic autorisé (IPs dans soundspot_auth)
