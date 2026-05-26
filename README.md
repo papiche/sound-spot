@@ -28,13 +28,11 @@ Projet [G1FabLab](https://opencollective.com/monnaie-libre) / [UPlanet ẐEN](ht
   └─ Bluetooth           (enceinte W-KING ou équivalent)
 ```
 
-Un visiteur se connecte au WiFi du SoundSpot → internet s'ouvre immédiatement (DHCP) → la page d'accueil (portail captif) surgit automatiquement sur son téléphone → il clique « J'ai lu » → 15 minutes d'accès internet complet → peut installer Snapclient et écouter le stream synchronisé.
+Un visiteur se connecte au WiFi du SoundSpot → internet s'ouvre immédiatement (DHCP) → la page d'accueil (portail captif) surgit automatiquement sur son téléphone → il clique « J'ai lu » → 4 heures d'accès internet complet → peut installer Snapclient et écouter le stream synchronisé.
 
 Le DJ ouvre Mixxx sur son PC, active le **Live Broadcasting** vers le RPi (Icecast), et sa session est diffusée en temps réel sur toutes les enceintes connectées (Bluetooth + Snapclients visiteurs).
 
 ---
-
-> ⚠️ **AVERTISSEMENT LÉGAL (Radio FM) :** L'utilisation d'un émetteur FM de 0.5W (portée ~2km) n'est pas un jouet. Dans la majorité des pays (dont la France via l'ARCOM/ANFR), émettre sur la bande FM sans autorisation est illégal et sévèrement puni en cas de brouillage des fréquences publiques ou aéronautiques. Utilisez cet équipement sous votre entière responsabilité, de préférence avec une charge fictive (dummy load) pour les tests, ou un micro-émetteur homologué CE (< 50nW).
 
 ## Matériel
 
@@ -42,10 +40,10 @@ Le DJ ouvre Mixxx sur son PC, active le **Live Broadcasting** vers le RPi (Iceca
 |---|---|
 | Ordinateur embarqué | Raspberry Pi Zero 2W |
 | Caméra | Pi Camera Module 3 — SC1223, 75° |
-| Enceinte | W-KING D9-1 (ou tout haut-parleur Bluetooth A2DP) |
+| Enceinte | Tout haut-parleur Bluetooth A2DP |
 | Carte SD | ≥ 8 Go (classe 10 / A1) |
 | Alimentation | USB-C 5V / 2A |
-| PC DJ | Linux (Ubuntu / Debian) avec Mixxx |
+| PC DJ | Linux (Debian/Astroport.ONE) avec Mixxx |
 
 ---
 
@@ -197,7 +195,7 @@ La caméra Pi Module 3 (75°) détecte automatiquement les visiteurs et joue un 
 
 - **Détection** : Haar cascade OpenCV sur image 80×60 px — ~5 ms CPU, pas de ML lourd
 - **Cooldown** : 30 secondes entre deux messages (configurable dans `soundspot.conf`)
-- **Audio** : synthèse vocale française (`espeak-ng`, voix `fr+f3`), générée à l'installation
+- **Audio** : synthèse vocale française (`espeak-ng`, voix `pierre` ou `amelie`), voir code...
 
 Personnaliser le message :
 
@@ -268,6 +266,7 @@ Les paiements Ğ1 (Duniter v2s) sont disponibles via `gcli` (`g1cli` installé d
 Le mode **Picoport** est l'épine dorsale web3 et IA du SoundSpot. En l'activant, le RPi Zero 2W devient un micro-nœud de l'essaim "UPlanet". 
 
 Voici ce qu'il accomplit en tâche de fond :
+
 1. **Transmutation Cryptographique (Y-Level)** : À l'installation, il génère une clé SSH (Ed25519) locale. Le hash de cette clé (le *salt & pepper*) sert de graine déterministe pour générer l'identité de son nœud IPFS (`PeerID`), son identité monnaie libre `Ğ1 / ẑen`, et son Multipass Nostr. Le nœud a donc une seule et même identité prouvable mathématiquement sur SSH, IPFS, Duniter et Nostr.
 2. **IPFS Isolé en Basse Énergie** : Il installe *Kubo (IPFS)* compilé pour ARM64, purge les nœuds publics, et se branche exclusivement sur la `swarm.key` UPlanet. Il utilise un profil extrême basse consommation (`CPUQuota=40%`, limites de connexions baissées) pour ne pas entraver le flux audio.
 3. **Paiements et Monnaie Libre** : Il déploie `g1cli`, le client léger Rust pour la blockchain Duniter v2s, permettant au nœud de recevoir/émettre des pourboires et de signer des contrats.
@@ -281,6 +280,8 @@ La rencontre Homme/Machine qui pour fonctionner a besoin de recharge et changeme
  * PiZ2W pour la bouche et les oreilles
  * Pi4/Pi5 pour la vision et le stockage
  * PC Gamer / GPU pour le calcul, la mémoire
+
+LISTE : https://www.amazon.fr/hz/wishlist/ls/1SGWKRK1Q1WHA/
 
 + Client Smartphone "Zelkova" (ẑen) 
 + Parrain ẐEN (historique "ZEN Card") 
@@ -326,7 +327,7 @@ grep '\[picoport\]' /var/log/sound-spot.log  # picoport uniquement
 
 ## Licence
 
-AGPL-3.0 — [G1FabLab](https://opencollective.com/monnaie-libre) / [UPlanet ẐEN](https://qo-op.com) / [zicmama.com](https://zicmama.com)
+AGPL-3.0 — [G1FabLab](https://opencollective.com/monnaie-libre) / [UPlanet ORIGIN](https://qo-op.com) / [astroport.one](https://ipfs.copylaradio.com/ipns/astroport.one)
 
 ## 📚 Documentation (Standard Diátaxis)
 
@@ -346,6 +347,8 @@ Afin de faciliter la compréhension, la maintenance et l'extension du projet, no
 3. 🧠 **[Explications (Compréhension)](docs/explanation-architecture.md)** : La philosophie du réseau B.A.T.M.A.N., la gestion de flotte NOSTR et l'autonomie énergétique.
 4. ⚙️ **[Référence (Information)](docs/reference-api-config.md)** : Documentation des API bash/python, ports réseaux, GPIO et fichiers de configuration.
    - [Nomenclature, Achats et Budget](docs/reference-nomenclature.md) : Liste exacte du matériel Amazon et correspondances.
+
+> **Votre AIDE est BIENVENUE**
 
 ## External Interface & API Reference
 The API HTTP (Port 80) and the Web3 NOSTR Interface (Jukebox) are fully documented for developers in [DEV.md](DEV.md).
