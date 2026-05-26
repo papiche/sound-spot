@@ -202,6 +202,59 @@ discover_neighbors() {
     fi
 }
 
+# ── BRO DM Daemon — traite les DMs NOSTR pour les MULTIPASS locaux ──────────
+# bro_dm_daemon.sh exécute localement les commandes (#BRO, #rec, #mem, udrive…)
+# pour tout MULTIPASS dont ce picoport est le Home (fichier HEX présent, pas .roaming).
+# La queue est alimentée par _pico_dm_listener() via nak depuis le relay constellation.
+BRO_DM_DAEMON="$HOME/.zen/Astroport.ONE/IA/bro/bro_dm_daemon.sh"
+BRO_DM_QUEUE="$HOME/.zen/tmp/bro_dm_queue"
+mkdir -p "$BRO_DM_QUEUE"
+
+_pico_dm_listener() {
+    # Abonnement relay : dépose les kind 4 + kind 14 adressés à ce node dans la queue
+    [[ -z "$NODEHEX" ]] && { ss_warn "DM listener: NODEHEX absent — abonnement relay impossible"; return; }
+    local _relay="${PICO_RELAY:-wss://relay.copylaradio.com}"
+    local _since
+    _since=$(date +%s)
+    ss_info "DM listener démarré (relay: $_relay npub=${NODEHEX:0:12}…)"
+    while true; do
+        # nak req écrit chaque event NOSTR sur une ligne JSON distincte
+        nak req --kind 4 --kind 14 -p "$NODEHEX" --since "$(( _since - 60 ))" \
+            "$_relay" 2>/dev/null \
+        | while IFS= read -r _event; do
+            [[ -z "$_event" ]] && continue
+            local _ts
+            _ts=$(date +%s%N 2>/dev/null || date +%s)
+            printf '%s\n' "$_event" > "$BRO_DM_QUEUE/dm_${_ts}.json"
+        done
+        _since=$(date +%s)
+        sleep 30
+    done
+}
+
+_pico_bro_watchdog() {
+    [[ ! -x "$BRO_DM_DAEMON" ]] && { ss_warn "bro_dm_daemon.sh absent — BRO non disponible"; return; }
+    while true; do
+        local _pid_file="$HOME/.zen/tmp/bro_dm_daemon.pid"
+        if [[ -f "$_pid_file" ]] && kill -0 "$(cat "$_pid_file" 2>/dev/null)" 2>/dev/null; then
+            sleep 60
+        else
+            ss_info "Démarrage bro_dm_daemon.sh (HOME MULTIPASS: $(ls "$HOME/.zen/game/nostr/" 2>/dev/null | grep -v '^$' | wc -l) compte(s))"
+            bash "$BRO_DM_DAEMON" >> "$HOME/.zen/tmp/bro_dm_daemon.log" 2>&1 &
+            sleep 10
+        fi
+    done
+}
+
+# Lancer listener DM + watchdog BRO en arrière-plan si NOSTR identity disponible
+if [[ -s "$HOME/.zen/game/secret.nostr" ]]; then
+    _pico_dm_listener &
+    _pico_bro_watchdog &
+    ss_info "BRO activé — DM listener + daemon watchdog démarrés"
+else
+    ss_warn "secret.nostr absent — BRO désactivé (relancer après picoport_init_keys.sh)"
+fi
+
 # Boucle principale
 while true; do
     MOATS=$(date +%s)

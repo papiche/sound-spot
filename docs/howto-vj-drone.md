@@ -19,3 +19,29 @@ L'administrateur du SoundSpot peut choisir quel flux afficher sur le projecteur 
 2. La liste des flux en cours d'émission s'affiche.
 3. Cliquez sur **Projeter 🎦**. Le Raspberry Pi coupera le terminal texte et affichera la vidéo en plein écran via un rendu matériel direct (zéro lag).
 4. Cliquez sur **Mettre au Noir** pour couper la projection.
+
+## 4. VDO.Ninja — Diffusion WebRTC sans application
+
+Si le nœud a accès à Internet (via qo-op ou eth0), les participants peuvent diffuser
+depuis leur navigateur, sans installer Larix ni l'application DJI.
+
+**Rejoindre comme diffuseur (smartphone, PC) :**
+Dans la Régie V.J. → bouton **📷 Diffuser ma caméra** → le navigateur demande accès à la caméra.
+
+**Afficher la scène composite sur le projecteur :**
+Dans la Régie V.J. → bouton **📺 Scène projecteur** → ouvre la vue multi-sources dans un nouvel onglet (à afficher sur le HDMI via Chromium plein écran).
+
+La room est dérivée automatiquement du `SPOT_NAME` configuré (ex : `SOUNDSPOTZICMAMA`).
+
+| | RTMP (Larix / DJI Fly) | VDO.Ninja |
+|--|--|--|
+| Application nécessaire | Oui | Non — navigateur |
+| Fonctionne hors-ligne | **Oui** | Non (signaling serveur) |
+| Latence | ~1-2 s | ~100-200 ms |
+| Sources simultanées | Non | Oui (scène composite) |
+| Drone DJI | Natif | Via navigateur du contrôleur |
+| Smartphone visiteur | Larix Broadcaster | Navigateur, aucune install |
+
+> **Cas d'usage typique :** plusieurs festivaliers diffusent simultanément depuis leurs smartphones.
+> La scène VDO.Ninja affiche toutes les sources en mosaïque sur le projecteur.
+> Les drones ou sources professionnelles restent sur RTMP pour la qualité et l'autonomie hors-ligne.

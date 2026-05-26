@@ -59,7 +59,7 @@ pico-welcome() {
     echo -e "  \e[36m[Énergie]  \e[0m  pico-on, pico-low, pico-power"
     echo -e "  \e[36m[Audio/BT] \e[0m  sound, vol, sound-test, sound-fix, bt-fix"
     echo -e "  \e[36m[Clocher]  \e[0m  clock-bells, clock-silent"
-    echo -e "  \e[36m[IA/Swarm] \e[0m  swarm-nodes, ai, asys, asys-list, asys-swarm"
+    echo -e "  \e[36m[IA/Swarm] \e[0m  swarm-nodes, ai, asys-swarm, asys-qdrant, asys-nc, asys-ollama, asys-orpheus, asys-help"
     echo -e "  \e[36m[Admin/Dev]\e[0m  ss-center, conf, cd-pico, pico-update, ss-status, ss-reload"
     echo -e "\e[33m──────────────────────────────────────────────────────────────────────\e[0m"
     echo ""
@@ -164,12 +164,52 @@ alias asys-list='astrosystemctl list'
 alias asys-swarm='astrosystemctl list-remote'
 alias asys-status='astrosystemctl status'
 alias asys-local='astrosystemctl local'
+alias asys-qdrant='astrosystemctl enable qdrant'
+alias asys-nc='astrosystemctl enable nextcloud-app'
+alias asys-ollama='astrosystemctl enable ollama'
+alias asys-orpheus='astrosystemctl enable orpheus'
 
 # Connexion rapide à un service IA du swarm (ex: ai ollama)
 ai() {
     local svc="\${1:-ollama}"
-    echo "🔍 Connexion au service swarm : \$svc"
+    echo "Connexion au service swarm : \$svc"
     astrosystemctl connect "\$svc"
+}
+
+# Aide astrosystemctl
+asys-help() {
+    cat << 'HELP'
+
+  astrosystemctl — Cloud P2P de Puissance UPlanet
+  ──────────────────────────────────────────────────────────────────────
+
+  Ce Picoport est un nœud Light (RPi Zero 2W) — il délègue le calcul
+  IA aux Brain-Nodes (GPU) de la constellation via tunnels IPFS P2P.
+
+  Alias rapides :
+    asys-swarm      → Lister les Brain-Nodes du swarm
+    asys-list       → Services locaux disponibles
+    asys-status     → État des tunnels actifs
+    asys-qdrant     → Activer le tunnel Qdrant  (port 6333)
+    asys-nc         → Activer le tunnel NextCloud
+    ai ollama       → Se connecter à Ollama distant (port 11434)
+    ai comfyui      → Se connecter à ComfyUI distant (port 8188)
+
+  Commandes directes astrosystemctl :
+    astrosystemctl list-remote        → Brain-Nodes et leurs services
+    astrosystemctl connect <service>  → Connexion ponctuelle
+    astrosystemctl enable  <service>  → Tunnel persistant (watchdog)
+    astrosystemctl disable <service>  → Désactiver le tunnel
+    astrosystemctl status             → Tunnels actifs
+
+  Ports utilisés (127.0.0.1 local = service distant via tunnel) :
+    qdrant     :6333    nextcloud  :8002
+    ollama     :11434   comfyui    :8188
+
+  La clé API Qdrant (sha256 de UPLANETNAME) est identique sur tout
+  le swarm — aucune configuration supplémentaire requise.
+
+HELP
 }
 
 # Score de puissance du Picoport (toujours 🌿 Light sur Zero 2W → délègue au swarm)

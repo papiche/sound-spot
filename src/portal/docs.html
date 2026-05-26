@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Documentation — SoundSpot</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root {
+      --bg:     #07070f;
+      --bg2:    #0f0f1e;
+      --bg3:    #161628;
+      --border: #1e1e36;
+      --text:   #d0d0e8;
+      --muted:  #5a5a7a;
+      --accent: #7b61ff;
+      --green:  #3dba7e;
+      --cyan:   #4ecdc4;
+      --orange: #ffb347;
+      --yellow: #ffc107;
+      --r: 10px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
+
+    /* ── Nav ── */
+    .topnav { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: var(--bg2); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; flex-wrap: wrap; }
+    .topnav .brand { font-size: 16px; font-weight: 700; color: #fff; white-space: nowrap; margin-right: 4px; }
+    .topnav a { color: var(--muted); text-decoration: none; font-size: 13px; padding: 5px 9px; border-radius: 16px; transition: all .2s; white-space: nowrap; }
+    .topnav a:hover, .topnav a.active { background: rgba(123,97,255,.15); color: #c0aaff; }
+    .topnav .spacer { flex: 1; }
+
+    /* ══════════════════════════════════════════════
+       VUE INDEX — Landing 4 volets
+    ══════════════════════════════════════════════ */
+    .hero {
+      padding: 40px 32px 24px;
+      max-width: 1100px; margin: 0 auto;
+    }
+    .hero h1 { font-size: 28px; font-weight: 800; color: #fff; margin-bottom: 8px; }
+    .hero p  { color: var(--muted); font-size: 14px; margin-bottom: 24px; line-height: 1.6; }
+    .search-bar {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--bg2); border: 1px solid var(--border); border-radius: 10px;
+      padding: 10px 14px; max-width: 480px;
+    }
+    .search-bar input {
+      flex: 1; background: none; border: none; outline: none;
+      color: var(--text); font-size: 14px;
+    }
+    .search-bar input::placeholder { color: var(--muted); }
+
+    /* ── 4 volets ── */
+    .volets-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 24px;
+      padding: 0 32px 48px;
+      max-width: 1100px; margin: 0 auto;
+    }
+    @media (max-width: 700px) { .volets-grid { grid-template-columns: 1fr; padding: 0 16px 40px; } }
+
+    .volet {
+      background: var(--bg2); border: 1px solid var(--border); border-radius: 14px; overflow: hidden;
+    }
+    .volet-header {
+      padding: 14px 18px 10px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .volet-icon { font-size: 22px; }
+    .volet-title { font-size: 13px; font-weight: 700; color: var(--text); letter-spacing: .06em; text-transform: uppercase; }
+    .volet-desc { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .volet-cards { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 8px; }
+    .volet-empty { padding: 16px; font-size: 12px; color: var(--muted); text-align: center; }
+
+    /* ── Card ── */
+    .doc-card {
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--bg3); border: 1px solid var(--border); border-radius: 8px;
+      padding: 11px 14px; text-decoration: none; color: var(--text);
+      transition: all .15s; gap: 12px;
+    }
+    .doc-card:hover { border-color: var(--accent); background: rgba(123,97,255,.07); }
+    .doc-card-info { flex: 1; min-width: 0; }
+    .doc-card-title { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .doc-card-slug  { font-size: 10px; color: var(--muted); font-family: monospace; margin-top: 2px; }
+    .doc-card-arrow { color: var(--accent); font-size: 14px; flex-shrink: 0; }
+    .doc-card-size  { font-size: 10px; color: var(--muted); flex-shrink: 0; }
+
+    /* ══════════════════════════════════════════════
+       VUE VIEWER — Document pleine page
+    ══════════════════════════════════════════════ */
+    #view-doc { display: none; }
+
+    .doc-topbar {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 24px; background: var(--bg2); border-bottom: 1px solid var(--border);
+      position: sticky; top: 48px; z-index: 90;
+    }
+    .btn-back {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 5px 12px; background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--muted); font-size: 13px; text-decoration: none;
+      transition: all .15s; white-space: nowrap; cursor: pointer;
+    }
+    .btn-back:hover { border-color: var(--accent); color: #c0aaff; }
+    .doc-topbar-title { flex: 1; font-size: 14px; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .btn-raw { padding: 5px 12px; border: 1px solid var(--border); border-radius: 6px; background: transparent; color: var(--muted); font-size: 11px; cursor: pointer; font-family: monospace; transition: all .15s; white-space: nowrap; }
+    .btn-raw:hover { border-color: var(--accent); color: #c0aaff; }
+
+    .doc-body { max-width: 860px; margin: 0 auto; padding: 32px 32px 80px; }
+    @media (max-width: 600px) { .doc-body { padding: 20px 16px 60px; } .hero { padding: 24px 16px 16px; } }
+
+    /* ── Rendu Markdown ── */
+    .md-content h1 { font-size: 26px; font-weight: 700; color: #fff; margin: 0 0 20px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+    .md-content h2 { font-size: 19px; font-weight: 600; color: var(--orange); margin: 32px 0 12px; }
+    .md-content h3 { font-size: 15px; font-weight: 600; color: var(--cyan); margin: 22px 0 8px; }
+    .md-content h4 { font-size: 13px; font-weight: 700; color: var(--text); margin: 16px 0 6px; }
+    .md-content p { margin: 0 0 14px; }
+    .md-content a { color: var(--accent); text-decoration: none; }
+    .md-content a:hover { text-decoration: underline; }
+    .md-content ul, .md-content ol { padding-left: 22px; margin: 0 0 14px; }
+    .md-content li { margin: 4px 0; }
+    .md-content li p { margin: 0; }
+    .md-content strong { color: #fff; font-weight: 700; }
+    .md-content em { color: #b0b0d0; font-style: italic; }
+    .md-content hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+    .md-content blockquote { border-left: 3px solid var(--accent); padding: 8px 16px; margin: 14px 0; background: rgba(123,97,255,.07); border-radius: 0 6px 6px 0; color: #b0b0d0; }
+    .md-content code { font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 12.5px; background: rgba(255,255,255,.07); padding: 2px 6px; border-radius: 4px; color: var(--cyan); }
+    .md-content pre { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 16px; overflow-x: auto; margin: 14px 0; }
+    .md-content pre code { background: none; padding: 0; color: #a8d8a8; font-size: 12px; }
+    .md-content table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 13px; }
+    .md-content th { background: var(--bg3); color: var(--text); font-weight: 600; text-align: left; padding: 8px 12px; border-bottom: 2px solid var(--border); }
+    .md-content td { padding: 7px 12px; border-bottom: 1px solid rgba(255,255,255,.05); }
+    .md-content tr:hover td { background: rgba(255,255,255,.02); }
+
+    .doc-raw { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 16px; overflow-x: auto; font-size: 12px; color: #a8d8a8; white-space: pre-wrap; font-family: monospace; }
+
+    .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,.1); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; vertical-align: middle; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-state { padding: 60px 20px; text-align: center; color: var(--muted); }
+  </style>
+</head>
+<body>
+
+<!-- ── Navigation ── -->
+<nav class="topnav">
+  <span class="brand" id="nav-brand">🎵 SoundSpot</span>
+  <a href="/">🏠</a>
+  <a href="mesh.html">🕸️ Mesh</a>
+  <a href="vj.html">🎛️ VJ</a>
+  <a href="docs.html" class="active">📚 Docs</a>
+  <a href="#" onclick="window.open('http://'+location.hostname+':8080/ipns/copylaradio.com/','_blank');return false">🌍 UPlanet</a>
+  <div class="spacer"></div>
+</nav>
+
+<!-- ══════════════════════════════════════════════
+     VUE INDEX — 4 volets
+══════════════════════════════════════════════ -->
+<div id="view-index">
+
+  <div class="hero">
+    <h1>📚 Documentation</h1>
+    <p>
+      Organisée selon le cadre <strong>Diátaxis</strong> — quatre formes de contenu pour quatre besoins différents :
+      apprendre (tutoriels), accomplir (guides), consulter (références), comprendre (explications).
+    </p>
+    <div class="search-bar">
+      <span style="color:var(--muted);font-size:14px">🔍</span>
+      <input type="search" id="search-input" placeholder="Rechercher dans les docs…" oninput="filterDocs(this.value)">
+    </div>
+  </div>
+
+  <div class="volets-grid" id="volets-grid">
+    <div class="loading-state"><span class="spinner"></span> Chargement…</div>
+  </div>
+
+</div>
+
+<!-- ══════════════════════════════════════════════
+     VUE VIEWER — Document pleine page
+══════════════════════════════════════════════ -->
+<div id="view-doc">
+
+  <div class="doc-topbar">
+    <a href="docs.html" class="btn-back" onclick="goIndex(event)">← Docs</a>
+    <span class="doc-topbar-title" id="doc-topbar-title">…</span>
+    <button class="btn-raw" id="btn-raw" onclick="toggleRaw()">{ } Source</button>
+  </div>
+
+  <div class="doc-body">
+    <div class="md-content" id="md-output"></div>
+    <pre class="doc-raw" id="raw-output" style="display:none"></pre>
+  </div>
+
+</div>
+
+<script>
+  /* ── Configuration des 4 volets ── */
+  const VOLETS = [
+    {
+      key: 'tutorial',
+      icon: '🎓',
+      title: 'Tutoriels',
+      desc: 'Apprentissage pas-à-pas',
+      color: '#3dba7e',
+    },
+    {
+      key: 'howto',
+      icon: '🔧',
+      title: 'Guides pratiques',
+      desc: 'Tâches et configurations',
+      color: '#ffb347',
+    },
+    {
+      key: 'reference',
+      icon: '📖',
+      title: 'Références',
+      desc: 'Modes, API, configuration',
+      color: '#4ecdc4',
+    },
+    {
+      key: 'explanation',
+      icon: '🧠',
+      title: 'Explications',
+      desc: 'Architecture et concepts',
+      color: '#7b61ff',
+    },
+  ];
+
+  /* ── État ── */
+  let _allDocs = [];
+  let _currentRaw  = '';
+  let _currentHtml = '';
+  let _rawMode = false;
+
+  const API = '/api.sh';
+
+  /* ── Utilitaire taille lisible ── */
+  function fmtSize(bytes) {
+    if (bytes < 1024) return bytes + ' o';
+    return Math.round(bytes / 1024) + ' ko';
+  }
+
+  /* ── Rendu landing — 4 volets ── */
+  function renderIndex(docs) {
+    const grid = document.getElementById('volets-grid');
+    if (!docs.length) {
+      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--muted)">Aucun document trouvé</div>';
+      return;
+    }
+
+    const byType = {};
+    VOLETS.forEach(v => { byType[v.key] = []; });
+    byType['other'] = [];
+
+    docs.forEach(d => {
+      const match = VOLETS.find(v => d.file.startsWith(v.key + '-'));
+      if (match) byType[match.key].push(d);
+      else byType['other'].push(d);
+    });
+
+    let html = '';
+    VOLETS.forEach(v => {
+      const cards = byType[v.key];
+      html += `
+        <div class="volet">
+          <div class="volet-header" style="border-left: 3px solid ${v.color}">
+            <span class="volet-icon">${v.icon}</span>
+            <div>
+              <div class="volet-title">${v.title}</div>
+              <div class="volet-desc">${v.desc}</div>
+            </div>
+          </div>
+          <div class="volet-cards">
+            ${cards.length
+              ? cards.map(d => `
+                <a class="doc-card" href="#${d.file}">
+                  <div class="doc-card-info">
+                    <div class="doc-card-title">${d.title}</div>
+                    <div class="doc-card-slug">${d.file}</div>
+                  </div>
+                  <span class="doc-card-size">${fmtSize(d.size)}</span>
+                  <span class="doc-card-arrow">→</span>
+                </a>`).join('')
+              : '<div class="volet-empty">Aucun document</div>'
+            }
+          </div>
+        </div>`;
+    });
+
+    /* Autres docs (non préfixés) */
+    if (byType['other'].length) {
+      html += `
+        <div class="volet" style="grid-column:1/-1">
+          <div class="volet-header" style="border-left:3px solid var(--muted)">
+            <span class="volet-icon">📄</span>
+            <div>
+              <div class="volet-title">Autres</div>
+              <div class="volet-desc">Documents divers</div>
+            </div>
+          </div>
+          <div class="volet-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px">
+            ${byType['other'].map(d => `
+              <a class="doc-card" href="#${d.file}">
+                <div class="doc-card-info">
+                  <div class="doc-card-title">${d.title}</div>
+                  <div class="doc-card-slug">${d.file}</div>
+                </div>
+                <span class="doc-card-size">${fmtSize(d.size)}</span>
+                <span class="doc-card-arrow">→</span>
+              </a>`).join('')}
+          </div>
+        </div>`;
+    }
+
+    grid.innerHTML = html;
+  }
+
+  function filterDocs(q) {
+    const lq = q.toLowerCase().trim();
+    renderIndex(lq ? _allDocs.filter(d =>
+      d.title.toLowerCase().includes(lq) || d.file.toLowerCase().includes(lq)
+    ) : _allDocs);
+  }
+
+  /* ── Chargement de la liste ── */
+  async function loadDocList() {
+    try {
+      const d = await (await fetch(API + '?action=docs&cmd=list')).json();
+      _allDocs = d.docs || [];
+      renderIndex(_allDocs);
+    } catch(e) {
+      document.getElementById('volets-grid').innerHTML =
+        '<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--muted)">API indisponible</div>';
+    }
+  }
+
+  /* ── Chargement d'un document ── */
+  async function loadDoc(filename) {
+    _rawMode = false;
+    document.getElementById('btn-raw').textContent = '{ } Source';
+    document.getElementById('doc-topbar-title').textContent = '⏳ Chargement…';
+    document.getElementById('md-output').innerHTML = '';
+    document.getElementById('raw-output').textContent = '';
+    document.getElementById('raw-output').style.display = 'none';
+    document.getElementById('md-output').style.display = '';
+
+    try {
+      const d = await (await fetch(`${API}?action=docs&cmd=read&file=${encodeURIComponent(filename)}`)).json();
+      if (d.error) {
+        document.getElementById('doc-topbar-title').textContent = '⚠ ' + d.error;
+        document.getElementById('md-output').innerHTML = `<p style="color:var(--orange)">Erreur : ${d.error}</p>`;
+        return;
+      }
+      _currentRaw  = d.content || '';
+      _currentHtml = d.html    || '';
+      const title = extractTitle(_currentHtml) ||
+        filename.replace(/-/g,' ').replace('.md','').replace(/\b\w/g, c => c.toUpperCase());
+      document.getElementById('doc-topbar-title').textContent = title;
+      document.title = title + ' — SoundSpot';
+      renderDoc();
+    } catch(e) {
+      document.getElementById('doc-topbar-title').textContent = 'Erreur de chargement';
+    }
+  }
+
+  function extractTitle(html) {
+    const m = html && html.match(/<h1[^>]*>([^<]+)<\/h1>/i);
+    return m ? m[1] : '';
+  }
+
+  function renderDoc() {
+    const mdEl  = document.getElementById('md-output');
+    const rawEl = document.getElementById('raw-output');
+    if (_rawMode) {
+      mdEl.style.display  = 'none';
+      rawEl.style.display = '';
+      rawEl.textContent   = _currentRaw;
+    } else {
+      rawEl.style.display = 'none';
+      mdEl.style.display  = '';
+      mdEl.innerHTML      = _currentHtml;
+      /* Intercepter les liens .md → navigation interne */
+      mdEl.querySelectorAll('a').forEach(a => {
+        const href = a.getAttribute('href') || '';
+        if (href.endsWith('.md')) {
+          a.setAttribute('href', '#' + href);
+          a.addEventListener('click', e => { e.preventDefault(); location.hash = href; });
+        } else if (href && !href.startsWith('http') && !href.startsWith('#') && !href.startsWith('/')) {
+          a.setAttribute('target', '_blank');
+          a.setAttribute('rel', 'noopener');
+        }
+      });
+      /* Scroll top */
+      window.scrollTo(0, 0);
+    }
+  }
+
+  function toggleRaw() {
+    _rawMode = !_rawMode;
+    document.getElementById('btn-raw').textContent = _rawMode ? '🔍 Rendu' : '{ } Source';
+    renderDoc();
+  }
+
+  /* ── Routing par hash ── */
+  function route() {
+    const hash = location.hash.slice(1);
+    if (hash && hash.endsWith('.md')) {
+      document.getElementById('view-index').style.display = 'none';
+      document.getElementById('view-doc').style.display   = '';
+      loadDoc(hash);
+    } else {
+      document.getElementById('view-doc').style.display   = 'none';
+      document.getElementById('view-index').style.display = '';
+      document.title = 'Documentation — SoundSpot';
+      /* Restaurer la recherche si présente */
+      const q = document.getElementById('search-input').value;
+      if (q) filterDocs(q);
+      else if (_allDocs.length) renderIndex(_allDocs);
+    }
+  }
+
+  function goIndex(e) {
+    e.preventDefault();
+    location.hash = '';
+    history.pushState('', document.title, location.pathname);
+    route();
+  }
+
+  window.addEventListener('hashchange', route);
+
+  /* ── Init ── */
+  (function init() {
+    try {
+      fetch('/api.sh?action=status').then(r => r.json()).then(d => {
+        if (d.spot_name) document.getElementById('nav-brand').textContent = '🎵 ' + d.spot_name;
+      });
+    } catch(_) {}
+
+    loadDocList().then(route);
+  })();
+</script>
+</body>
+</html>

@@ -56,6 +56,14 @@
     </table>
   </div>
 
+  <div class="card">
+    <h3 style="margin-top:0;">🎵 Clients Snapcast</h3>
+    <p style="font-size: 0.75rem; color: #888;">Appareils connectés au flux audio synchronisé (port 1704).</p>
+    <table id="snapcast-table">
+      <tr><th>Nom</th><th>IP</th><th>Flux</th><th>Volume</th><th>État</th></tr>
+    </table>
+  </div>
+
   <a href="macro.html" class="btn">← Retour à la Vision Macro</a>
 
   <script>
@@ -104,6 +112,24 @@
           oHtml += `<tr><td colspan="4" style="text-align:center; color:#888;">Réseau vide</td></tr>`;
         }
         document.getElementById('originators-table').innerHTML = oHtml;
+
+        // Clients Snapcast
+        let sHtml = '<tr><th>Nom</th><th>IP</th><th>Flux</th><th>Volume</th><th>État</th></tr>';
+        if (d.snapcast_clients && d.snapcast_clients.length > 0) {
+          d.snapcast_clients.forEach(c => {
+            const connected = c.connected;
+            sHtml += `<tr>
+              <td>${c.name}</td>
+              <td>${c.ip}</td>
+              <td>${c.stream}</td>
+              <td>${c.volume}%</td>
+              <td style="color:${connected ? 'var(--accent)' : '#888'}">${connected ? '● actif' : '○ déconnecté'}</td>
+            </tr>`;
+          });
+        } else {
+          sHtml += `<tr><td colspan="5" style="text-align:center; color:#888;">Aucun client Snapcast connecté</td></tr>`;
+        }
+        document.getElementById('snapcast-table').innerHTML = sHtml;
 
       }).catch(e => console.error(e));
     }

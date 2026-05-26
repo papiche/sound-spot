@@ -39,7 +39,7 @@ Chaque composant est relié à son rôle exact dans les scripts (ex. `battery_mo
 | Composant | Réf. Amazon recommandée | Usage dans le code / projet | Prix estimé |
 |:---|:---|:---|:---|
 | **Routeur 5G Internet** | ZTE 5G CPE MC888 | Accès amont (wlan0/eth0) pour le swarm UPlanet | 208,19 € |
-| **Dongle Wi‑Fi 5GHz mesh** | Vemfay RTL88x2bu | Interface `wlan1` → mode ad‑hoc → `mesh_batman.sh` | ~25 € |
+| **Dongle Wi‑Fi 5GHz mesh** | Vemfay RTL88x2bu *(ou voir tableau compatibilité)* | Interface `wlan1` → mode ad‑hoc → `mesh_batman.sh` | ~15-30 € |
 | **Caméra IA** | Raspberry Pi Camera Module 3 (SC1223) | Détection mouvement – `mon-oeil.py` / `presence_detector.py` | 32,98 € |
 | **Micro ambiance** | ReSpeaker 2‑Mics Pi HAT | Capture son live → `/dev/shm/snapfifo_mic` | ~15 € |
 | **Enceinte Bluetooth** | W‑KING D9‑1 | Gérée par PipeWire + `bt-autoconnect.sh` (BlueZ) | ~85 € |
@@ -112,7 +112,35 @@ Le système gère trois réseaux simultanément :
 | `wlan1` (dongle 5GHz) | Réseau maillé **CYBERCOCHON_MESH** (B.A.T.M.A.N.) | `mesh_batman.sh` |
 
 - **Portail captif** : redirection `iptables` de tout le trafic HTTP vers Lighttpd (port 80). L’utilisateur accepte les CGU → ajout à `ipset soundspot_auth` (bail 4h).  
-- **Mesh** : le dongle **Vemfay RTL88x2bu** est compilé via `wifi_driver.sh` (DKMS) puis monté en mode ad‑hoc 5GHz. `bat0` permet la découverte multicast (`soundspot.local`) sans DHCP central.
+- **Mesh** : `wifi_driver.sh` détecte automatiquement le chipset du dongle USB branché (via `lsusb`) et installe le driver approprié. `bat0` permet la découverte multicast (`soundspot.local`) sans DHCP central. Voir le tableau de compatibilité ci-dessous.
+
+#### Dongles Wi-Fi 5GHz compatibles avec le mesh
+
+Le critère décisif est le **mode IBSS (ad-hoc)**, requis par B.A.T.M.A.N.-adv.
+Le script `wifi_driver.sh` détecte le chipset via `lsusb` et installe automatiquement
+le bon driver.
+
+| Chipset | Driver | Compilation | Exemples de clés | Prix indicatif |
+|---------|--------|:-----------:|-----------------|---------------|
+| **RTL88x2bu** | DKMS morrownr | ⏱ 5-20 min | Vemfay (référence), Netgear A8000 | ~15-30 € |
+| **RTL8812AU** | DKMS morrownr | ⏱ 5-20 min | TP-Link Archer T4U, ASUS USB-AC56 | ~20-40 € |
+| **MT7612U** | in-kernel `mt76` | ✅ aucune | COMFAST CF-926AC, BrosTrend AC3L | ~15-25 € |
+| **MT7921AU** | in-kernel `mt7921u` | ✅ aucune | Linksys WUSB6400M | ~20-35 € |
+
+> **Recommandation** : préférer un dongle **MT7612U ou MT7921AU** (driver in-kernel,
+> aucune compilation, plus stable à long terme). Les dongles Realtek nécessitent
+> une recompilation DKMS à chaque mise à jour du noyau.
+
+> **Avertissement compilation DKMS** : sur RPi Zero 2W, la compilation prend jusqu'à
+> **20 minutes**. Le système est opérationnel pendant ce temps, mais ne pas débrancher
+> le RPi ni la clé USB.
+
+Pour vérifier que le mesh est actif après installation :
+```bash
+ip link show wlan1   # doit apparaître
+ip link show bat0    # doit apparaître après démarrage de soundspot-mesh
+batctl n             # liste les voisins mesh détectés
+```
 
 ### SÉQUENCE 4 : Audiovisuel, IA et Régie (Services)
 

@@ -5,76 +5,360 @@
   <title>Régie VJ - ZICMAMA</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    :root { --bg: #080810; --text: #e0e0f0; --accent: #7fff6e; --teal: #4ecdc4; --box: #161622; --border: #26263a; }
-    body { background: var(--bg); color: var(--text); font-family: monospace; padding: 20px; max-width: 600px; margin: auto; }
-    h1 { color: #ffb347; text-align: center; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
-    .stream-card { display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border); padding: 15px; border-radius: 8px; background: var(--box); margin-bottom: 10px; }
-    .active-card { border-color: var(--accent); box-shadow: 0 0 10px rgba(127,255,110,0.2); }
-    .stream-name { font-size: 1.2rem; font-weight: bold; }
-    .btn { padding: 10px 15px; border-radius: 5px; font-weight: bold; cursor: pointer; border: none; }
-    .btn-play { background: var(--teal); color: #000; }
-    .btn-stop { background: #ff6b6b; color: #fff; }
-    .btn-nav { display: block; background: var(--border); color: #fff; text-align: center; text-decoration: none; margin-top: 30px; }
+    :root {
+      --bg: #080810; --text: #e0e0f0; --accent: #7fff6e; --teal: #4ecdc4;
+      --box: #161622; --border: #26263a; --purple: #7b61ff; --orange: #ffb347;
+      --red: #ff6b6b; --muted: #666680;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: monospace; padding: 20px; max-width: 640px; margin: auto; }
+    h1 { color: var(--orange); text-align: center; border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 16px; }
+    h2 { color: var(--teal); font-size: 14px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+
+    /* ── Cards ── */
+    .card { background: var(--box); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 14px; }
+    .card.active-card { border-color: var(--accent); box-shadow: 0 0 12px rgba(127,255,110,.18); }
+    .card.ai-card  { border-color: rgba(123,97,255,.4); }
+
+    /* ── Flux ── */
+    .stream-card { display: flex; justify-content: space-between; align-items: center; }
+    .stream-name { font-size: 1.1rem; font-weight: bold; }
+
+    /* ── Boutons ── */
+    .btn { padding: 9px 16px; border-radius: 6px; font-weight: bold; cursor: pointer; border: none; font-family: monospace; transition: all .15s; }
+    .btn:hover { filter: brightness(1.15); }
+    .btn-play  { background: var(--teal);  color: #000; }
+    .btn-stop  { background: var(--red);   color: #fff; }
+    .btn-nav   { display: block; background: var(--border); color: #fff; text-align: center; text-decoration: none; margin-top: 28px; padding: 12px; border-radius: 6px; }
+    .btn-start { background: rgba(123,97,255,.7); color: #fff; padding: 9px 18px; }
+    .btn-halt  { background: rgba(231,76,60,.6);  color: #fff; padding: 9px 18px; }
+    .btn-now   { background: rgba(255,179,71,.25); border: 1px solid rgba(255,179,71,.5); color: var(--orange); font-size: 12px; padding: 7px 13px; }
+    .btn-sm    { padding: 5px 10px; font-size: 11px; }
+
+    /* ── Toggle IA ── */
+    .ai-toggle { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; flex-wrap: wrap; }
+    .toggle-wrap { display: flex; align-items: center; gap: 8px; }
+    input[type=checkbox]#ai-toggle { width: 38px; height: 22px; accent-color: var(--purple); cursor: pointer; }
+    .toggle-label { font-size: 13px; color: var(--text); }
+
+    /* ── Slider intervalle ── */
+    .slider-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .slider-label { font-size: 12px; color: var(--muted); white-space: nowrap; }
+    input[type=range]#interval-slider { flex: 1; accent-color: var(--purple); }
+    #interval-val { font-size: 12px; color: var(--accent); min-width: 36px; text-align: right; }
+
+    /* ── Style sélecteur ── */
+    .style-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+    .style-btn { padding: 6px 14px; border: 1px solid var(--border); border-radius: 20px; font-size: 12px; cursor: pointer; background: rgba(255,255,255,.04); color: var(--muted); font-family: monospace; transition: all .15s; }
+    .style-btn:hover { border-color: var(--purple); color: #c0aaff; }
+    .style-btn.active { background: rgba(123,97,255,.2); border-color: rgba(123,97,255,.7); color: #c0aaff; }
+
+    /* ── Dernier commentaire ── */
+    .last-comment { background: rgba(123,97,255,.07); border: 1px solid rgba(123,97,255,.2); border-radius: 8px; padding: 12px 14px; font-size: 12px; color: #b0a0e0; font-style: italic; min-height: 48px; line-height: 1.6; margin-bottom: 12px; }
+    .last-label { font-size: 10px; color: var(--muted); margin-bottom: 4px; }
+
+    /* ── Statut daemon ── */
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+    .dot-on  { background: var(--accent); box-shadow: 0 0 5px rgba(127,255,110,.6); }
+    .dot-off { background: var(--muted); }
+    .status-line { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+
+    /* ── Misc ── */
+    .hint { font-size: 11px; color: var(--muted); line-height: 1.5; margin-top: 6px; }
+    .section-title { color: var(--orange); font-size: 12px; margin-bottom: 12px; }
+    .no-stream-msg { text-align: center; color: var(--muted); padding: 10px 0; font-size: 13px; }
   </style>
 </head>
 <body>
+
 <nav style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:#0f0f1e;border-bottom:1px solid #1e1e36;position:sticky;top:0;z-index:100">
   <span style="font-size:15px;font-weight:700;color:#fff;margin-right:4px" id="nav-brand">🎵 SoundSpot</span>
-  <a href="/" style="color:#5a5a7a;text-decoration:none;font-size:13px;padding:5px 9px;border-radius:16px">🏠</a>
-  <a href="/" style="color:#5a5a7a;text-decoration:none;font-size:13px;padding:5px 9px;border-radius:16px">📻 Portail</a>
+  <a href="/"         style="color:#5a5a7a;text-decoration:none;font-size:13px;padding:5px 9px;border-radius:16px">🏠</a>
   <a href="mesh.html" style="color:#5a5a7a;text-decoration:none;font-size:13px;padding:5px 9px;border-radius:16px">🕸️ Mesh</a>
-  <a href="vj.html" style="background:rgba(123,97,255,.15);color:#c0aaff;text-decoration:none;font-size:13px;padding:5px 9px;border-radius:16px">🎛️ VJ</a>
-  <a href="#" onclick="window.open('http://'+location.hostname+':8080/ipns/copylaradio.com/','_blank');return false" style="color:#5a5a7a;text-decoration:none;font-size:13px;padding:5px 9px;border-radius:16px">🌍 UPlanet</a>
+  <a href="vj.html"   style="background:rgba(123,97,255,.15);color:#c0aaff;text-decoration:none;font-size:13px;padding:5px 9px;border-radius:16px">🎛️ VJ</a>
+  <a href="#" onclick="window.open('http://'+location.hostname+':8080/ipns/copylaradio.com/','_blank');return false"
+     style="color:#5a5a7a;text-decoration:none;font-size:13px;padding:5px 9px;border-radius:16px">🌍 UPlanet</a>
 </nav>
+
 <script>
 (function(){
-  try{fetch('/api.sh?action=status').then(r=>r.json()).then(d=>{if(d.spot_name)document.getElementById('nav-brand').textContent='🎵 '+d.spot_name;});}catch(_){}
+  try{fetch('/api.sh?action=status').then(r=>r.json()).then(d=>{
+    if(d.spot_name)document.getElementById('nav-brand').textContent='🎵 '+d.spot_name;
+  });}catch(_){}
 })();
 </script>
-  <h1>🎛️ Régie Vidéo (V.J.)</h1>
-  <p style="text-align: center; color: #888;">Gérez les flux RTMP envoyés par les drones et smartphones, et choisissez celui affiché sur le projecteur HDMI.</p>
 
+<h1>🎛️ Régie Vidéo (V.J.)</h1>
+<p style="text-align:center;color:var(--muted);font-size:12px;margin-bottom:18px;">
+  Flux RTMP drones &amp; smartphones → projecteur HDMI + Commentateur IA
+</p>
+
+<!-- ── Flux actifs ────────────────────────────────────────────── -->
+<div class="card" id="streams-card">
+  <h2>📡 Flux entrants</h2>
   <div id="streams-container">
-    <div style="text-align:center;">Recherche de flux vidéo...</div>
+    <div class="no-stream-msg">Recherche de flux vidéo…</div>
+  </div>
+  <div style="text-align:center;margin-top:14px;">
+    <button class="btn btn-stop" onclick="setStream('stop','')">Noir projecteur</button>
+  </div>
+</div>
+
+<!-- ── Commentateur IA ────────────────────────────────────────── -->
+<div class="card ai-card">
+  <h2>🤖 Commentateur IA (Ollama llava + Orpheus)</h2>
+
+  <!-- statut daemon -->
+  <div class="status-line" id="ai-status-line">
+    <span class="status-dot dot-off" id="ai-dot"></span>
+    <span id="ai-status-text">Chargement…</span>
   </div>
 
-  <div style="text-align:center; margin-top: 20px;">
-    <button class="btn btn-stop" onclick="setStream('stop', '')">Mettre le projecteur au Noir</button>
+  <!-- on/off + bouton immédiat -->
+  <div class="ai-toggle">
+    <div class="toggle-wrap">
+      <input type="checkbox" id="ai-toggle" onchange="toggleCommentator(this.checked)">
+      <label class="toggle-label" for="ai-toggle">Activer le commentaire live</label>
+    </div>
+    <button class="btn btn-now" id="btn-trigger" onclick="triggerNow()" disabled>
+      ▶ Commenter maintenant
+    </button>
   </div>
 
-  <a href="macro.html" class="btn btn-nav">← Retour à la Vision Macro</a>
+  <!-- intervalle -->
+  <div class="slider-row">
+    <span class="slider-label">Fréquence :</span>
+    <input type="range" id="interval-slider" min="15" max="300" step="15" value="60"
+           oninput="onIntervalInput(this.value)" onchange="setInterval_(this.value)">
+    <span id="interval-val">60s</span>
+  </div>
 
-  <script>
-    function loadStreams() {
-      fetch('/api.sh?action=vj&cmd=list').then(r=>r.json()).then(d => {
-        let html = '';
-        if (d.streams && d.streams.length > 0) {
-          d.streams.forEach(s => {
-            let isCurrent = (d.current === s);
-            html += `
-              <div class="stream-card ${isCurrent ? 'active-card' : ''}">
-                <div class="stream-name">🎥 ${s} ${isCurrent ? '<span style="color:var(--accent); font-size:0.8rem;">(PROJETÉ)</span>' : ''}</div>
-                ${!isCurrent ? `<button class="btn btn-play" onclick="setStream('play', '${s}')">Projeter 🎦</button>` : ''}
+  <!-- style de commentaire -->
+  <p class="hint" style="margin-bottom:8px;">Style de commentaire :</p>
+  <div class="style-row" id="style-row">
+    <button class="style-btn active" data-style="concert"  onclick="setStyle('concert')">🎸 Concert</button>
+    <button class="style-btn"        data-style="accueil"  onclick="setStyle('accueil')">🙌 Accueil</button>
+    <button class="style-btn"        data-style="poetic"   onclick="setStyle('poetic')">🌙 Poétique</button>
+    <button class="style-btn"        data-style="free"     onclick="setStyle('free')">😄 Libre</button>
+  </div>
+
+  <!-- dernier commentaire -->
+  <div style="margin-top:14px;">
+    <div class="last-label">DERNIER COMMENTAIRE IA</div>
+    <div class="last-comment" id="last-comment">—</div>
+  </div>
+
+  <p class="hint">
+    Nécessite Ollama (llava) disponible via tunnel swarm ou local.<br>
+    La voix Orpheus est activée automatiquement si le Picoport est connecté à sa constellation.
+  </p>
+</div>
+
+<!-- ── VDO.Ninja (WebRTC) ────────────────────────────────────────── -->
+<div class="card" id="vdo-card">
+  <h2>🌐 VDO.Ninja — WebRTC</h2>
+  <div class="status-line">
+    <span class="status-dot dot-off" id="vdo-dot"></span>
+    <span id="vdo-status-text">Nécessite Internet (qo-op / eth0)</span>
+  </div>
+
+  <p class="hint" style="margin-bottom:12px;">
+    Alternative sans application : diffusion directe depuis n'importe quel navigateur.<br>
+    Room : <strong id="vdo-room" style="color:var(--accent)">UPLANET</strong>
+  </p>
+
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+    <button class="btn btn-play" onclick="openVdoScene()" title="Ouvrir la scène composite dans un nouvel onglet (à projeter en HDMI)">
+      📺 Scène projecteur
+    </button>
+    <button class="btn btn-now" onclick="openVdoPush()" title="Diffuser votre caméra vers la room">
+      📷 Diffuser ma caméra
+    </button>
+  </div>
+
+  <p class="hint">
+    Participants → ouvrir le lien <em>Diffuser</em> sur leur smartphone ou PC.<br>
+    Projecteur → ouvrir la <em>Scène</em> sur le RPi (navigateur Chromium HDMI).
+  </p>
+</div>
+
+<!-- ── Navigation ───────────────────────────────────────────────── -->
+<a href="macro.html" class="btn btn-nav">← Vision Macro</a>
+
+<!-- ── Scripts ──────────────────────────────────────────────────── -->
+<script>
+  const API = '/api.sh';
+  let _currentStyle = 'concert';
+
+  // ── Flux VJ ──────────────────────────────────────────────────────
+  function loadStreams() {
+    fetch(API + '?action=vj&cmd=list').then(r=>r.json()).then(d => {
+      let html = '';
+      if (d.streams && d.streams.length > 0) {
+        d.streams.forEach(s => {
+          const isCurrent = (d.current === s);
+          html += `
+            <div class="stream-card ${isCurrent ? 'active-card' : ''}">
+              <div class="stream-name">🎥 ${s}
+                ${isCurrent ? '<span style="color:var(--accent);font-size:.75rem;margin-left:6px">(PROJETÉ)</span>' : ''}
               </div>
-            `;
-          });
-        } else {
-          html = '<div class="stream-card" style="justify-content:center; color:#888;">Aucun flux vidéo entrant actuellement.</div>';
-        }
-        document.getElementById('streams-container').innerHTML = html;
+              ${!isCurrent
+                ? `<button class="btn btn-play" onclick="setStream('play','${s}')">Projeter 🎦</button>`
+                : `<button class="btn btn-stop btn-sm" onclick="setStream('stop','')">Couper</button>`}
+            </div>`;
+        });
+      } else {
+        html = '<div class="no-stream-msg">Aucun flux vidéo entrant actuellement.</div>';
+      }
+      document.getElementById('streams-container').innerHTML = html;
+    }).catch(()=>{});
+  }
+
+  function setStream(action, name) {
+    fetch(API + '?action=vj', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: `cmd=${action}&name=${encodeURIComponent(name)}`
+    }).then(() => loadStreams());
+  }
+
+  // ── Commentateur IA ───────────────────────────────────────────────
+  function loadCommentatorStatus() {
+    fetch(API + '?action=commentator&cmd=status').then(r=>r.json()).then(d => {
+      const running = d.commentator === 'running';
+      const enabled = d.enabled === true || d.enabled === 'true';
+
+      // dot
+      const dot = document.getElementById('ai-dot');
+      const txt = document.getElementById('ai-status-text');
+      if (running && enabled) {
+        dot.className = 'status-dot dot-on';
+        txt.textContent = `Actif — ${d.style} — toutes les ${d.interval}s`;
+      } else if (running) {
+        dot.className = 'status-dot dot-off';
+        txt.textContent = 'Daemon en veille (désactivé)';
+      } else {
+        dot.className = 'status-dot dot-off';
+        txt.textContent = 'Daemon arrêté';
+      }
+
+      // toggle checkbox
+      document.getElementById('ai-toggle').checked = enabled;
+
+      // interval slider
+      const iv = parseInt(d.interval) || 60;
+      document.getElementById('interval-slider').value = iv;
+      document.getElementById('interval-val').textContent = iv + 's';
+
+      // style buttons
+      _currentStyle = d.style || 'concert';
+      document.querySelectorAll('.style-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.style === _currentStyle);
       });
-    }
 
-    function setStream(action, name) {
-      fetch('/api.sh?action=vj', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-        body: `cmd=${action}&name=${name}`
-      }).then(() => loadStreams());
-    }
+      // last comment
+      const lc = document.getElementById('last-comment');
+      lc.textContent = d.last_comment || (d.stream ? 'En attente du prochain cycle…' : 'Aucun flux actif.');
 
-    loadStreams();
-    setInterval(loadStreams, 3000); // Rafraîchissement rapide
-  </script>
+      // bouton "maintenant"
+      document.getElementById('btn-trigger').disabled = !(enabled && d.stream);
+
+    }).catch(()=>{
+      document.getElementById('ai-status-text').textContent = 'API non disponible';
+    });
+  }
+
+  function toggleCommentator(on) {
+    const cmd = on ? 'start' : 'stop';
+    fetch(API + '?action=commentator', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: `cmd=${cmd}`
+    }).then(()=> setTimeout(loadCommentatorStatus, 800));
+  }
+
+  function onIntervalInput(v) {
+    document.getElementById('interval-val').textContent = v + 's';
+  }
+
+  function setInterval_(v) {
+    fetch(API + '?action=commentator', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: `cmd=interval&value=${v}`
+    });
+  }
+
+  function setStyle(s) {
+    _currentStyle = s;
+    document.querySelectorAll('.style-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.style === s);
+    });
+    fetch(API + '?action=commentator', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: `cmd=style&value=${s}`
+    });
+  }
+
+  function triggerNow() {
+    const btn = document.getElementById('btn-trigger');
+    btn.disabled = true;
+    btn.textContent = '⏳ En cours…';
+    fetch(API + '?action=commentator', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: 'cmd=trigger'
+    }).then(r=>r.json()).then(d => {
+      btn.textContent = d.status === 'ok' ? '✓ Envoyé' : '✗ Erreur';
+      setTimeout(()=>{ btn.textContent='▶ Commenter maintenant'; btn.disabled=false; }, 3000);
+      setTimeout(loadCommentatorStatus, 5000);
+    }).catch(()=>{ btn.textContent='✗ Erreur'; btn.disabled=false; });
+  }
+
+  // ── VDO.Ninja ─────────────────────────────────────────────────────
+  let _vdoRoom = 'UPLANET';
+  const VDO_BASE = 'https://vdo.copylaradio.com/';
+
+  function _vdoRoomFromName(name) {
+    return name.replace(/[^a-zA-Z0-9]/g, '').toUpperCase() || 'UPLANET';
+  }
+
+  function openVdoScene() {
+    window.open(VDO_BASE + '?scene&room=' + _vdoRoom, '_blank');
+  }
+  function openVdoPush() {
+    window.open(VDO_BASE + '?push&room=' + _vdoRoom, '_blank');
+  }
+
+  // Détecte si Internet est disponible pour mettre à jour le statut VDO
+  function checkVdoConnectivity() {
+    fetch('https://vdo.copylaradio.com/', { method: 'HEAD', mode: 'no-cors', cache: 'no-store' })
+      .then(() => {
+        document.getElementById('vdo-dot').className = 'status-dot dot-on';
+        document.getElementById('vdo-status-text').textContent = 'Internet disponible — room prête';
+      })
+      .catch(() => {
+        document.getElementById('vdo-dot').className = 'status-dot dot-off';
+        document.getElementById('vdo-status-text').textContent = 'Hors-ligne — VDO.Ninja indisponible';
+      });
+  }
+
+  // ── Init + polling ────────────────────────────────────────────────
+  loadStreams();
+  loadCommentatorStatus();
+  setInterval(loadStreams,           3000);
+  setInterval(loadCommentatorStatus, 6000);
+
+  // VDO: récupère le spot_name pour la room, puis vérifie la connectivité
+  fetch(API + '?action=status').then(r => r.json()).then(d => {
+    if (d.spot_name) {
+      _vdoRoom = _vdoRoomFromName(d.spot_name);
+      document.getElementById('vdo-room').textContent = _vdoRoom;
+    }
+    checkVdoConnectivity();
+  }).catch(() => checkVdoConnectivity());
+  setInterval(checkVdoConnectivity, 30000);
+</script>
 </body>
 </html>

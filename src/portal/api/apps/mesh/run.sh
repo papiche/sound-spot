@@ -27,9 +27,37 @@ ORIGINATORS=$(sudo batctl o 2>/dev/null | tail -n +3 | awk '{
     print "{\"originator\":\""orig"\", \"tq\":"tq", \"next_hop\":\""hop"\", \"iface\":\""iface"\"}"
 }' | paste -sd "," -)
 
+# Clients Snapcast (JSON-RPC HTTP port 1705)
+SNAPCAST_CLIENTS=$(python3 -c "
+import json, urllib.request, sys
+try:
+    req = urllib.request.Request(
+        'http://127.0.0.1:1705/jsonrpc',
+        data=b'{\"id\":1,\"jsonrpc\":\"2.0\",\"method\":\"Server.GetStatus\"}',
+        headers={'Content-Type': 'application/json'},
+        method='POST'
+    )
+    with urllib.request.urlopen(req, timeout=2) as r:
+        data = json.load(r)
+    clients = []
+    for g in data.get('result', {}).get('server', {}).get('groups', []):
+        for c in g.get('clients', []):
+            clients.append({
+                'name': c['host']['name'],
+                'ip': c['host']['ip'],
+                'connected': c['connected'],
+                'volume': c['config']['volume']['percent'],
+                'stream': g['stream_id']
+            })
+    print(json.dumps(clients))
+except Exception:
+    print('[]')
+" 2>/dev/null || echo "[]")
+
 echo "{"
 echo "  \"status\": \"ok\","
 echo "  \"local\": {\"ip\": \"$BAT_IP\", \"mac\": \"$BAT_MAC\"},"
 echo "  \"neighbors\": [${NEIGHBORS}],"
-echo "  \"originators\": [${ORIGINATORS}]"
+echo "  \"originators\": [${ORIGINATORS}],"
+echo "  \"snapcast_clients\": ${SNAPCAST_CLIENTS}"
 echo "}"

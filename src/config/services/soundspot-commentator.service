@@ -1,0 +1,21 @@
+[Unit]
+Description=SoundSpot — Commentateur IA de flux RTMP (Ollama llava + Orpheus)
+After=network-online.target picoport.service mon-oeil.service
+Wants=picoport.service
+
+[Service]
+Type=simple
+EnvironmentFile=${INSTALL_DIR}/soundspot.conf
+Environment="XDG_RUNTIME_DIR=/run/user/${SOUNDSPOT_UID}"
+User=${SOUNDSPOT_USER}
+# Connexion au tunnel Ollama (via swarm si Brain-Node disponible)
+ExecStartPre=-/bin/bash -c '${USER_HOME}/.local/bin/astrosystemctl connect ollama'
+ExecStart=/usr/bin/python3 ${INSTALL_DIR}/backend/video/stream_commentator.py
+Restart=always
+RestartSec=20
+SyslogIdentifier=commentator
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

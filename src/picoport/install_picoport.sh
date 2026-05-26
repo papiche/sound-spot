@@ -14,7 +14,7 @@ USER_HOME=$(getent passwd "$SOUNDSPOT_USER" | cut -d: -f6)
 
 echo "=== 1. Installation des dépendances ==="
 _MISSING_PKGS=""
-for _pkg in socat jq curl wget bc gnupg pinentry-curses python3-dev libffi-dev libssl-dev prometheus-node-exporter; do
+for _pkg in socat jq curl wget bc gnupg pinentry-curses python3-dev libffi-dev libssl-dev prometheus-node-exporter inotify-tools; do
     dpkg-query -W -f='${Status}' "$_pkg" 2>/dev/null | grep -q "ok installed" || _MISSING_PKGS="$_MISSING_PKGS $_pkg"
 done
 if [ -n "$_MISSING_PKGS" ]; then
@@ -220,3 +220,93 @@ if [ "$(cd "$(dirname "$0")" && pwd)" != "$INSTALL_DIR" ]; then
     cp "$(dirname "$0")/swarm_sync.sh" "$INSTALL_DIR/swarm_sync.sh"
 fi
 chmod +x "$INSTALL_DIR/swarm_sync.sh"
+
+echo "=== 9. Tunnels IA Constellation (Qdrant + NextCloud) ==="
+# Résolution du chemin astrosystemctl (symlink ~/.local/bin ou script direct)
+_ASYS=""
+sudo -u "$SOUNDSPOT_USER" bash -c 'command -v astrosystemctl >/dev/null 2>&1' \
+    && _ASYS="astrosystemctl"
+_ASYS_SCRIPT="$USER_HOME/.zen/Astroport.ONE/tools/astrosystemctl.sh"
+[[ -z "$_ASYS" && -x "$_ASYS_SCRIPT" ]] && _ASYS="bash $_ASYS_SCRIPT"
+
+_SWARM_DIR="$USER_HOME/.zen/tmp/swarm"
+
+# --- 9a. Qdrant ---
+if find "$_SWARM_DIR" -name "x_qdrant.sh" 2>/dev/null | grep -q .; then
+    echo "▶ Qdrant détecté dans le swarm — activation du tunnel persistant"
+    if [[ -n "$_ASYS" ]]; then
+        sudo -u "$SOUNDSPOT_USER" bash -c "$_ASYS enable qdrant 2>/dev/null \
+            && echo '✅ Tunnel Qdrant activé (port 6333)'" \
+            || echo "⚠ astrosystemctl enable qdrant a échoué (IPFS démarré ?)"
+    else
+        echo "⚠ astrosystemctl introuvable — relancer après démarrage d'IPFS"
+    fi
+    # Inscrire QDRANT_URL dans soundspot.conf si absent
+    _PICO_CONF="/opt/soundspot/soundspot.conf"
+    if [[ -f "$_PICO_CONF" ]] && ! grep -q "^QDRANT_URL=" "$_PICO_CONF"; then
+        echo 'QDRANT_URL="http://127.0.0.1:6333"' >> "$_PICO_CONF"
+        echo "  → QDRANT_URL ajouté dans soundspot.conf"
+    fi
+else
+    echo "ℹ Aucun Qdrant disponible dans le swarm pour l'instant"
+    echo "  → Activable plus tard : sudo -u $SOUNDSPOT_USER astrosystemctl enable qdrant"
+fi
+
+# --- 9b. NextCloud ---
+_NC_SVC=""
+find "$_SWARM_DIR" -name "x_nextcloud-app.sh"  2>/dev/null | grep -q . && _NC_SVC="nextcloud-app"
+[[ -z "$_NC_SVC" ]] && \
+    find "$_SWARM_DIR" -name "x_nextcloud-aio.sh" 2>/dev/null | grep -q . && _NC_SVC="nextcloud-aio"
+
+if [[ -n "$_NC_SVC" ]]; then
+    echo "▶ NextCloud détecté dans le swarm ($_NC_SVC) — activation du tunnel persistant"
+    if [[ -n "$_ASYS" ]]; then
+        sudo -u "$SOUNDSPOT_USER" bash -c "$_ASYS enable $_NC_SVC 2>/dev/null \
+            && echo '✅ Tunnel NextCloud activé'" \
+            || echo "⚠ astrosystemctl enable $_NC_SVC a échoué"
+    fi
+else
+    echo "ℹ Aucun NextCloud disponible dans le swarm pour l'instant"
+    echo "  → Activable plus tard : sudo -u $SOUNDSPOT_USER astrosystemctl enable nextcloud-app"
+fi
+
+# --- 9c. Aide astrosystemctl ---
+cat << 'ASTROSYS_HELP'
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  astrosystemctl — Cloud P2P de Puissance UPlanet
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Ce Picoport est un nœud 🌿 Light (RPi Zero 2W).
+  Il délègue le calcul IA aux Brain-Nodes de la constellation.
+
+  Commandes clés (alias disponibles dans le shell) :
+  ──────────────────────────────────────────────────
+  asys-swarm              → Lister les Brain-Nodes du swarm
+  asys-list               → Services locaux disponibles
+  ai <service>            → Connexion rapide (ex: ai ollama)
+  asys-qdrant             → Activer le tunnel Qdrant (port 6333)
+  asys-nc                 → Activer le tunnel NextCloud
+  astrosystemctl status   → État des tunnels actifs
+  astrosystemctl connect <svc>   → Connexion ponctuelle
+
+  Fonctionnement :
+  ──────────────────────────────────────────────────
+  • Les Brain-Nodes publient leurs services via IPFS P2P
+  • "enable" crée un tunnel persistant (watchdog 20h12.process.sh)
+  • Le tunnel local utilise le même port que le service distant :
+      qdrant       → 127.0.0.1:6333
+      ollama       → 127.0.0.1:11434
+      comfyui      → 127.0.0.1:8188
+      nextcloud    → 127.0.0.1:8002
+  • Clé API Qdrant = sha256(UPLANETNAME) — identique sur toute la constellation
+
+  Exemple de session IA sur Picoport :
+  ──────────────────────────────────────────────────
+  $ asys-swarm                    # Voir les Brain-Nodes disponibles
+  $ asys-qdrant                   # Activer l'accès à la base vectorielle
+  $ ai ollama                     # Se connecter à Ollama distant
+  $ astrosystemctl status         # Vérifier les tunnels actifs
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ASTROSYS_HELP

@@ -164,17 +164,23 @@ export WIFI_SSID=""
 export WIFI_PASS=""
 
 # ── Détection topologie réseau ────────────────────────────────
+# IFACE_AP = toujours uap0 (virtuelle sur la puce interne wlan0).
+# Fonctionne quelle que soit la source upstream (eth0, smartphone, routeur WiFi).
+# IFACE_WAN est détecté dynamiquement au runtime par soundspot-firewall.sh.
+# L'install ne le fixe qu'à titre indicatif dans soundspot.conf.
 if [ "$SOUNDSPOT_MODE" != "2" ]; then
     if ip link show eth0 2>/dev/null | grep -q "state UP"; then
         export IFACE_WAN="eth0"
-        export IFACE_AP="wlan0"
-        log "Ethernet ${C}eth0${N} UP → puce WiFi ${W}100% dédiée à l'AP ${SPOT_NAME:-SoundSpot}${N}"
-        log "Pas d'interface virtuelle uap0 — wlan0 = AP directe."
+        # AP reste uap0 — wlan0 est libre (mesh B.A.T.M.A.N. sur wlan1 si présent)
+        log "Ethernet ${C}eth0${N} UP → WAN=eth0 · AP=${W}uap0${N} · wlan0 libre"
+        if ip link show wlan1 >/dev/null 2>&1; then
+            log "Dongle ${C}wlan1${N} présent → B.A.T.M.A.N. mesh activé sur wlan1"
+        fi
     elif ip link show wlan1 >/dev/null 2>&1; then
-        export IFACE_AP="wlan1"
-        log "Dongle WiFi USB (${IFACE_AP}) — Mode Dual-WiFi activé."
+        # Dual-WiFi : wlan0=upstream+uap0 AP · wlan1=B.A.T.M.A.N. mesh
+        log "Dongle WiFi USB ${C}wlan1${N} → mesh B.A.T.M.A.N. · AP=uap0 sur wlan0"
     else
-        log "Un seul module WiFi — interface virtuelle ${IFACE_AP}."
+        log "Un seul module WiFi → AP virtuelle ${C}uap0${N} sur wlan0."
     fi
 fi
 

@@ -1,22 +1,44 @@
 #!/bin/bash
 # find_master.sh — Résolution dynamique de l'IP du maître Snapcast
 # Appelé par ExecStartPre du service soundspot-client (satellite).
-# Priorité : AP directe (gateway 192.168.10.1) > mDNS unique > MASTER_HOST > scan port.
+# Priorité : ZICMAMA (si RSSI suffisant) > Mesh bat0 > mDNS > MASTER_HOST > scan port.
 # Écrit /run/soundspot_master.env  avec  MASTER_RESOLVED=<ip_ou_nom>
+#
+# Seuil RSSI : -70 dBm. En-dessous → signal trop faible → préférer le mesh B.A.T.M.A.N.
 
 source "${INSTALL_DIR:-/opt/soundspot}/soundspot.conf" 2>/dev/null || true
 
 MASTER_IP=""
 CURRENT_SSID=$(iwgetid -r 2>/dev/null || true)
+RSSI_THRESHOLD=-70  # dBm — seuil en-dessous duquel le mesh est préféré
 
-# 0. Connexion Mesh B.A.T.M.A.N. (IP Maître fixe sur bat0)
-if ip link show bat0 >/dev/null 2>&1 && ping -c1 -W1 10.200.0.1 >/dev/null 2>&1; then
-    MASTER_IP="10.200.0.1"
+# Mesure du signal ZICMAMA si on y est connecté
+ZICMAMA_RSSI=""
+ZICMAMA_GOOD=false
+if [ -n "${SPOT_NAME:-}" ] && [ "$CURRENT_SSID" = "$SPOT_NAME" ]; then
+    ZICMAMA_RSSI=$(iw dev wlan0 link 2>/dev/null | awk '/signal:/{print $2}')
+    _RSSI_INT="${ZICMAMA_RSSI%.*}"  # retire la décimale si présente
+    # -65 > -70 : signal acceptable ; -80 < -70 : signal trop faible
+    if [ -n "$_RSSI_INT" ] && [ "$_RSSI_INT" -ge "$RSSI_THRESHOLD" ] 2>/dev/null; then
+        ZICMAMA_GOOD=true
+    fi
 fi
 
-# 1. Connecté à l'AP du maître → gateway = maître (toujours 192.168.10.1)
-if [ -n "${SPOT_NAME:-}" ] && [ "$CURRENT_SSID" = "$SPOT_NAME" ]; then
+# 0. ZICMAMA avec signal suffisant — chemin direct le plus simple
+if [ "$ZICMAMA_GOOD" = "true" ]; then
     MASTER_IP=$(ip route 2>/dev/null | awk '/default/{print $3; exit}')
+    logger -t find_master "ZICMAMA RSSI=${ZICMAMA_RSSI} dBm ≥ ${RSSI_THRESHOLD} → AP directe ${MASTER_IP}"
+fi
+
+# 1. Mesh B.A.T.M.A.N. — signal ZICMAMA faible/absent ET bat0 actif
+if [ -z "$MASTER_IP" ] && \
+   ip link show bat0 >/dev/null 2>&1 && ping -c1 -W1 10.200.0.1 >/dev/null 2>&1; then
+    MASTER_IP="10.200.0.1"
+    if [ -n "$ZICMAMA_RSSI" ]; then
+        logger -t find_master "ZICMAMA RSSI=${ZICMAMA_RSSI} dBm < ${RSSI_THRESHOLD} → Mesh bat0"
+    else
+        logger -t find_master "ZICMAMA absent → Mesh bat0 (10.200.0.1)"
+    fi
 fi
 
 # 2. Résolution via hostname mDNS unique (soundspot-NOM.local)
