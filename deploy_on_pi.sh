@@ -39,7 +39,7 @@ log "Utilisateur video,render,audio,input : ${W}${SOUNDSPOT_USER}${N} (UID ${SOU
 sudo usermod -aG video,render,audio,input ${SOUNDSPOT_USER}
 
 if [[ $SCRIPT_DIR != "/home/$SOUNDSPOT_USER/.zen/workspace/sound-spot" ]]; then
-    echo "... PLEASE RESPECT ~/.zen CODE LOCATION ... 
+    echo "... PLEASE RESPECT ~/.zen CODE LOCATION ...
 mkdir -p /home/$SOUNDSPOT_USER/.zen/workspace
 cd /home/$SOUNDSPOT_USER/.zen/workspace
 mv $SCRIPT_DIR /home/$SOUNDSPOT_USER/.zen/workspace/
