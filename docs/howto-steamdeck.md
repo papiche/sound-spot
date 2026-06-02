@@ -61,24 +61,21 @@ Pour projeter des visuels génératifs ou un flux caméra de la Steam Deck sur l
 
 ---
 
-## Étape 4 : Invoquer la puissance de "Sagittarius" (L'IA de l'Essaim)
+### Installez Astroport.ONE
 
-Votre PC `sagittarius` est chez vous (connecté à IPFS et Astroport). Votre CyberCochon est dans un champ (relié via 5G). La Steam Deck est connectée au CyberCochon.
+https://ipfs.copylaradio.com/ipns/astroport.one
+
+
+## Option : Invoquer la puissance de "Sagittarius" (L'IA de l'Essaim)
+
+Vous avez accès au ressources GPU de la constellation (connecté à IPFS et Astroport). 
+Votre CyberCochon est dans un champ (relié via 5G). La Steam Deck est connectée au CyberCochon.
 
 Grâce au protocole **DRAGON** du Picoport :
 1. Le CyberCochon repère `sagittarius` dans l'essaim IPFS P2P.
-2. Il monte des tunnels chiffrés (`x_*.sh`) vers les ports de votre PC gamer.
-3. Depuis votre Steam Deck dans le champ, vous avez accès à votre GPU distant :
-   - `http://192.168.10.1:11434` ➔ Discute avec **Ollama** sur Sagittarius.
+2. Il monte des tunnels chiffrés (`x_*.sh`) vers les ports du "PC gamer".
+3. Depuis votre Steam Deck, vous avez accès à un GPU distant :
+   - `http://192.168.10.1:11434` ➔ Discute avec **Ollama**.
    - `http://192.168.10.1:8188` ➔ Génère des images sur **ComfyUI** avec la carte graphique de Sagittarius.
 
-### Le Jukebox P2P
-Sur le portail web du Cochon (`http://192.168.10.1`), allez dans l'onglet **Jukebox**. Étant authentifié avec votre MULTIPASS `nos2x`, vous pouvez coller un lien YouTube.
-1. Votre Steam Deck signe la demande sur NOSTR (Kind 1).
-2. L'ordre voyage par les tunnels IPFS jusqu'à `sagittarius`.
-3. C'est le PC Gamer (`sagittarius`) qui travaille : il télécharge le MP3, l'injecte sur IPFS, et prévient le Cochon que le fichier est prêt à être lu par `jukebox_player.sh`.
-
-### DistroBOX astroport
-
-```distrobox create --name astroport --image ubuntu:22.04 --init --additional-flags "--privileged"```
-
+NB: Ce canal sera limité et accessible aux capitaines certifiés.
