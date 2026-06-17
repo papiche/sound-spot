@@ -136,24 +136,6 @@ if [ -f "$NOSTR_SCRIPT" ] && [ -x "$PYTHON" ]; then
         jq -n --arg relay "$RELAY" --arg err "$ERR" '{"error":$err,"relay":$relay}'
     fi
 
-elif command -v nak &>/dev/null; then
-    NSEC_ARG=$(grep -oP '(?<=NSEC=)[^;\s]+' "$KEYFILE" | head -1)
-    EVENT_ID=$(nak event \
-        --sec "$NSEC_ARG" \
-        --kind "$KIND" \
-        --content "$CONTENT" \
-        "$RELAY" 2>/dev/null | jq -r '.id // empty')
-    if [ -n "$EVENT_ID" ]; then
-        jq -n \
-            --arg id    "$EVENT_ID" \
-            --arg relay "$RELAY" \
-            --arg mode  "$SIGN_MODE" \
-            --argjson kind "$KIND" \
-            '{"status":"ok","event_id":$id,"relay":$relay,"sign_mode":$mode,"kind":$kind}'
-    else
-        jq -n --arg relay "$RELAY" '{"error":"publish_failed","relay":$relay}'
-    fi
-
 else
     jq -n '{"error":"no_publisher","hint":"Picoport (Astroport.ONE light install) requis"}'
 fi

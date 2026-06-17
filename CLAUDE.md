@@ -40,7 +40,6 @@ sound-spot/
 │   ├── test_astroport_tools.sh
 │   ├── test_audio.sh
 │   ├── test_audio_orpheus.me.sh
-│   ├── test_nak.sh
 │   ├── test_nostr_node.sh
 │   └── test_voices.sh
 └── src/                 ← Internals

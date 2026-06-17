@@ -3,14 +3,16 @@
 #
 # Endpoints (via api.sh?action=nip42&cmd=X&npub=Y) :
 #   GET  cmd=challenge  → génère un nonce et le stocke en /dev/shm/
-#   POST cmd=verify     → vérifie l'événement kind 22242 signé (nak verify)
+#   POST cmd=verify     → vérifie l'événement kind 22242 signé (nostr_node_intercom.py verify)
 #   GET  cmd=status     → vérifie si le marker auth est valide
 #   GET  cmd=logout     → supprime le marker auth
 #
-# Vérification signature : /usr/local/bin/nak (installé par install_nak.sh)
+# Vérification signature : nostr_node_intercom.py verify (Astroport.ONE, venv ~/.astro/)
 # Marker de session : /dev/shm/.nip42_auth_PUBKEYHEX (TTL 3600s)
 
-NAK="/usr/local/bin/nak"
+_SSHOME=$(getent passwd "${SOUNDSPOT_USER:-pi}" | cut -d: -f6)
+_INTERCOM="${_SSHOME}/.zen/Astroport.ONE/tools/nostr_node_intercom.py"
+_PYTHON="${_SSHOME}/.astro/bin/python3"
 MARKER_DIR="/dev/shm"
 CHALLENGE_TTL=120
 AUTH_TTL=3600
@@ -105,14 +107,14 @@ PYEOF
             exit 0
         fi
 
-        # Vérifier la signature Schnorr avec nak
-        if [ -x "$NAK" ]; then
-            printf '%s' "$EVENT_JSON" | "$NAK" verify >/dev/null 2>&1 || {
+        # Vérifier la signature Schnorr via nostr_node_intercom.py (Astroport.ONE)
+        if [ -f "$_INTERCOM" ] && [ -x "$_PYTHON" ]; then
+            printf '%s' "$EVENT_JSON" | sudo -u "${SOUNDSPOT_USER:-pi}" \
+                "$_PYTHON" "$_INTERCOM" verify >/dev/null 2>&1 || {
                 echo '{"ok":false,"error":"signature invalide"}'; exit 0
             }
         else
-            # nak absent (picoport non installé) : refuse l'auth
-            echo '{"ok":false,"error":"nak non disponible — picoport requis"}'
+            echo '{"ok":false,"error":"picoport non disponible — Astroport.ONE requis"}'
             exit 0
         fi
 

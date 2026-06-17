@@ -205,7 +205,7 @@ discover_neighbors() {
 # ── BRO DM Daemon — traite les DMs NOSTR pour les MULTIPASS locaux ──────────
 # bro_dm_daemon.sh exécute localement les commandes (#BRO, #rec, #mem, udrive…)
 # pour tout MULTIPASS dont ce picoport est le Home (fichier HEX présent, pas .roaming).
-# La queue est alimentée par _pico_dm_listener() via nak depuis le relay constellation.
+# La queue est alimentée par _pico_dm_listener() via nostr_node_intercom.py depuis le relay constellation.
 BRO_DM_DAEMON="$HOME/.zen/Astroport.ONE/IA/bro/bro_dm_daemon.sh"
 BRO_DM_QUEUE="$HOME/.zen/tmp/bro_dm_queue"
 mkdir -p "$BRO_DM_QUEUE"
@@ -216,11 +216,13 @@ _pico_dm_listener() {
     local _relay="${PICO_RELAY:-wss://relay.copylaradio.com}"
     local _since
     _since=$(date +%s)
-    ss_info "DM listener démarré (relay: $_relay npub=${NODEHEX:0:12}…)"
+    ss_info "DM listener démarré (relay: $_relay npub=${NODEHEX:0:12}… — via nostr_node_intercom.py)"
     while true; do
-        # nak req écrit chaque event NOSTR sur une ligne JSON distincte
-        nak req --kind 4 --kind 14 -p "$NODEHEX" --since "$(( _since - 60 ))" \
-            "$_relay" 2>/dev/null \
+        local _filter
+        _filter=$(printf '{"kinds":[4,14],"#p":["%s"],"since":%d}' "$NODEHEX" "$(( _since - 60 ))")
+        "$HOME/.astro/bin/python3" "$ASTRO_TOOLS/nostr_node_intercom.py" \
+            query --filter "$_filter" --relays "$_relay" 2>/dev/null \
+        | jq -c '.[]' 2>/dev/null \
         | while IFS= read -r _event; do
             [[ -z "$_event" ]] && continue
             local _ts
