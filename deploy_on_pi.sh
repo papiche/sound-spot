@@ -56,7 +56,9 @@ fi
 # Vérifier si la config existe déjà
 if ! grep -q "^KillUserProcesses=no" /etc/systemd/logind.conf; then
   echo "KillUserProcesses=no" | sudo tee -a /etc/systemd/logind.conf
-  sudo systemctl restart systemd-logind
+  # reload au lieu de restart : restart tue les sessions graphiques (écran noir)
+  sudo systemctl reload-or-restart systemd-logind 2>/dev/null \
+    || warn "logind reload ignoré (sera actif après reboot)"
 fi
 
 # ── Parse arguments ──────────────────────────────────────────────
