@@ -191,9 +191,12 @@ case "${CMD:-status}" in
 
     reset_audio)
         ss_info "reset_audio: restart audio chain"
-        sudo systemctl restart soundspot-decoder snapserver 2>/dev/null || true
+        # sudoers n'autorise que des commandes systemctl à un seul service exact —
+        # deux appels séparés, chacun couvert par une règle NOPASSWD dédiée.
+        sudo systemctl restart soundspot-decoder 2>/dev/null || true
+        sudo systemctl restart snapserver 2>/dev/null || true
         sleep 1
-        sudo systemctl restart soundspot-client-master 2>/dev/null || true
+        sudo systemctl restart soundspot-client 2>/dev/null || true
         sudo "${INSTALL_DIR}/backend/system/bt-connect.sh" 2>/dev/null || true
         jq -n '{"status":"ok","message":"Chaîne audio réinitialisée"}'
         ;;

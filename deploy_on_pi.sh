@@ -93,9 +93,15 @@ if [ -z "$SOUNDSPOT_MODE" ]; then
     echo -e "  ${C}[2]${N}  ${W}Satellite${N}  — enceinte BT supplémentaire reliée au maître"
     echo -e "       ${DIM}RPi additionnel : Snapclient → reçoit le stream du maître${N}"
     echo ""
-    ask "Mode [1] : "
-    read -r MODE_INPUT
-    SOUNDSPOT_MODE="${MODE_INPUT:-1}"
+    while true; do
+        ask "Mode [1] : "
+        read -r MODE_INPUT
+        SOUNDSPOT_MODE="${MODE_INPUT:-1}"
+        case "$SOUNDSPOT_MODE" in
+            1|2) break ;;
+            *) warn "Choix invalide : '${MODE_INPUT}' — entrez 1 (Maître) ou 2 (Satellite)" ;;
+        esac
+    done
 fi
 
 MASTER_HOST=""
@@ -488,7 +494,7 @@ fi
 echo ""
 ask "Lancer l'installation ? [oui/Non] : "
 read -r CONFIRM
-[[ "$CONFIRM" == "oui" ]] || err "Installation annulée."
+[[ "${CONFIRM,,}" == "oui" ]] || err "Installation annulée."
 
 # ════════════════════════════════════════════════════════════════
 #  7. Dépendances minimales et fuseau horaire

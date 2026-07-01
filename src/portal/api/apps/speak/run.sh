@@ -1,8 +1,19 @@
 #!/bin/bash
 # /opt/soundspot/portal/api/apps/speak/run.sh — Laisse un organe distant utiliser la Bouche
+#
+# Inerte tant que core/speak.sh existe (api.sh teste core/ avant apps/*/run.sh —
+# voir src/portal/api.sh). Même restriction d'IP que core/speak.sh : ce n'est
+# pas une fonctionnalité destinée aux visiteurs du portail.
 
 _SS_SERVICE="portal-speak-app"
 source "${INSTALL_DIR:-/opt/soundspot}/backend/system/log.sh" 2>/dev/null || true
+
+REMOTE_ADDR="${REMOTE_ADDR:-}"
+if [ -z "$REMOTE_ADDR" ] || { [ "$REMOTE_ADDR" != "${SPOT_IP:-192.168.10.1}" ] && [ "$REMOTE_ADDR" != "127.0.0.1" ]; }; then
+    ss_warn "apps/speak: accès refusé ip=${REMOTE_ADDR:-?}"
+    echo '{"error":"forbidden","hint":"speak only accepted from master"}'
+    exit 0
+fi
 
 read -r -n "${CONTENT_LENGTH:-0}" POST_DATA 2>/dev/null || true
 
@@ -26,7 +37,7 @@ if [ -n "$TEXT" ]; then
                 $ASTRO_SCRIPT connect orpheus >/dev/null 2>&1
             fi
 
-            ORPHEUS_SCRIPT="$HOME/.zen/Astroport.ONE/tools/orpheus.me.sh"
+            ORPHEUS_SCRIPT="$HOME/.zen/Astroport.ONE/IA/services/orpheus.me.sh"
             
             if [[ -x "$ORPHEUS_SCRIPT" ]]; then
                 # On s'assure que le tunnel P2P vers Orpheus (5005) est actif

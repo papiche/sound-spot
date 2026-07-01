@@ -81,7 +81,7 @@ _cache_purge() {
 
 # ── Localiser orpheus.me.sh via le home de SOUNDSPOT_USER ───────────
 _user_home=$(getent passwd "$SOUNDSPOT_USER" | cut -d: -f6 2>/dev/null || echo "/home/$SOUNDSPOT_USER")
-ORPHEUS_SH="${_user_home}/.zen/Astroport.ONE/IA/orpheus.me.sh"
+ORPHEUS_SH="${_user_home}/.zen/Astroport.ONE/IA/services/orpheus.me.sh"
 
 # ── Helpers ──────────────────────────────────────────────────────────
 _picoport_active() {

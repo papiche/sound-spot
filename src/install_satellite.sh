@@ -32,8 +32,11 @@ BT_MACS="${BT_MACS:-${BT_MAC:-}}"           # Liste MACs séparés par espaces (
 INSTALL_DIR="/opt/soundspot"
 PICOPORT_ENABLED="${PICOPORT_ENABLED:-true}"
 LOG_LEVEL="${LOG_LEVEL:-INFO}"
-SOUNDSPOT_LOG="${SOUNDSPOT_LOG:-/var/log/soundspot.log}"
+SOUNDSPOT_LOG="${SOUNDSPOT_LOG:-/var/log/sound-spot.log}"
 export SOUNDSPOT_USER="${SOUNDSPOT_USER:-${SUDO_USER:-pi}}"
+# Préserve le mot de passe admin d'une install précédente, sinon en génère un.
+ADMIN_PASSWORD="${ADMIN_PASSWORD:-$(grep -oP '(?<=^ADMIN_PASSWORD=").*(?=")' "$INSTALL_DIR/soundspot.conf" 2>/dev/null)}"
+ADMIN_PASSWORD="${ADMIN_PASSWORD:-$(openssl rand -hex 8)}"
 export SOUNDSPOT_UID=$(id -u "${SOUNDSPOT_USER}" 2>/dev/null || echo "1000")
 
 # ── Vérifications ────────────────────────────────────────────
@@ -221,7 +224,7 @@ fi
 hdr "Fichier de configuration central"
 # Modifier dans src/install_satellite.sh
 install_template soundspot.conf.satellite.env "$INSTALL_DIR/soundspot.conf" \
-    '${MASTER_HOST} ${TARGET_MASTER} ${SPOT_NAME} ${SNAPCAST_PORT} ${BT_MAC} ${BT_MACS} ${INSTALL_DIR} ${SOUNDSPOT_USER} ${PICOPORT_ENABLED} ${LOG_LEVEL} ${SOUNDSPOT_LOG}'
+    '${MASTER_HOST} ${TARGET_MASTER} ${SPOT_NAME} ${SNAPCAST_PORT} ${BT_MAC} ${BT_MACS} ${INSTALL_DIR} ${SOUNDSPOT_USER} ${PICOPORT_ENABLED} ${LOG_LEVEL} ${SOUNDSPOT_LOG} ${ADMIN_PASSWORD}'
 chgrp soundspot "$INSTALL_DIR/soundspot.conf" 2>/dev/null || true
 chmod 640 "$INSTALL_DIR/soundspot.conf"
 

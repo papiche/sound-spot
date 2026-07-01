@@ -14,22 +14,24 @@ www-data ALL=(ALL) NOPASSWD: /opt/soundspot/bt_manage.sh
 www-data ALL=(ALL) NOPASSWD: /opt/soundspot/backend/system/bt_connect_mac.sh
 www-data ALL=(ALL) NOPASSWD: /opt/soundspot/backend/system/set_bt_macs.sh
 www-data ALL=(ALL) NOPASSWD: /opt/soundspot/backend/system/print_ticket.sh
+www-data ALL=(ALL) NOPASSWD: /opt/soundspot/backend/system/bt-connect.sh
 www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart soundspot-idle
 www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart soundspot-decoder
 www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart snapserver
 www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart icecast2
 www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart soundspot-bt-reactive
-www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop soundspot-client-master
-www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart soundspot-client-master
+www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop soundspot-client
+www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart soundspot-client
 www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop snapserver
 www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop soundspot-decoder
 www-data ALL=(ALL) NOPASSWD: /opt/soundspot/backend/system/set_audio_output.sh *
 www-data ALL=(ALL) NOPASSWD: /usr/sbin/poweroff
 www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl start soundspot-autodj
 www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop soundspot-autodj
-www-data ALL=(${SOUNDSPOT_USER}) NOPASSWD: ${USER_HOME}/.zen/Astroport.ONE/IA/orpheus.me.sh
+www-data ALL=(${SOUNDSPOT_USER}) NOPASSWD: ${USER_HOME}/.zen/Astroport.ONE/IA/services/orpheus.me.sh
 www-data ALL=(${SOUNDSPOT_USER}) NOPASSWD: ${USER_HOME}/.astro/bin/python3 ${USER_HOME}/.zen/Astroport.ONE/tools/nostr_send_note.py *
 www-data ALL=(${SOUNDSPOT_USER}) NOPASSWD: /bin/bash ${INSTALL_DIR}/backend/audio/tts.sh *
+www-data ALL=(${SOUNDSPOT_USER}) NOPASSWD: /usr/bin/python3 ${INSTALL_DIR}/backend/video/stream_commentator.py
 SUDOEOF
     chmod 0440 /etc/sudoers.d/soundspot-www
 

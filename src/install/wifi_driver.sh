@@ -42,10 +42,11 @@ _install_rtl88x2bu() {
     warn "Compilation RTL88x2bu : ~5 min sur RPi 4, jusqu'à 20 min sur RPi Zero 2W."
     warn "Ne débranchez pas le Raspberry Pi pendant la compilation."
     apt_retry install -y dkms raspberrypi-kernel-headers build-essential bc git
-    cd /tmp
+    cd /tmp || err "cd /tmp impossible"
     rm -rf 88x2bu-20210702
-    git clone --depth 1 https://github.com/morrownr/88x2bu-20210702.git
-    cd 88x2bu-20210702
+    git clone --depth 1 https://github.com/morrownr/88x2bu-20210702.git \
+        || err "Échec git clone RTL88x2bu (réseau ?)"
+    cd 88x2bu-20210702 || err "Dossier 88x2bu-20210702 introuvable après clone"
     ./install-driver.sh NoPrompt
     if dkms status 2>/dev/null | grep -q "88x2bu.*installed"; then
         echo "options 88x2bu rtw_power_mgnt=0 rtw_enusbss=0" > /etc/modprobe.d/88x2bu.conf
@@ -64,10 +65,11 @@ _install_rtl8812au() {
     warn "Compilation RTL8812AU : ~5 min sur RPi 4, jusqu'à 20 min sur RPi Zero 2W."
     warn "Ne débranchez pas le Raspberry Pi pendant la compilation."
     apt_retry install -y dkms raspberrypi-kernel-headers build-essential bc git
-    cd /tmp
+    cd /tmp || err "cd /tmp impossible"
     rm -rf 8812au
-    git clone --depth 1 https://github.com/morrownr/8812au-20210629.git 8812au
-    cd 8812au
+    git clone --depth 1 https://github.com/morrownr/8812au-20210629.git 8812au \
+        || err "Échec git clone RTL8812AU (réseau ?)"
+    cd 8812au || err "Dossier 8812au introuvable après clone"
     ./install-driver.sh NoPrompt
     if dkms status 2>/dev/null | grep -q "8812au.*installed"; then
         echo "options 8812au rtw_power_mgnt=0 rtw_enusbss=0" > /etc/modprobe.d/8812au.conf

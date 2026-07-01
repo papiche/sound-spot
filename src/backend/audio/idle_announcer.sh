@@ -96,7 +96,7 @@ play_message_file() {
     local owner=$(stat -c '%U' "$wav" 2>/dev/null || echo "none")
 
     # Si Orpheus est vivant ET (le fichier appartient à www-data OU est absent)
-    if [ "${_CYCLE_ORPHEUS:-false}" = "true" ] && {[ "$owner" = "www-data" ] || [ ! -f "$wav" ]; }; then
+    if [ "${_CYCLE_ORPHEUS:-false}" = "true" ] && { [ "$owner" = "www-data" ] || [ ! -f "$wav" ]; }; then
         ss_info "Promotion Orpheus pour message_$id (Source: $owner)"
         local live_wav=$(bash "$TTS_SH" "$(cat "$txt" 2>/dev/null)" "${ORPHEUS_VOICE:-pierre}" 2>/dev/null | tail -1)
         if [ -f "$live_wav" ]; then
@@ -266,7 +266,7 @@ main() {
             else
                 # Tentative de connexion (tunnel P2P Orpheus)
                 local _user_home; _user_home=$(getent passwd "${SOUNDSPOT_USER:-pi}" | cut -d: -f6)
-                local _orpheus_sh="${_user_home}/.zen/Astroport.ONE/IA/orpheus.me.sh"
+                local _orpheus_sh="${_user_home}/.zen/Astroport.ONE/IA/services/orpheus.me.sh"
                 [ -x "$_orpheus_sh" ] && sudo -u "$SOUNDSPOT_USER" bash "$_orpheus_sh" \
                     >/dev/null 2>&1 && sleep 8
                 curl -s -o /dev/null -w "%{http_code}" --max-time 2 \

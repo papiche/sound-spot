@@ -16,7 +16,12 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SOUNDSPOT_USER=$(grep "SOUNDSPOT_USER" "$CONF" 2>/dev/null | cut -d= -f2 | tr -d '"' || echo "${SUDO_USER:-pi}")
 USER_HOME=$(getent passwd "$SOUNDSPOT_USER" | cut -d: -f6)
 
-SERVICES=("soundspot-ap" "hostapd" "dnsmasq" "soundspot-firewall" "icecast2" "soundspot-decoder" "snapserver" "soundspot-client" "soundspot-idle" "soundspot-presence" "soundspot-battery" "picoport" "ipfs" "bt-autoconnect" "upassport" "soundspot-swarm-sync")
+SERVICES=("soundspot-ap" "hostapd" "dnsmasq" "ipset-soundspot" "soundspot-firewall" "lighttpd" \
+    "icecast2" "soundspot-decoder" "snapserver" "soundspot-client" "soundspot-autodj" "soundspot-mic" \
+    "soundspot-idle" "soundspot-presence" "soundspot-battery" "soundspot-bt-reactive" "soundspot-rtmp-player" \
+    "soundspot-channel-sync" "soundspot-mesh" "mon-oeil" \
+    "picoport" "ipfs" "bt-autoconnect" "upassport" "soundspot-swarm-sync" \
+    "soundspot-fleet-relay" "soundspot-fleet" "soundspot-jukebox" "soundspot-state")
 
 # ── Fonctions ────────────────────────────────────────────────────
 

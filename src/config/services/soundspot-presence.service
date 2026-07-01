@@ -1,7 +1,7 @@
 [Unit]
 Description=SoundSpot — détecteur de présence caméra
-After=soundspot-client-master.service
-Wants=soundspot-client-master.service
+After=soundspot-client.service
+Wants=soundspot-client.service
 
 [Service]
 Type=simple

@@ -59,6 +59,13 @@ if [[ ! -s ~/.zen/game/myswarm_secret.june ]]; then
     echo "✅ Clé MySwarm générée : $CHAN"
 fi
 
+# SECRET1/SECRET2 ne sont assignés que dans le bloc ci-dessus (première init) —
+# on les relit systématiquement depuis le fichier persistant pour que la boucle
+# principale (G1PUB, ligne ~103) fonctionne aussi après un redémarrage du service.
+source ~/.zen/game/myswarm_secret.june
+SECRET1="$SALT"
+SECRET2="$PEPPER"
+
 # =========================================================================
 # 3. DISTRIBUTION DES CLÉS SSH DE CONFIANCE (Bootstrap Capitaines)
 # =========================================================================

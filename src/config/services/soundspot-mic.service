@@ -1,7 +1,7 @@
 [Unit]
 Description=SoundSpot — Capture micro USB → Snapcast stream Mic
 # Dépend de snapserver ET du service PipeWire utilisateur (partage micro)
-After=snapserver.service soundspot-client-master.service
+After=snapserver.service soundspot-client.service
 BindsTo=snapserver.service
 
 [Service]

@@ -45,16 +45,13 @@ sound-spot/
 └── src/                 ← Internals
     ├── install_soundspot.sh    ← Orchestre l'install master (source tous les modules install/)
     ├── install_satellite.sh    ← Install satellite (PipeWire + Snapclient uniquement)
-    ├── install_battery_monitor.sh
     ├── install_astroport_light.sh  ← Clone Astroport.ONE, venv ~/.astro/, symlinks
-    ├── idle_announcer.sh           ← Clocher numérique
-    ├── bt_update.sh                ← Gestion interactive enceintes BT
     ├── wpa_supplicant.conf         ← Template WiFi client upstream
     ├── install/          ← Modules setup_* sourcés par install_soundspot.sh
     ├── backend/          ← Scripts copiés dans /opt/soundspot/backend/ au runtime
-    │   ├── audio/        ← (bt-combine-sinks, split_audio, set_audio_output…)
+    │   ├── audio/        ← (idle_announcer, bt-combine-sinks, split_audio, set_audio_output…)
     │   ├── video/        ← (flux RTMP drone)
-    │   └── system/       ← (control_center, fleet_commander, fleet_listener, bt-connect…)
+    │   └── system/       ← (control_center, fleet_commander, fleet_listener, bt-connect, bt_update…)
     ├── portal/           ← Portail captif lighttpd
     │   ├── index.html    ← Interface utilisateur principale
     │   ├── api.sh        ← Dispatcher CGI → sous-scripts api/
@@ -91,7 +88,7 @@ sudo bash deploy_on_pi.sh --satellite  # force satellite mode
 bash dj_mixxx_setup.sh   # installs Snapclient + Mixxx, generates ~/zicmama_play.sh
 
 # BT speaker management (after install):
-bash src/bt_update.sh pi@soundspot.local
+bash src/backend/system/bt_update.sh pi@soundspot.local
 
 # Dev workflow on RPi:
 bash src/dev/dev_setup.sh   # prepare hot-reload environment
@@ -128,7 +125,7 @@ There is no build step — this project is pure Bash + Python. ShellCheck can be
 2. `soundspot-decoder.service` runs `ffmpeg` in a loop: reads `http://127.0.0.1:8111/live`, decodes to raw PCM s16le 48 kHz, writes to `/dev/shm/snapfifo`
 3. `snapserver` reads the FIFO (raw PCM) and serves the stream on port 1704
 4. All `snapclient` instances (PC headphone monitor, visitor devices, satellite RPis) receive synchronized audio
-5. `soundspot-client-master.service` runs a local snapclient → PipeWire → Bluetooth speaker
+5. `soundspot-client.service` runs a local snapclient → PipeWire → Bluetooth speaker
 
 > Note: snapserver cannot decode compressed streams from HTTP — it only reads raw PCM. The ffmpeg decoder bridge is the correct and robust solution.
 
@@ -148,12 +145,12 @@ There is no build step — this project is pure Bash + Python. ShellCheck can be
 | `src/backend/system/fleet_commander.sh` | Publie des ordres Kind 9 sur le relay fleet local (port 9999) |
 | `src/backend/system/fleet_listener.sh` | Écoute les ordres fleet (shutdown, announce…) — IS_ENERGY=true pour le nœud énergie |
 | `src/backend/system/fleet_relay.py` | Relay NOSTR WebSocket local (:9999) — uniquement Kind 9 éphémères |
-| `src/backend/system/bt-connect.sh` | Connexion BT + redémarre soundspot-client-master après succès |
+| `src/backend/system/bt-connect.sh` | Connexion BT + redémarre soundspot-client après succès |
 | `src/backend/system/bt_reactive.py` | Daemon reconnexion BT réactive (écoute D-Bus) |
 | `src/backend/system/state_daemon.sh` | Publie l'état du nœud (uptime, températures) |
 | `presence_detector.py` (→ `mon-oeil.py`) | Face detection daemon (OpenCV Haar, 80×60 px); triggers welcome audio via `threading.Thread` |
 | `battery_monitor.py` | INA219 solar battery monitor; replaces welcome.wav with low-battery alert |
-| `bt_update.sh` | Interactive BT speaker management (scan, pair, update soundspot.conf) |
+| `src/backend/system/bt_update.sh` | Interactive BT speaker management (scan, pair, update soundspot.conf) |
 | `dj_mixxx_setup.sh` | PC DJ setup: Snapclient + Mixxx + `~/zicmama_play.sh` generator |
 | `picoport/install_picoport.sh` | IPFS Kubo arm64 + g1cli (Duniter v2s, paiements ẑen) + identité Y-Level + service picoport.service |
 | `picoport/picoport_init_keys.sh` | Identité déterministe : SSH → sha512 → IPFS PeerID + NOSTR MULTIPASS (make_NOSTRCARD.sh) |
@@ -218,7 +215,7 @@ wpa_supplicant@wlan0
   → hostapd → dnsmasq
   → icecast2
   → snapserver + soundspot-decoder
-  → soundspot-client-master (wait-pw-socket + wait-bt-sink)
+  → soundspot-client (wait-pw-socket + wait-bt-sink)
   → bt-autoconnect + soundspot-bt-reactive
   → soundspot-idle                         (clocher numérique idle_announcer.sh)
   → soundspot-presence (si PRESENCE_ENABLED=true) → mon-oeil.service
@@ -234,7 +231,7 @@ wpa_supplicant@wlan0
 
 **Pare-feu** : `soundspot-firewall.service` remplace `netfilter-persistent` pour éviter la race condition avec `ipset`. `netfilter-persistent` est désactivé. Les règles iptables sont ré-appliquées depuis `soundspot-firewall.sh` à chaque boot (idempotent : flush + re-apply).
 
-**Note** : les services snapclient sont nommés `soundspot-client-master` et `soundspot-client-satellite` (avec suffixe de rôle) — pas `soundspot-client` seul.
+**Note** : le service snapclient local est toujours nommé `soundspot-client`, que le nœud soit maître ou satellite (seul le contenu du service — quel serveur Snapcast il cible — diffère entre `soundspot-client-master.service` et `soundspot-client-satellite.service`, les deux templates sources dans `src/config/services/`).
 
 ### Installation modules (`src/install/`)
 
@@ -252,7 +249,7 @@ Each `install/*.sh` file exports a single `setup_*` function, sourced by `instal
 | `bluetooth.sh` | `setup_bluetooth` | bt-autoconnect + bt-reactive services |
 | `pipewire.sh` | `setup_pipewire` | loginctl enable-linger |
 | `snapserver.sh` | `setup_snapserver` | mkfifo /dev/shm/snapfifo + snapserver.conf |
-| `snapclient.sh` | `setup_snapclient [master\|satellite]` | Service nommé soundspot-client-master ou soundspot-client-satellite |
+| `snapclient.sh` | `setup_snapclient [master\|satellite]` | Installe le template `soundspot-client-{master,satellite}.service` sous le nom fixe `soundspot-client.service` |
 | `channel_sync.sh` | `setup_channel_sync` | sync_channel.sh + systemd overrides |
 | `presence.sh` | `setup_presence` | welcome.wav + mon-oeil (OpenCV) |
 | `battery.sh` | `setup_battery` | INA219 I2C — service soundspot-battery (indépendant de presence) |
@@ -306,8 +303,8 @@ Gestion cloud P2P — compare le Power-Score local (toujours 🌿 Light sur Zero
 - `install_template SRC DEST 'VARS'` — `envsubst` substitue **uniquement** les variables listées en argument. Toute variable manquante dans la liste reste littérale dans le fichier installé (`${IFACE_AP}` non substitué → hostapd/dnsmasq plantent)
 - FIFO snapcast dans `/dev/shm/snapfifo` (RAM tmpfs) et non `/tmp/snapfifo`
 - Portail captif timeout : **4 heures** (ipset timeout 14400) — corriger toute doc qui dit "15 minutes"
-- `soundspot-client-master` / `soundspot-client-satellite` — le service snapclient local a un suffixe de rôle
-- `bt-connect.sh` redémarre `soundspot-client-master` après connexion BT réussie — sans ça, snapclient reste sur le sink null démarré au boot
+- Le service snapclient local est toujours nommé `soundspot-client` (jamais suffixé `-master`/`-satellite`) — seuls les *templates sources* dans `src/config/services/` portent ce suffixe
+- `bt-connect.sh` redémarre `soundspot-client` après connexion BT réussie — sans ça, snapclient reste sur le sink null démarré au boot
 - L'heure solaire dans `idle_announcer.sh` utilise la correction `lon × 4 - tz_offset_min` appliquée à l'heure locale (pas UTC). Fallback : méridien du fuseau horaire si `~/.zen/GPS` absent
 - The project is part of the UPlanet ecosystem; see `../CLAUDE.md` for cross-project context
 

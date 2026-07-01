@@ -50,6 +50,10 @@ export PRESENCE_ENABLED="${PRESENCE_ENABLED:-false}"
 export PICOPORT_ENABLED="${PICOPORT_ENABLED:-true}"
 export LOG_LEVEL="${LOG_LEVEL:-WARN}"
 export SOUNDSPOT_LOG="${SOUNDSPOT_LOG:-/var/log/sound-spot.log}"
+# Mot de passe admin du portail : préservé si déjà généré lors d'une install précédente,
+# sinon tiré aléatoirement (remplace l'ancien dérivé de UPLANETNAME/swarm.key).
+export ADMIN_PASSWORD="${ADMIN_PASSWORD:-$(grep -oP '(?<=^ADMIN_PASSWORD=").*(?=")' "$INSTALL_DIR/soundspot.conf" 2>/dev/null)}"
+export ADMIN_PASSWORD="${ADMIN_PASSWORD:-$(openssl rand -hex 8)}"
 
 # ── Vérifications ────────────────────────────────────────────
 hdr "Vérifications préliminaires"
@@ -151,7 +155,7 @@ log "soundspot-state activé (cache JSON status.json)"
 # Capture micro USB → stream Snapcast_Mic (activé si détecté)
 install_template soundspot-mic.service \
     /etc/systemd/system/soundspot-mic.service \
-    '${INSTALL_DIR}'
+    '${INSTALL_DIR} ${SOUNDSPOT_USER} ${SOUNDSPOT_UID}'
 if arecord -l 2>/dev/null | grep -qi "USB"; then
     systemctl enable soundspot-mic
     log "Micro USB détecté → soundspot-mic activé"
@@ -243,7 +247,7 @@ log "Service soundspot-mesh activé"
 
 hdr "Finalisation"
 install_template soundspot.conf.master.env "$INSTALL_DIR/soundspot.conf" \
-    '${SPOT_NAME} ${SPOT_IP} ${WIFI_SSID} ${WIFI_CHANNEL} ${BT_MAC} ${BT_MACS} ${SNAPCAST_PORT} ${PRESENCE_COOLDOWN} ${PRESENCE_ENABLED} ${INSTALL_DIR} ${IFACE_AP} ${IFACE_WAN} ${SOUNDSPOT_USER} ${LOG_LEVEL} ${SOUNDSPOT_LOG} ${PICOPORT_ENABLED}'
+    '${SPOT_NAME} ${SPOT_IP} ${WIFI_SSID} ${WIFI_CHANNEL} ${BT_MAC} ${BT_MACS} ${SNAPCAST_PORT} ${PRESENCE_COOLDOWN} ${PRESENCE_ENABLED} ${INSTALL_DIR} ${IFACE_AP} ${IFACE_WAN} ${SOUNDSPOT_USER} ${LOG_LEVEL} ${SOUNDSPOT_LOG} ${PICOPORT_ENABLED} ${ADMIN_PASSWORD}'
     
 # S'assurer que le log est accessible
 touch "$SOUNDSPOT_LOG"

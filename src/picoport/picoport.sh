@@ -22,7 +22,7 @@ source /opt/soundspot/backend/system/log.sh 2>/dev/null || {
 MY_SERVICES="icecast:8111 snapcast:1704 upassport:54321 ssh:22"
 
 # ── heartbox_analysis.sh (Astroport.ONE light install) ──────────────────────
-HB_SCRIPT="$HOME/.zen/Astroport.ONE/tools/heartbox_analysis.sh"
+HB_SCRIPT="$HOME/.zen/Astroport.ONE/admin/monitor/heartbox_analysis.sh"
 
 # ── Chemins UPlanet media pipeline (upload2ipfs.sh + publish_nostr_video.sh) ─
 # Permet aux apps du portail (yt_copy, etc.) d'utiliser le système UPlanet complet.
@@ -78,16 +78,24 @@ elif [[ -s ~/.zen/game/secret.june && -f "$ASTRO_TOOLS/keygen" ]]; then
     _npub=$(python3 "$ASTRO_TOOLS/keygen" -t nostr -i "$_CRED_PICO" 2>/dev/null)
     NODEHEX=$(python3 "$ASTRO_TOOLS/nostr2hex.py" "$_npub" 2>/dev/null)
     _nsec=$(python3  "$ASTRO_TOOLS/keygen" -t nostr -s -i "$_CRED_PICO" 2>/dev/null)
-    [[ -n "$NODEHEX" ]] && echo "NSEC=$_nsec; NPUB=$_npub; HEX=$NODEHEX" > ~/.zen/game/secret.nostr
+    if [[ -n "$NODEHEX" ]]; then
+        echo "NSEC=$_nsec; NPUB=$_npub; HEX=$NODEHEX" > ~/.zen/game/secret.nostr
+        chmod 600 ~/.zen/game/secret.nostr
+    fi
     rm -f "$_CRED_PICO"
 fi
 [[ -n "$NODEHEX" ]] && echo "$NODEHEX" > "$MY_NODE_DIR/HEX"
 
-# Mot de passe admin portail = 10 derniers caractères de UPLANETNAME (swarm.key)
-_UPLANETNAME=$(tail -n 1 ~/.ipfs/swarm.key 2>/dev/null || echo "")
-if [ -n "$_UPLANETNAME" ]; then
-    echo "${_UPLANETNAME: -10}" > /dev/shm/soundspot_admin_pass
-    chmod 644 /dev/shm/soundspot_admin_pass
+# Mot de passe admin portail = ADMIN_PASSWORD (soundspot.conf, généré à l'install).
+# Chargé automatiquement par systemd (EnvironmentFile=soundspot.conf) ; fallback
+# en exécution manuelle hors systemd.
+[ -z "${ADMIN_PASSWORD:-}" ] && [ -f /opt/soundspot/soundspot.conf ] && \
+    source /opt/soundspot/soundspot.conf 2>/dev/null
+if [ -n "${ADMIN_PASSWORD:-}" ]; then
+    echo "$ADMIN_PASSWORD" > /dev/shm/soundspot_admin_pass
+    chmod 640 /dev/shm/soundspot_admin_pass
+else
+    ss_warn "ADMIN_PASSWORD absent de soundspot.conf — mot de passe admin non généré"
 fi
 
 # Clé IPNS secondaire MySwarm (initialisée par swarm_sync.sh) — lue sans secrets

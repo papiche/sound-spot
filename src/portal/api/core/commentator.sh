@@ -41,7 +41,7 @@ _start_daemon() {
     _pid_alive && return 0
     [ -f "$COMMENTATOR_PY" ] || { ss_warn "commentator.py introuvable"; return 1; }
     nohup sudo -u "$SOUNDSPOT_USER" \
-        python3 "$COMMENTATOR_PY" \
+        /usr/bin/python3 "$COMMENTATOR_PY" \
         >> /var/log/sound-spot.log 2>&1 &
     sleep 1
     _pid_alive
@@ -59,10 +59,15 @@ case "$CMD" in
 
   start)
     touch "$ENABLED_FLAG"
-    _start_daemon
-    ss_info "Commentateur IA démarré (style=$(_style) interval=$(_interval)s)"
-    printf '{"status":"ok","commentator":"started","style":"%s","interval":%s}\n' \
-        "$(_style)" "$(_interval)"
+    if _start_daemon; then
+        ss_info "Commentateur IA démarré (style=$(_style) interval=$(_interval)s)"
+        printf '{"status":"ok","commentator":"started","style":"%s","interval":%s}\n' \
+            "$(_style)" "$(_interval)"
+    else
+        rm -f "$ENABLED_FLAG"
+        ss_warn "Échec démarrage commentateur IA (sudo/python3 ?)"
+        printf '{"error":"start_failed","hint":"voir /var/log/sound-spot.log"}\n'
+    fi
     ;;
 
   stop)

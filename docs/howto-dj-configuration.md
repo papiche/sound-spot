@@ -66,7 +66,7 @@ Quand plusieurs sources sont actives, l'ordre de priorité est :
 
 | Symptôme | Vérification |
 |----------|-------------|
-| Pas de son sur les enceintes | `systemctl status soundspot-client-master` — BT connecté ? |
+| Pas de son sur les enceintes | `systemctl status soundspot-client` — BT connecté ? |
 | Icecast n'accepte pas le stream | Port 8111 ouvert ? Mot de passe Mixxx correct ? |
 | Retard > 5s entre Mixxx et enceintes | Réduire le buffer Snapcast dans `snapserver.conf` |
 | Audio haché (xruns) | Réseau surchargé — réduire la qualité Ogg Vorbis dans Mixxx |

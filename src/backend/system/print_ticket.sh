@@ -27,7 +27,7 @@ fi
 BROTHER_CREATE="$USER_HOME/.astro/bin/brother_ql_create"
 BROTHER_PRINT="$USER_HOME/.astro/bin/brother_ql_print"
 
-if[ -z "$BROTHER_CREATE" ] || [ -z "$BROTHER_PRINT" ]; then
+if [ ! -x "$BROTHER_CREATE" ] || [ ! -x "$BROTHER_PRINT" ]; then
     echo "Erreur: Utilitaires brother_ql introuvables." >&2
     exit 1
 fi

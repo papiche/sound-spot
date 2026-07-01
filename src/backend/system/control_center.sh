@@ -44,7 +44,7 @@ SERVICES=(
     "icecast2|AUDIO|Ingestion flux DJ (Port 8111)"
     "soundspot-decoder|AUDIO|Décodeur FFmpeg (Ogg → PCM → FIFO)"
     "snapserver|AUDIO|Serveur Snapcast multicast (Port 1704)"
-    "soundspot-client-master|AUDIO|Client Snapcast local (→ Bluetooth)"
+    "soundspot-client|AUDIO|Client Snapcast local (→ Bluetooth)"
     "soundspot-autodj|AUDIO|AutoDJ fallback (playlist ~/Music)"
     "soundspot-mic|AUDIO|Capture micro ambiance (ReSpeaker)"
     "soundspot-bt-reactive|MATERIEL|Reconnexion Bluetooth réactive (D-Bus)"
@@ -209,7 +209,7 @@ action_connect() {
             watch -n 2 "curl -s http://127.0.0.1:1780/jsonrpc \
                 -d '{\"id\":1,\"jsonrpc\":\"2.0\",\"method\":\"Server.GetStatus\"}' \
                 | python3 -m json.tool 2>/dev/null | grep -A4 '\"connected\"'" ;;
-        "soundspot-client-master")
+        "soundspot-client")
             echo "Sinks audio PipeWire :"
             $CMD_USER wpctl status 2>/dev/null || pactl list sinks short 2>/dev/null ;;
         "soundspot-bt-reactive")
@@ -302,7 +302,7 @@ action_test() {
                 -d '{"id":1,"jsonrpc":"2.0","method":"Server.GetStatus"}' \
                 | python3 -c "import sys,json; d=json.load(sys.stdin); g=d.get('result',{}).get('server',{}).get('groups',[]); print(f'  {sum(len(g2.get(\"clients\",[])) for g2 in g)} client(s) connecté(s)')" \
                 2>/dev/null || echo "  API Snapserver injoignable" ;;
-        "soundspot-client-master")
+        "soundspot-client")
             echo "Injection son test PipeWire :"
             $CMD_USER pw-play /usr/share/sounds/alsa/Front_Center.wav 2>/dev/null \
                 && echo -e "  ${GREEN}✓${NC} Son lu" \

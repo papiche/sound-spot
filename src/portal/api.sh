@@ -37,6 +37,14 @@ export _SS_SERVICE
 ACTION=$(echo "$QUERY_STRING" | grep -oP '(?<=action=)[a-zA-Z0-9_]+' | head -1)
 ss_info "action=${ACTION} method=${REQUEST_METHOD:-GET} ip=${REMOTE_ADDR:-?}"
 
+# Plafond de sécurité : aucun handler du portail n'attend de payload binaire/volumineux
+# (MAC, npub, event Nostr, texte court...). Borne unique pour tous les `read -n`/`dd`
+# des scripts core/apps, qui héritent cette variable d'environnement.
+MAX_CONTENT_LENGTH=65536
+if [ "${CONTENT_LENGTH:-0}" -gt "$MAX_CONTENT_LENGTH" ] 2>/dev/null; then
+    export CONTENT_LENGTH="$MAX_CONTENT_LENGTH"
+fi
+
 CORE="${INSTALL_DIR}/portal/api/core/${ACTION}.sh"
 APP="${INSTALL_DIR}/portal/api/apps/${ACTION}/run.sh"
 

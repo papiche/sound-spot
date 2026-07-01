@@ -201,7 +201,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
       <div class="auth-step" id="step-verify">
         <span class="step-icon" id="si-verify">⏳</span>
         <div><div>Vérification Schnorr</div>
-        <div class="auth-step-hint">nak verify — local, aucune donnée externe</div></div>
+        <div class="auth-step-hint">Vérification locale — aucune donnée externe</div></div>
       </div>
     </div>
     <div id="auth-msg"></div>
@@ -776,7 +776,7 @@ async function ytcopyRequest() {
   // 1. Demander le relay cible au portail (vérif NIP-42 côté serveur)
   let relay = 'wss://relay.copylaradio.com';
   try {
-    const d = await (await fetch(API + '?action=ytcopy&npub=' + encodeURIComponent(S.npub))).json();
+    const d = await (await fetch(API + '?action=yt_copy&npub=' + encodeURIComponent(S.npub))).json();
     if (d.error) {
       msg.textContent = '❌ ' + (d.hint || d.error);
       msg.style.cssText = 'display:block;background:rgba(231,76,60,.1);border:1px solid rgba(231,76,60,.3);color:#f88';

@@ -29,8 +29,23 @@ fi
 echo "=== 2. Installation de Kubo (IPFS) — ${PICO_ARCH} ==="
 if ! command -v ipfs &>/dev/null; then
     cd /tmp
-    wget -q --show-progress "https://dist.ipfs.tech/kubo/v0.40.0/kubo_v0.40.0_linux-${PICO_ARCH}.tar.gz"
-    tar -xzf "kubo_v0.40.0_linux-${PICO_ARCH}.tar.gz"
+    KUBO_TARBALL="kubo_v0.40.0_linux-${PICO_ARCH}.tar.gz"
+    KUBO_URL="https://dist.ipfs.tech/kubo/v0.40.0/${KUBO_TARBALL}"
+    wget -q --show-progress "$KUBO_URL"
+    # Vérification d'intégrité avant exécution de install.sh en root.
+    if wget -q -O "${KUBO_TARBALL}.sha512" "${KUBO_URL}.sha512" 2>/dev/null && [ -s "${KUBO_TARBALL}.sha512" ]; then
+        EXPECTED_SHA=$(awk '{print $1}' "${KUBO_TARBALL}.sha512")
+        ACTUAL_SHA=$(sha512sum "$KUBO_TARBALL" | awk '{print $1}')
+        if [ "$EXPECTED_SHA" != "$ACTUAL_SHA" ]; then
+            echo "❌ Somme de contrôle Kubo invalide (attendu ${EXPECTED_SHA:0:16}…, obtenu ${ACTUAL_SHA:0:16}…) — fichier corrompu ou compromis." >&2
+            rm -f "$KUBO_TARBALL" "${KUBO_TARBALL}.sha512"
+            exit 1
+        fi
+        echo "✓ Somme de contrôle Kubo vérifiée (sha512)"
+    else
+        echo "⚠ Somme de contrôle Kubo indisponible sur dist.ipfs.tech — vérification ignorée"
+    fi
+    tar -xzf "$KUBO_TARBALL"
     bash kubo/install.sh
     rm -rf kubo*
     echo "IPFS installé : $(ipfs --version)"
@@ -223,7 +238,7 @@ echo "=== 9. Tunnels IA Constellation (Qdrant + NextCloud) ==="
 _ASYS=""
 sudo -u "$SOUNDSPOT_USER" bash -c 'command -v astrosystemctl >/dev/null 2>&1' \
     && _ASYS="astrosystemctl"
-_ASYS_SCRIPT="$USER_HOME/.zen/Astroport.ONE/tools/astrosystemctl.sh"
+_ASYS_SCRIPT="$USER_HOME/.zen/Astroport.ONE/admin/system/astrosystemctl.sh"
 [[ -z "$_ASYS" && -x "$_ASYS_SCRIPT" ]] && _ASYS="bash $_ASYS_SCRIPT"
 
 _SWARM_DIR="$USER_HOME/.zen/tmp/swarm"
