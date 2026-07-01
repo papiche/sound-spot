@@ -30,6 +30,7 @@ www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl start soundspot-autodj
 www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop soundspot-autodj
 www-data ALL=(${SOUNDSPOT_USER}) NOPASSWD: ${USER_HOME}/.zen/Astroport.ONE/IA/services/orpheus.me.sh
 www-data ALL=(${SOUNDSPOT_USER}) NOPASSWD: ${USER_HOME}/.astro/bin/python3 ${USER_HOME}/.zen/Astroport.ONE/tools/nostr_send_note.py *
+www-data ALL=(${SOUNDSPOT_USER}) NOPASSWD: ${USER_HOME}/.astro/bin/python3 ${USER_HOME}/.zen/Astroport.ONE/tools/nostr_node_intercom.py verify
 www-data ALL=(${SOUNDSPOT_USER}) NOPASSWD: /bin/bash ${INSTALL_DIR}/backend/audio/tts.sh *
 www-data ALL=(${SOUNDSPOT_USER}) NOPASSWD: /usr/bin/python3 ${INSTALL_DIR}/backend/video/stream_commentator.py
 SUDOEOF

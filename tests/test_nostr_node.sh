@@ -55,7 +55,7 @@ else
     echo -e "${R}✗ Relay local ($RELAY) injoignable ou rejette le Kind 9.${N}"
 fi
 
-# 4. Test Lecture via 'nak' (si disponible) ou python simple
+# 4. Test Lecture via un client websockets Python minimal
 echo -e "\n${Y}▶ Test 3 : Écoute du relay de flotte (Kind 9)...${N}"
 echo -e "${C}En attente d'un événement (Ctrl+C pour stopper)...${N}"
 

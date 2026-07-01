@@ -249,7 +249,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
     <a href="#" id="uplanet-card-link" class="external-link" target="_blank">
       🌐 Ouvrir UPlanet ORIGIN →
     </a>
-    <div class="hint" style="margin-top:10px">Servi via la passerelle IPFS locale (<span id="ipfs-gw-hint">port 8080</span>)</div>
+    <div class="hint" style="margin-top:10px">Servi localement par UPassport (<span id="ipfs-gw-hint">port 54321</span>) — pas besoin d'Internet</div>
   </div>
 
   <div class="card">
@@ -287,6 +287,9 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
       <a id="jukebox-create-link" href="#" target="_blank" class="external-link" style="justify-content:center">
         🆕 Créer un MULTIPASS →
       </a>
+      <div class="hint" style="margin-top:8px">
+        Ou avec le wallet <a href="https://z.astroport.one" target="_blank">Ẑelkova</a>
+      </div>
     </div>
   </div>
   <div id="jukebox-content" style="display:none">
@@ -457,6 +460,9 @@ const SPOT_HOST    = window.location.hostname;
 const API          = '/api.sh';
 const UPASSPORT    = 'http://' + SPOT_HOST + ':54321';
 const IPFS_GW      = 'http://' + SPOT_HOST + ':8080';
+// UPlanet/earth (index.html, atomic.html, uplanet-header.js…) est servi localement
+// par UPassport (54321.py monte /earth en StaticFiles) — pas besoin d'IPNS/Internet.
+const EARTH        = UPASSPORT + '/earth';
 const FLEET_RELAY  = 'ws://'   + SPOT_HOST + ':9999';
 
 /* ── Onglets ─────────────────────────────────────────── */
@@ -498,7 +504,52 @@ function hexToNpub(hex) {
 }
 function shortKey(k) { return k.slice(0, 8) + '…' + k.slice(-4); }
 
+/* ── Bandeau UPlanet (uplanet-header.js) ─────────────────
+   Connexion NOSTR complète (extension NIP-07 + repli UPlanet) pour les
+   visiteurs, y compris smartphone — vient s'ajouter à la modal MULTIPASS
+   propre au jukebox (fonctions distinctes, S.authenticated n'est pas
+   piloté par ce bandeau). Chargement séquentiel requis : nacl-fast.min.js
+   → nostr.bundle.js → common.js (qui charge lui-même lib_0..lib_7) →
+   uplanet-header.js. */
+function _loadScriptsSequential(urls, i) {
+  i = i || 0;
+  if (i >= urls.length) return;
+  const s = document.createElement('script');
+  s.src = urls[i];
+  s.onload = () => _loadScriptsSequential(urls, i + 1);
+  s.onerror = () => console.warn('UPlanet header: échec de chargement', urls[i]);
+  document.head.appendChild(s);
+}
+function loadUplanetHeader() {
+  if (window.uphRefresh) return; // déjà chargé
+
+  // detectUSPOTAPI() (lib_2_api_connect.js) suppose un relais strfry local sur
+  // 127.0.0.1:7777 en cas de chargement par IP/localhost — SoundSpot ne fait
+  // tourner aucun strfry local, seulement fleet_relay.py sur le port 9999.
+  // On corrige NostrState juste avant que uplanet-header.js ne tente sa
+  // connexion silencieuse (écouteur enregistré AVANT le sien, donc exécuté
+  // en premier sur le même événement 'UPlanetReady').
+  const isRawIp = /^(\d{1,3}\.){3}\d{1,3}$/.test(SPOT_HOST) || SPOT_HOST === 'localhost';
+  if (isRawIp) {
+    window.addEventListener('UPlanetReady', () => {
+      if (window.NostrState) {
+        window.NostrState.DEFAULT_RELAYS = [FLEET_RELAY, 'wss://relay.copylaradio.com'];
+        window.NostrState.upassportUrl   = UPASSPORT;
+        window.NostrState.stationUrl     = 'http://' + SPOT_HOST + ':12345';
+      }
+    }, { once: true });
+  }
+
+  _loadScriptsSequential([
+    EARTH + '/nacl-fast.min.js',
+    EARTH + '/nostr.bundle.js',
+    EARTH + '/common.js',
+    EARTH + '/uplanet-header.js',
+  ]);
+}
+
 /* ── Init station ────────────────────────────────────── */
+let S_upassportLocal = false; // Picoport actif ⇒ UPassport (donc /earth) est servi localement
 async function initStation() {
   try {
     const d = await (await fetch(API + '?action=status')).json();
@@ -514,18 +565,22 @@ async function initStation() {
     const streamUrl = 'http://' + SPOT_HOST + ':' + port + '/live';
     document.getElementById('audio-player').src = streamUrl;
     document.getElementById('player-status').textContent = 'Flux : ' + streamUrl;
+    // UPassport n'est installé/actif que si Picoport l'est — sinon /earth local
+    // est injoignable, on retombe sur la version publique via IPNS.
+    S_upassportLocal = !!d.picoport_active;
+    if (S_upassportLocal) loadUplanetHeader();
   } catch (_) {}
-  const uplanetUrl = IPFS_GW + '/ipns/copylaradio.com/';
+  const uplanetUrl = S_upassportLocal ? (EARTH + '/index.html') : (IPFS_GW + '/ipns/copylaradio.com/');
   document.getElementById('uplanet-card-link').href = uplanetUrl;
-  document.getElementById('ipfs-gw-hint').textContent = SPOT_HOST + ':8080';
+  document.getElementById('ipfs-gw-hint').textContent = S_upassportLocal ? (SPOT_HOST + ':54321') : (SPOT_HOST + ':8080');
   // Lien création MULTIPASS dans le locked-zone jukebox
   const createLnk = document.getElementById('jukebox-create-link');
-  if (createLnk) createLnk.href = IPFS_GW + '/ipns/copylaradio.com/g1.html';
+  if (createLnk) createLnk.href = S_upassportLocal ? (EARTH + '/atomic.html') : (IPFS_GW + '/ipns/copylaradio.com/g1.html');
   const saved = localStorage.getItem('ss_npub');
   if (saved) await checkSession(saved);
   loadMessages();
 }
-function openUplanet() { window.open(IPFS_GW + '/ipns/copylaradio.com/', '_blank'); }
+function openUplanet() { window.open(S_upassportLocal ? (EARTH + '/index.html') : (IPFS_GW + '/ipns/copylaradio.com/'), '_blank'); }
 
 /* ── Horloge ─────────────────────────────────────────── */
 function updateClock() {
@@ -737,10 +792,10 @@ function onAuthChanged(auth) {
     // Charger la bibliothèque audio
     loadUdriveAudio();
   } else {
-    // Afficher lien MULTIPASS dans locked-zone avec l'URL IPFS
+    // Afficher lien MULTIPASS dans locked-zone (Atomic UPlanet — création + Ẑelkova)
     const createLnk = document.getElementById('jukebox-create-link');
     if (createLnk) {
-      createLnk.href = IPFS_GW + '/ipns/copylaradio.com/g1.html';
+      createLnk.href = S_upassportLocal ? (EARTH + '/atomic.html') : (IPFS_GW + '/ipns/copylaradio.com/g1.html');
       createLnk.style.display = '';
     }
   }
@@ -944,10 +999,12 @@ async function doUpload() {
     if (!r.ok) throw new Error('HTTP ' + r.status + ' — UPassport (port 54321) actif ?');
     const d = await r.json();
     bar.style.width = '100%';
-    const cid = d.cid || d.ipfs_cid || '';
-    res.innerHTML = `✅ Fichier épinglé<br>
-      <a href="${IPFS_GW}/ipfs/${cid}" target="_blank">${IPFS_GW}/ipfs/${cid}</a>
-      ${d.roaming_dm_sent ? '<br><span style="color:var(--cyan)">📨 DM uDRIVE envoyé à votre station home</span>' : ''}`;
+    // Contrat réel de /api/upload/image (UPassport/routers/media_upload.py) :
+    // { success, url, ipfs_url, ipfs_cid, ipfs_status, local_url, ... }
+    const link = d.ipfs_url || (d.ipfs_cid ? (IPFS_GW + '/ipfs/' + d.ipfs_cid) : (UPASSPORT + d.local_url));
+    res.innerHTML = d.ipfs_status === 'completed'
+      ? `✅ Fichier épinglé<br><a href="${link}" target="_blank">${link}</a>`
+      : `⚠️ Fichier enregistré localement (épinglage IPFS échoué)<br><a href="${link}" target="_blank">${link}</a>`;
     res.style.display = 'block';
     uploadFile = null;
     btn.textContent = '⬆️ Envoyer vers uDRIVE';

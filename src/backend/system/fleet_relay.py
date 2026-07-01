@@ -20,6 +20,22 @@ except ImportError:
 PORT = int(os.getenv("FLEET_RELAY_PORT", "9999"))
 ALLOWED_PREFIXES = ("192.168.10.", "127.", "::1", "::ffff:127.", "::ffff:192.168.10.")
 
+# Plage DHCP attribuée aux visiteurs de l'AP (soundspot.conf) — jamais de confiance,
+# même si son préfixe /24 correspond à ALLOWED_PREFIXES ci-dessus.
+_DHCP_START = int(os.getenv("DHCP_START", "192.168.10.10").rsplit(".", 1)[-1])
+_DHCP_END   = int(os.getenv("DHCP_END", "192.168.10.50").rsplit(".", 1)[-1])
+
+
+def _is_visitor_ip(peer: str) -> bool:
+    ip = peer.replace("::ffff:", "")
+    if not ip.startswith("192.168.10."):
+        return False
+    try:
+        last = int(ip.rsplit(".", 1)[-1])
+    except ValueError:
+        return False
+    return _DHCP_START <= last <= _DHCP_END
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [fleet_relay] %(message)s",
@@ -42,8 +58,8 @@ async def broadcast(message: str, sender=None):
 
 async def handler(ws):
     peer = ws.remote_address[0] if ws.remote_address else ""
-    if not any(peer.startswith(p) for p in ALLOWED_PREFIXES):
-        log.warning("Connexion refusée depuis %s", peer)
+    if not any(peer.startswith(p) for p in ALLOWED_PREFIXES) or _is_visitor_ip(peer):
+        log.warning("Connexion refusée depuis %s (réseau visiteur ou hors liste)", peer)
         await ws.close(1008, "Unauthorized")
         return
 

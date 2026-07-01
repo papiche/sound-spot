@@ -2,17 +2,21 @@
 # api/core/nip42.sh — Authentification NIP-42 pour le portail captif SoundSpot
 #
 # Endpoints (via api.sh?action=nip42&cmd=X&npub=Y) :
-#   GET  cmd=challenge  → génère un nonce et le stocke en /dev/shm/
+#   GET  cmd=challenge  → nonce délivré par l'API centrale UPassport (/api/nip42/challenge),
+#                         repli local si UPassport indisponible ; stocké en /dev/shm/
 #   POST cmd=verify     → vérifie l'événement kind 22242 signé (nostr_node_intercom.py verify)
 #   GET  cmd=status     → vérifie si le marker auth est valide
 #   GET  cmd=logout     → supprime le marker auth
 #
-# Vérification signature : nostr_node_intercom.py verify (Astroport.ONE, venv ~/.astro/)
+# Vérification signature : nostr_node_intercom.py verify (Astroport.ONE, venv ~/.astro/) —
+# vérification cryptographique locale (nécessaire pour authentifier des visiteurs dont le
+# MULTIPASS/répertoire ~/.zen/game/nostr/ vit sur leur propre station, pas sur ce nœud).
 # Marker de session : /dev/shm/.nip42_auth_PUBKEYHEX (TTL 3600s)
 
 _SSHOME=$(getent passwd "${SOUNDSPOT_USER:-pi}" | cut -d: -f6)
 _INTERCOM="${_SSHOME}/.zen/Astroport.ONE/tools/nostr_node_intercom.py"
 _PYTHON="${_SSHOME}/.astro/bin/python3"
+UPASSPORT_URL="http://127.0.0.1:54321"
 MARKER_DIR="/dev/shm"
 CHALLENGE_TTL=120
 AUTH_TTL=3600
@@ -70,7 +74,13 @@ AUTH_MARKER="$MARKER_DIR/.nip42_auth_${PUBKEY_HEX}"
 case "$CMD" in
 
     challenge)
-        NONCE=$(openssl rand -hex 32)
+        # Nonce délivré par l'API centrale (une seule source de vérité pour le
+        # challenge NIP-42 dans l'écosystème UPlanet) — repli local si UPassport
+        # est indisponible (Picoport désactivé, service down…).
+        RESP=$(curl -sf --max-time 3 "${UPASSPORT_URL}/api/nip42/challenge?npub=${PUBKEY_HEX}" 2>/dev/null)
+        NONCE=$(printf '%s' "$RESP" | python3 -c \
+            "import json,sys; print(json.load(sys.stdin).get('challenge',''))" 2>/dev/null)
+        [ -z "$NONCE" ] && NONCE=$(openssl rand -hex 32)
         printf '%s' "$NONCE" > "$CHALLENGE_FILE"
         chmod 600 "$CHALLENGE_FILE" 2>/dev/null || true
         printf '{"ok":true,"challenge":"%s","ttl":%d}\n' "$NONCE" "$CHALLENGE_TTL"
@@ -91,10 +101,12 @@ case "$CMD" in
         STORED=$(cat "$CHALLENGE_FILE" 2>/dev/null | tr -d '[:space:]')
         [ -z "$STORED" ] && { echo '{"ok":false,"error":"challenge expiré ou inconnu"}'; exit 0; }
 
-        CHALLENGE_IN=$(printf '%s' "$EVENT_JSON" | python3 - <<'PYEOF' 2>/dev/null
+        # EVENT_JSON passé en argv (pas en pipe) : un heredoc `python3 - <<EOF` fournit déjà
+        # le CODE du script via stdin, donc sys.stdin.read() ne lirait jamais l'événement.
+        CHALLENGE_IN=$(python3 - "$EVENT_JSON" <<'PYEOF' 2>/dev/null
 import json, sys
 try:
-    e = json.loads(sys.stdin.read())
+    e = json.loads(sys.argv[1])
     for t in e.get("tags", []):
         if len(t) >= 2 and t[0] == "challenge":
             print(t[1], end=""); break
