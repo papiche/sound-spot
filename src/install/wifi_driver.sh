@@ -34,6 +34,21 @@ _detect_usb_chipset() {
     echo ""
 }
 
+_install_kernel_headers() {
+    # Ordre de préférence selon la distrib/version :
+    #   raspberrypi-kernel-headers : RPi OS officiel (32 et 64-bit)
+    #   linux-headers-rpi-v8       : RPi OS Bookworm 64-bit (alias parfois absent du meta-paquet)
+    #   linux-headers-$(uname -r)  : Ubuntu pour RPi ou toute distrib générique
+    local pkg
+    for pkg in raspberrypi-kernel-headers linux-headers-rpi-v8 "linux-headers-$(uname -r)"; do
+        if apt-get install -y -q "$pkg" 2>/dev/null; then
+            log "Kernel headers installés via ${pkg} ✓"
+            return 0
+        fi
+    done
+    err "Impossible d'installer les kernel headers — DKMS ne pourra pas compiler le pilote."
+}
+
 _install_rtl88x2bu() {
     if dkms status 2>/dev/null | grep -q "88x2bu"; then
         log "Pilote RTL88x2bu déjà dans DKMS — ignoré."
@@ -41,7 +56,8 @@ _install_rtl88x2bu() {
     fi
     warn "Compilation RTL88x2bu : ~5 min sur RPi 4, jusqu'à 20 min sur RPi Zero 2W."
     warn "Ne débranchez pas le Raspberry Pi pendant la compilation."
-    apt_retry install -y dkms raspberrypi-kernel-headers build-essential bc git
+    apt_retry install -y dkms build-essential bc git
+    _install_kernel_headers
     cd /tmp || err "cd /tmp impossible"
     rm -rf 88x2bu-20210702
     git clone --depth 1 https://github.com/morrownr/88x2bu-20210702.git \
@@ -64,7 +80,8 @@ _install_rtl8812au() {
     fi
     warn "Compilation RTL8812AU : ~5 min sur RPi 4, jusqu'à 20 min sur RPi Zero 2W."
     warn "Ne débranchez pas le Raspberry Pi pendant la compilation."
-    apt_retry install -y dkms raspberrypi-kernel-headers build-essential bc git
+    apt_retry install -y dkms build-essential bc git
+    _install_kernel_headers
     cd /tmp || err "cd /tmp impossible"
     rm -rf 8812au
     git clone --depth 1 https://github.com/morrownr/8812au-20210629.git 8812au \
