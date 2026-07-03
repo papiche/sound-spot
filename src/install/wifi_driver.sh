@@ -35,18 +35,26 @@ _detect_usb_chipset() {
 }
 
 _install_kernel_headers() {
-    # Ordre de préférence selon la distrib/version :
-    #   raspberrypi-kernel-headers : RPi OS officiel (32 et 64-bit)
-    #   linux-headers-rpi-v8       : RPi OS Bookworm 64-bit (alias parfois absent du meta-paquet)
-    #   linux-headers-$(uname -r)  : Ubuntu pour RPi ou toute distrib générique
+    local kver
+    kver=$(uname -r)
+    # Si le répertoire build existe déjà, les headers sont présents — rien à faire.
+    # Évite de déclencher une mise à jour noyau (linux-headers-rpi-v8 tire linux-image-*)
+    if [ -d "/lib/modules/${kver}/build" ]; then
+        log "Kernel headers déjà présents pour ${kver} ✓"
+        return 0
+    fi
+    # Priorité : paquet exact du noyau en cours → pas d'upgrade, pas de linux-image téléchargé.
+    # raspberrypi-kernel-headers : meta-paquet legacy qui pointe vers le noyau courant.
+    # NE PAS utiliser linux-headers-rpi-v8 : méta-paquet qui upgrade le noyau entier
+    # et génère un initramfs (échoue si /var/tmp est plein).
     local pkg
-    for pkg in raspberrypi-kernel-headers linux-headers-rpi-v8 "linux-headers-$(uname -r)"; do
+    for pkg in "linux-headers-${kver}" raspberrypi-kernel-headers; do
         if apt-get install -y -q "$pkg" 2>/dev/null; then
             log "Kernel headers installés via ${pkg} ✓"
             return 0
         fi
     done
-    err "Impossible d'installer les kernel headers — DKMS ne pourra pas compiler le pilote."
+    err "Impossible d'installer les kernel headers (${kver}) — DKMS ne pourra pas compiler."
 }
 
 _install_rtl88x2bu() {
