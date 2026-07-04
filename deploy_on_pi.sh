@@ -649,6 +649,73 @@ PYEOF
 fi
 
 # ════════════════════════════════════════════════════════════════
+#  11. Claude Code — Outils développeur (maître + Picoport)
+# ════════════════════════════════════════════════════════════════
+if [ "$SOUNDSPOT_MODE" != "2" ] && [ "${PICOPORT_ENABLED:-false}" = "true" ]; then
+    hdr "Claude Code — Outils développeur"
+    USER_LOCAL_BIN="/home/$SOUNDSPOT_USER/.local/bin"
+    mkdir -p "$USER_LOCAL_BIN"
+
+    # ── claude-accounts ───────────────────────────────────────────
+    CLAUDE_ACCOUNTS_SRC="$SCRIPT_DIR/../Astroport.ONE/claude.vscodium.setup.sh"
+    if [ -f "$CLAUDE_ACCOUNTS_SRC" ]; then
+        echo -e "  ${C}[1]${N} claude-accounts — gestionnaire multi-comptes Claude Code"
+        echo -e "       ${DIM}Isole chaque organisation dans ~/.claude-{slug} (symlink actif)${N}"
+        ask "Installer claude-accounts ? [o/N] : "
+        read -r INPUT_CLAUDE_ACCOUNTS
+        if [[ "${INPUT_CLAUDE_ACCOUNTS,,}" == "o" ]]; then
+            CLAUDE_ACCOUNTS_DEST="$USER_LOCAL_BIN/claude-accounts"
+            cp "$CLAUDE_ACCOUNTS_SRC" "$CLAUDE_ACCOUNTS_DEST"
+            chmod +x "$CLAUDE_ACCOUNTS_DEST"
+            chown "$SOUNDSPOT_USER:$SOUNDSPOT_USER" "$CLAUDE_ACCOUNTS_DEST"
+            log "claude-accounts → ${C}${CLAUDE_ACCOUNTS_DEST}${N}"
+            if sudo -u "$SOUNDSPOT_USER" bash -c 'command -v claude &>/dev/null'; then
+                log "Lancement de claude-accounts setup..."
+                sudo -u "$SOUNDSPOT_USER" bash "$CLAUDE_ACCOUNTS_DEST" setup
+            else
+                warn "Claude Code absent — installez-le d'abord :"
+                echo -e "  ${C}npm install -g @anthropic-ai/claude-code${N}"
+                echo -e "  Puis : ${C}claude-accounts setup${N}"
+            fi
+        else
+            log "claude-accounts ignoré."
+        fi
+    else
+        warn "claude.vscodium.setup.sh introuvable — Astroport.ONE absent de \$SCRIPT_DIR/../"
+    fi
+
+    echo ""
+
+    # ── RTK — réducteur de tokens ─────────────────────────────────
+    echo -e "  ${C}[2]${N} RTK — filtre de sortie pour Claude Code (−60 à −90 % de tokens)"
+    echo -e "       ${DIM}Wraps git/cargo/pytest/jest… pour n'afficher que l'essentiel${N}"
+    ask "Installer RTK ? [o/N] : "
+    read -r INPUT_RTK
+    if [[ "${INPUT_RTK,,}" == "o" ]]; then
+        if sudo -u "$SOUNDSPOT_USER" bash -c 'command -v rtk &>/dev/null'; then
+            log "RTK déjà présent : $(sudo -u "$SOUNDSPOT_USER" rtk --version 2>/dev/null || echo '?')"
+        else
+            log "Installation RTK via script officiel..."
+            # Même méthode que Astroport.ONE/install.sh mode standard
+            # Le script détecte l'architecture (aarch64/x86_64) automatiquement
+            if sudo -u "$SOUNDSPOT_USER" bash -c \
+                "curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/master/install.sh | sh"; then
+                log "RTK installé ✓"
+            else
+                warn "Installation RTK échouée (curl requis, vérifier connectivité)."
+            fi
+        fi
+        # Hook global silencieux — injecte RTK.md dans le contexte Claude Code
+        sudo -u "$SOUNDSPOT_USER" bash -c \
+            "export PATH=\"$USER_LOCAL_BIN:\$HOME/.local/bin:\$PATH\"; \
+             command -v rtk &>/dev/null && rtk init --global --auto-patch 2>/dev/null || true"
+        log "RTK hook global activé ✓"
+    else
+        log "RTK ignoré."
+    fi
+fi
+
+# ════════════════════════════════════════════════════════════════
 #  Fin
 # ════════════════════════════════════════════════════════════════
 echo -e "\n${G}Installation terminée !${N}"
