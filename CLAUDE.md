@@ -67,6 +67,7 @@ sound-spot/
     │   ├── dev_reload.sh     ← Rechargement à chaud du code
     │   ├── dev_restore.sh    ← Restauration état prod
     │   ├── dev_switch.sh     ← Bascule dev ↔ prod
+    │   ├── install_claude_tools.sh  ← Claude Code + RTK (autonome, sans root requis)
     │   └── prepare_iso.sh    ← Préparation image SD
     ├── templates/        ← Templates envsubst (soundspot.conf, logrotate)
     └── picoport/         ← Astroport.ONE UPlanet (IPFS + Nostr + G1 + IA swarm)
