@@ -223,6 +223,20 @@ systemctl enable --now ipfs
 systemctl enable --now picoport
 echo "✅ Picoport installé et démarré (ipfs.service CPUQuota=40% + picoport.service) !"
 
+echo "=== 6c. Cron de maintenance quotidienne (mise à jour git + heure solaire) ==="
+# picoport_20h12.sh (généré par install_astroport_light.sh) contient les
+# `git pull --ff-only` pour Astroport.ONE et sound-spot — mais rien ne le
+# planifiait jusqu'ici. cron_VRFY.sh ON détecte automatiquement Picoport
+# (via /opt/soundspot/picoport/picoport_20h12.sh) et installe l'entrée
+# crontab à l'heure solaire 20h12, sans changer l'état déjà actif d'ipfs/picoport.
+_CRON_VRFY="$USER_HOME/.zen/Astroport.ONE/admin/system/cron_VRFY.sh"
+if [ -x "$_CRON_VRFY" ]; then
+    sudo -u "$SOUNDSPOT_USER" bash "$_CRON_VRFY" ON
+else
+    echo "⚠ cron_VRFY.sh introuvable ($_CRON_VRFY) — cron 20h12 non activé"
+    echo "  Activable manuellement plus tard : sudo -u $SOUNDSPOT_USER bash $_CRON_VRFY ON"
+fi
+
 echo "=== 7. Intégration UPassport ==="
 bash "$(dirname "$0")/install_upassport.sh"
 

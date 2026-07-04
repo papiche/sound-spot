@@ -17,9 +17,6 @@
 # ════════════════════════════════════════════════════════════════════
 set -uo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-
 # ── Couleurs (compatibles deploy_on_pi.sh) ───────────────────
 R='\033[0;31m'; G='\033[0;32m'; Y='\033[1;33m'
 C='\033[0;36m'; W='\033[1;37m'; M='\033[0;35m'; N='\033[0m'
@@ -36,17 +33,55 @@ ask()  { echo -ne "${M}?${N}  $*"; }
 TARGET_USER="${SOUNDSPOT_USER:-$(id -un)}"
 if [ "$(id -u)" -eq 0 ]; then
     RUN_AS_USER() { sudo -u "$TARGET_USER" bash -c "$1"; }
+    SUDO=""
 else
     RUN_AS_USER() { bash -c "$1"; }
+    SUDO="sudo"
 fi
-USER_LOCAL_BIN="$(eval echo "~$TARGET_USER")/.local/bin"
+USER_HOME="$(eval echo "~$TARGET_USER")"
+USER_LOCAL_BIN="$USER_HOME/.local/bin"
 
 hdr "Claude Code — Outils développeur"
 mkdir -p "$USER_LOCAL_BIN"
 [ "$(id -u)" -eq 0 ] && chown "$TARGET_USER:$TARGET_USER" "$USER_LOCAL_BIN" 2>/dev/null || true
 
+# ── Claude Code CLI (npm global sans root, requiert Node.js ≥ 22) ──
+echo -e "  ${C}[0]${N} Claude Code CLI — ${DIM}nécessite Node.js ≥ 22${N}"
+if RUN_AS_USER 'command -v claude &>/dev/null'; then
+    log "Claude Code déjà installé : $(RUN_AS_USER 'claude --version' 2>/dev/null || echo '?')"
+else
+    ask "Installer Claude Code (npm install -g) ? [o/N] : "
+    read -r INPUT_CLAUDE_CLI
+    if [[ "${INPUT_CLAUDE_CLI,,}" == "o" ]]; then
+        NODE_MAJOR=$(RUN_AS_USER 'node -v 2>/dev/null' | grep -oE '[0-9]+' | head -1)
+        if [ -z "${NODE_MAJOR:-}" ] || [ "$NODE_MAJOR" -lt 22 ]; then
+            warn "Node.js absent ou < 22 (trouvé: ${NODE_MAJOR:-aucun}) — installation Node 22.x via NodeSource (sudo requis)."
+            if curl -fsSL https://deb.nodesource.com/setup_22.x -o /tmp/nodesource_setup.sh \
+                && $SUDO bash /tmp/nodesource_setup.sh \
+                && $SUDO apt-get install -y -q nodejs; then
+                log "Node.js $(node -v) installé ✓"
+            else
+                warn "Installation Node.js échouée — Claude Code ne peut pas être installé (connectivité ?)."
+            fi
+            rm -f /tmp/nodesource_setup.sh
+        fi
+        if RUN_AS_USER 'command -v node &>/dev/null'; then
+            # npm global sans root : préfixe utilisateur (~/.local, déjà dans PATH)
+            if RUN_AS_USER "npm config set prefix '$USER_HOME/.local' && npm install -g @anthropic-ai/claude-code"; then
+                log "Claude Code installé → ${C}${USER_LOCAL_BIN}/claude${N} ✓"
+            else
+                warn "npm install -g @anthropic-ai/claude-code échoué."
+            fi
+        fi
+    else
+        log "Claude Code CLI ignoré."
+    fi
+fi
+
+echo ""
+
 # ── claude-accounts ─────────────────────────────────────────────
-CLAUDE_ACCOUNTS_SRC="$REPO_ROOT/../Astroport.ONE/claude.vscodium.setup.sh"
+CLAUDE_ACCOUNTS_SRC="$USER_HOME/.zen/Astroport.ONE/claude.vscodium.setup.sh"
 if [ -f "$CLAUDE_ACCOUNTS_SRC" ]; then
     echo -e "  ${C}[1]${N} claude-accounts — gestionnaire multi-comptes Claude Code"
     echo -e "       ${DIM}Isole chaque organisation dans ~/.claude-{slug} (symlink actif)${N}"
@@ -70,7 +105,7 @@ if [ -f "$CLAUDE_ACCOUNTS_SRC" ]; then
         log "claude-accounts ignoré."
     fi
 else
-    warn "claude.vscodium.setup.sh introuvable — Astroport.ONE absent de \$REPO_ROOT/../"
+    warn "claude.vscodium.setup.sh introuvable — Astroport.ONE absent de \$HOME/.zen/"
 fi
 
 echo ""
