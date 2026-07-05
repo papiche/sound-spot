@@ -182,6 +182,11 @@ else
 fi
 
 # Service mon-oeil (Cerveau IA / Satellite) — activé sur Master RPi4
+# sounddevice n'a pas de paquet apt sur Bookworm (libportaudio2 déjà présent
+# via pipewire) — installation pip système, seul moyen pour /usr/bin/python3.
+python3 -c "import sounddevice" 2>/dev/null \
+    || pip3 install --break-system-packages sounddevice \
+    || warn "pip install sounddevice a échoué — mon-oeil.service plantera au démarrage"
 install_template mon-oeil.service \
     /etc/systemd/system/mon-oeil.service \
     '${INSTALL_DIR} ${SOUNDSPOT_USER} ${SOUNDSPOT_UID} ${USER_HOME}'
