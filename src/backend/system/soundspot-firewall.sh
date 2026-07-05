@@ -15,6 +15,12 @@ IFACE_WAN="${IFACE_WAN:-wlan0}"
 # ── Charger la configuration ──────────────────────────────────────
 [ -f /opt/soundspot/soundspot.conf ] && source /opt/soundspot/soundspot.conf
 
+# ── AP 5GHz bi-bande (dongle, AP5G_ENABLED=true) ──────────────────
+# Sous-réseau distinct routé par le Pi (pas de bridge) — reçoit exactement les
+# mêmes règles que l'AP principal, voir la boucle AP_IFACES plus bas.
+AP_IFACES=("$IFACE_AP")
+[ "${AP5G_ENABLED:-false}" = "true" ] && [ -n "${IFACE_AP5G:-}" ] && AP_IFACES+=("$IFACE_AP5G")
+
 # ── Détection WAN dynamique ───────────────────────────────────────
 # Priorité : eth0 si UP (box 4G / routeur) → sinon route par défaut actuelle
 if ip link show eth0 2>/dev/null | grep -q "state UP"; then
@@ -26,7 +32,7 @@ else
     [ -n "$_DYN_WAN" ] && IFACE_WAN="$_DYN_WAN"
 fi
 
-echo "[soundspot-firewall] AP=${IFACE_AP}  WAN=${IFACE_WAN}  IP=${SPOT_IP}"
+echo "[soundspot-firewall] AP=${AP_IFACES[*]}  WAN=${IFACE_WAN}  IP=${SPOT_IP}"
 
 # ── Vider les règles existantes de SoundSpot ─────────────────────
 iptables -t nat    -F PREROUTING  2>/dev/null || true
@@ -57,29 +63,32 @@ iptables -A INPUT -i bat0 -p tcp --dport 8111 -j ACCEPT  # Icecast2
 iptables -A INPUT -i bat0 -p udp --dport 5353 -j ACCEPT  # mDNS (découverte soundspot.local)
 iptables -A INPUT -i bat0 -p tcp --dport 9999 -j ACCEPT  # Relay NOSTR flotte local
 
-# ── Interception HTTP (port 80) → portail lighttpd ───────────────
-iptables -t nat -A PREROUTING -i "${IFACE_AP}" -p tcp --dport 80 \
-    -j REDIRECT --to-port 80
-
-# ── Règles FORWARD ────────────────────────────────────────────────
+# ── Interception HTTP (port 80) → portail + Règles FORWARD ───────
 # 1. Mesh B.A.T.M.A.N. — tout le trafic inter-nœuds est libre
 iptables -A FORWARD -i bat0 -j ACCEPT
 iptables -A FORWARD -o bat0 -j ACCEPT
 
-# 2. DNS et RTMP universels (AP visiteurs)
-iptables -A FORWARD -i "${IFACE_AP}" -p udp --dport 53 -j ACCEPT
-iptables -A FORWARD -i "${IFACE_AP}" -p tcp --dport 53 -j ACCEPT
-iptables -A FORWARD -i "${IFACE_AP}" -p tcp --dport 1935 -j ACCEPT  # RTMP drones
+# Les règles suivantes sont identiques pour chaque radio AP visiteurs
+# (uap0 2,4GHz + dongle 5GHz si AP5G_ENABLED=true — voir AP_IFACES plus haut).
+for _ap in "${AP_IFACES[@]}"; do
+    iptables -t nat -A PREROUTING -i "${_ap}" -p tcp --dport 80 \
+        -j REDIRECT --to-port 80
 
-# 3. IPs autorisées (ipset soundspot_auth — ouverture portail 4h)
-iptables -A FORWARD -i "${IFACE_AP}" \
-    -m set --match-set soundspot_auth src -j ACCEPT
+    # 2. DNS et RTMP universels (AP visiteurs)
+    iptables -A FORWARD -i "${_ap}" -p udp --dport 53 -j ACCEPT
+    iptables -A FORWARD -i "${_ap}" -p tcp --dport 53 -j ACCEPT
+    iptables -A FORWARD -i "${_ap}" -p tcp --dport 1935 -j ACCEPT  # RTMP drones
 
-# 4. Réponses établies (retour vers les clients AP)
-iptables -A FORWARD -i "${IFACE_WAN}" -o "${IFACE_AP}" \
-    -m state --state RELATED,ESTABLISHED -j ACCEPT
+    # 3. IPs autorisées (ipset soundspot_auth — ouverture portail 4h)
+    iptables -A FORWARD -i "${_ap}" \
+        -m set --match-set soundspot_auth src -j ACCEPT
 
-# 5. Bloquer tout le reste en provenance de l'AP
-iptables -A FORWARD -i "${IFACE_AP}" -j REJECT
+    # 4. Réponses établies (retour vers les clients AP)
+    iptables -A FORWARD -i "${IFACE_WAN}" -o "${_ap}" \
+        -m state --state RELATED,ESTABLISHED -j ACCEPT
+
+    # 5. Bloquer tout le reste en provenance de cet AP
+    iptables -A FORWARD -i "${_ap}" -j REJECT
+done
 
 echo "[soundspot-firewall] Règles appliquées ✓"

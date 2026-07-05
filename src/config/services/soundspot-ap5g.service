@@ -1,0 +1,20 @@
+[Unit]
+Description=Interface WiFi AP 5GHz bi-bande SoundSpot (${IFACE_AP5G})
+After=network.target
+Before=hostapd.service dnsmasq.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=/opt/soundspot/soundspot.conf
+# Le dongle est une interface physique réelle (créée par le driver dès le
+# branchement) — contrairement à uap0, pas besoin de la créer, juste de la
+# monter et de lui assigner une IP avant que hostapd/dnsmasq n'en dépendent.
+ExecStart=/sbin/ip link set dev ${IFACE_AP5G} up
+ExecStartPost=/sbin/ip addr replace ${AP5G_IP}/24 dev ${IFACE_AP5G}
+ExecStop=/bin/bash -c '/sbin/ip link set dev ${IFACE_AP5G} down 2>/dev/null || true'
+RemainAfterExit=yes
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -3,7 +3,6 @@ Description=SoundSpot — Réseau Maillé B.A.T.M.A.N.-adv
 After=network-online.target
 Wants=network-online.target
 Before=soundspot-client.service snapserver.service icecast2.service
-Before=soundspot-client.service snapserver.service icecast2.service
 
 [Service]
 Type=oneshot

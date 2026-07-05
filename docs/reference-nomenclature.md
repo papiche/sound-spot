@@ -39,7 +39,7 @@ Chaque composant est relié à son rôle exact dans les scripts (ex. `battery_mo
 | Composant | Réf. Amazon recommandée | Usage dans le code / projet | Prix estimé |
 |:---|:---|:---|:---|
 | **Routeur 5G Internet** | ZTE 5G CPE MC888 | Accès amont (wlan0/eth0) pour le swarm UPlanet | 208,19 € |
-| **Dongle Wi‑Fi 5GHz mesh** | Vemfay RTL88x2bu *(ou voir tableau compatibilité)* | Interface `wlan1` → mode ad‑hoc → `mesh_batman.sh` | ~15-30 € |
+| **Dongle Wi‑Fi 5GHz mesh** *(optionnel, `MESH_ENABLED=true`)* | Vemfay RTL88x2bu *(ou voir tableau compatibilité)* | Interface `wlan1` → mode ad‑hoc → `mesh_batman.sh` | ~15-30 € |
 | **Caméra IA** | Raspberry Pi Camera Module 3 (SC1223) | Détection mouvement – `mon-oeil.py` / `presence_detector.py` | 32,98 € |
 | **Micro ambiance** | ReSpeaker 2‑Mics Pi HAT | Capture son live → `/dev/shm/snapfifo_mic` | ~15 € |
 | **Enceinte Bluetooth** | W‑KING D9‑1 | Gérée par PipeWire + `bt-autoconnect.sh` (BlueZ) | ~85 € |
@@ -109,10 +109,10 @@ Le système gère trois réseaux simultanément :
 |:---|:---|:---|
 | `wlan0` ou `eth0` | Accès Internet (routeur ZTE 5G) | `networking.sh` |
 | `uap0` (virtuelle) | AP public **ZICMAMA** (portail captif) | `hostapd` + `soundspot-firewall.sh` |
-| `wlan1` (dongle 5GHz) | Réseau maillé **CYBERCOCHON_MESH** (B.A.T.M.A.N.) | `mesh_batman.sh` |
+| `wlan1` (dongle 5GHz, si `MESH_ENABLED=true`) | Réseau maillé **CYBERCOCHON_MESH** (B.A.T.M.A.N.) | `mesh_batman.sh` |
 
 - **Portail captif** : redirection `iptables` de tout le trafic HTTP vers Lighttpd (port 80). L’utilisateur accepte les CGU → ajout à `ipset soundspot_auth` (bail 4h).  
-- **Mesh** : `wifi_driver.sh` détecte automatiquement le chipset du dongle USB branché (via `lsusb`) et installe le driver approprié. `bat0` permet la découverte multicast (`soundspot.local`) sans DHCP central. Voir le tableau de compatibilité ci-dessous.
+- **Mesh** : optionnel, activé via la question `MESH_ENABLED` de `deploy_on_pi.sh` (défaut : non). Si activé, `wifi_driver.sh` détecte automatiquement le chipset du dongle USB branché (via `lsusb`) et installe le driver approprié. `bat0` permet la découverte multicast (`soundspot.local`) sans DHCP central. Voir le tableau de compatibilité ci-dessous.
 
 #### Dongles Wi-Fi 5GHz compatibles avec le mesh
 

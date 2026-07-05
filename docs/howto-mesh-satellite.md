@@ -7,6 +7,9 @@ Chaque satellite reçoit le flux Snapcast du Maître et le diffuse sur son propr
 
 - Le Nœud Maître doit être allumé et opérationnel.
 - Un RPi Zero 2W équipé d'un dongle USB Wi-Fi 5 GHz (pour le mesh étendu) et d'un adaptateur BT.
+- **`MESH_ENABLED=true`** sur le maître *et* sur chaque satellite concerné — ce guide ne
+  s'applique que si le mesh a été activé à l'install (voir ci-dessous). Par défaut il est
+  désactivé : inutile pour une install en une seule salle, où l'AP `ZICMAMA` seul suffit.
 
 ## Topologie réseau
 
@@ -54,6 +57,8 @@ sudo bash deploy_on_pi.sh --satellite
 
 L'installeur vous demande :
 - SSID upstream (réseau qo-op ou nom de ZICMAMA)
+- **Activer le réseau maillé (mesh) ? [o/N]** → répondre **o** pour ce satellite (sinon
+  `setup_wifi_driver` et `soundspot-mesh.service` ne sont pas installés du tout)
 - MAC de l'enceinte Bluetooth à brancher sur ce satellite
 
 ## Le réseau mesh CYBERCOCHON_MESH
@@ -92,6 +97,7 @@ de latence. L'audio reste synchronisé avec le Maître à ±1 ms près, quel que
 
 | Symptôme | Cause probable | Solution |
 |----------|---------------|---------|
+| `soundspot-mesh.service` introuvable | `MESH_ENABLED=false` à l'install | Relancer `deploy_on_pi.sh` et répondre "o" à la question mesh |
 | Aucun son sur le satellite | Maître non trouvé | `cat /run/soundspot_master.env` — vérifie l'IP résolue |
 | Son présent mais décalé | Buffer trop court | Augmenter `latency` dans `snapclient.conf` |
 | RSSI trop faible, mesh non actif | Dongle USB absent ou pilote manquant | `ip link show wlan1` + `dmesg | grep 88x2bu` |

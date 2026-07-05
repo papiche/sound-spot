@@ -161,6 +161,35 @@ else
         log "Picoport activé"
 fi
 
+export MESH_ENABLED="false"
+export AP5G_ENABLED="false"
+if [ "$SOUNDSPOT_MODE" = "2" ]; then
+    echo ""
+    echo -e "  ${DIM}Réseau maillé B.A.T.M.A.N. : dongle USB Wi-Fi 5GHz dédié, relais multi-saut${N}"
+    echo -e "  ${DIM}vers le maître quand ce satellite sort de portée directe de son AP.${N}"
+    echo -e "  ${DIM}Inutile si ce satellite reste toujours à portée — laisse Non par défaut.${N}"
+    ask "Activer le réseau maillé (mesh) sur ce satellite ? [o/N] : "
+    read -r INPUT_MESH
+    [[ "${INPUT_MESH,,}" == "o" ]] && export MESH_ENABLED="true" && \
+        log "Réseau maillé activé" || \
+        log "Réseau maillé désactivé"
+else
+    echo ""
+    echo -e "  ${DIM}Un dongle USB Wi-Fi 5GHz est optionnel. S'il y en a un, que doit-il faire ?${N}"
+    echo -e "  ${DIM}  1) Rien — dongle ignoré (défaut)${N}"
+    echo -e "  ${DIM}  2) Réseau maillé B.A.T.M.A.N. — relais vers des satellites hors de portée${N}"
+    echo -e "  ${DIM}     de l'AP direct (grands sites/festivals)${N}"
+    echo -e "  ${DIM}  3) Renforcer l'AP ${W}${SPOT_NAME}${N}${DIM} en 5GHz (même SSID, bi-bande) — meilleur${N}"
+    echo -e "  ${DIM}     débit/moins d'interférences pour les visiteurs déjà à portée${N}"
+    ask "Choix [1/2/3] : "
+    read -r INPUT_DONGLE
+    case "$INPUT_DONGLE" in
+        2) export MESH_ENABLED="true";  log "Dongle → réseau maillé" ;;
+        3) export AP5G_ENABLED="true";  log "Dongle → AP 5GHz bi-bande" ;;
+        *) log "Dongle → ignoré" ;;
+    esac
+fi
+
 # ════════════════════════════════════════════════════════════════
 #  3. Réseau et Point d'Accès
 # ════════════════════════════════════════════════════════════════
@@ -179,12 +208,12 @@ export WIFI_PASS=""
 if [ "$SOUNDSPOT_MODE" != "2" ]; then
     if ip link show eth0 2>/dev/null | grep -q "state UP"; then
         export IFACE_WAN="eth0"
-        # AP reste uap0 — wlan0 est libre (mesh B.A.T.M.A.N. sur wlan1 si présent)
+        # AP reste uap0 — wlan0 est libre (mesh B.A.T.M.A.N. sur wlan1 si présent et activé)
         log "Ethernet ${C}eth0${N} UP → WAN=eth0 · AP=${W}uap0${N} · wlan0 libre"
-        if ip link show wlan1 >/dev/null 2>&1; then
+        if [ "${MESH_ENABLED:-false}" = "true" ] && ip link show wlan1 >/dev/null 2>&1; then
             log "Dongle ${C}wlan1${N} présent → B.A.T.M.A.N. mesh activé sur wlan1"
         fi
-    elif ip link show wlan1 >/dev/null 2>&1; then
+    elif [ "${MESH_ENABLED:-false}" = "true" ] && ip link show wlan1 >/dev/null 2>&1; then
         # Dual-WiFi : wlan0=upstream+uap0 AP · wlan1=B.A.T.M.A.N. mesh
         log "Dongle WiFi USB ${C}wlan1${N} → mesh B.A.T.M.A.N. · AP=uap0 sur wlan0"
     else
@@ -207,8 +236,22 @@ if [ "$IFACE_WAN" != "eth0" ]; then
     read -r INPUT_PASS
     export WIFI_PASS="${INPUT_PASS:-0penS0urce!}"
 
-    # ── Connexion via NetworkManager si le SSID a changé ─────────
-    if [ "$WIFI_SSID" != "${CURRENT_SSID:-}" ] && command -v nmcli &>/dev/null; then
+    # ── Connexion via NetworkManager ──────────────────────────────
+    if command -v nmcli &>/dev/null; then
+        # Épingle sur wlan0 toute connexion WiFi préexistante pour ce SSID
+        # (créée par cloud-init/netplan/raspi-config, sans liaison MAC) —
+        # sinon NetworkManager peut l'appliquer à un second adaptateur WiFi
+        # (dongle mesh USB) au lieu de la puce interne, lui volant
+        # l'interface et cassant le mesh B.A.T.M.A.N. (bug constaté en prod
+        # sur ZICMAMA : profil netplan sans "match" MAC appliqué à wlan1).
+        # Refait à chaque exécution (même sans changement de SSID) pour
+        # qu'un simple re-run de deploy_on_pi.sh corrige une install existante.
+        while IFS= read -r _cn; do
+            [ "$(nmcli -g 802-11-wireless.ssid connection show "$_cn" 2>/dev/null)" = "$WIFI_SSID" ] || continue
+            nmcli connection modify "$_cn" connection.interface-name wlan0
+            log "Connexion WiFi existante '${_cn}' épinglée sur wlan0"
+        done < <(nmcli -t -f NAME,TYPE connection show 2>/dev/null | awk -F: '$2=="802-11-wireless"{print $1}')
+
         log "Connexion NetworkManager → ${WIFI_SSID}..."
         nmcli dev wifi connect "$WIFI_SSID" password "$WIFI_PASS" ifname wlan0 2>/dev/null \
             && log "wlan0 → ${WIFI_SSID} ✓" \

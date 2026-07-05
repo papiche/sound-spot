@@ -180,11 +180,19 @@ SOUNDSPOT_USER           Utilisateur système qui exécute PipeWire/Snapclient (
 IDLE_ANNOUNCE_INTERVAL   Secondes entre annonces clocher (défaut: 900 = 15 min)
 CLOCK_MODE               "bells" (coups de cloche à l'heure) ou "silent" (heure vocale seule)
 PICOPORT_ENABLED         true/false — active le nœud Picoport UPlanet (défaut: true)
+MESH_ENABLED             true/false — réseau maillé B.A.T.M.A.N. sur dongle USB dédié (défaut: false)
+AP5G_ENABLED             true/false — AP ZICMAMA bi-bande sur dongle USB, alternative au mesh (défaut: false)
+IFACE_AP5G               Interface du dongle en mode AP 5GHz (résolue à l'install, ex: wlan1)
+AP5G_IP / AP5G_DHCP_*    Sous-réseau dédié à l'AP 5GHz (192.168.11.0/24 par défaut), routé, pas bridgé avec l'AP 2,4GHz
 ```
 
 **Note `CLOCK_MODE`** : modifiable à chaud depuis le portail captif via `set_clock_mode.sh` — `idle_announcer.sh` relit `soundspot.conf` à chaque itération, sans redémarrage du service.
 
 **Note `PICOPORT_ENABLED`** : posé comme question par `deploy_on_pi.sh` (défaut : oui). Si `false`, `setup_picoport()` est ignoré — aucun IPFS, aucun clone Astroport.ONE, aucun venv Python keygen.
+
+**Note `MESH_ENABLED`** : posé comme question par `deploy_on_pi.sh` (défaut : non — utile seulement pour les sites étendus/festivals où un satellite peut sortir de portée directe de l'AP). Si `false`, ni `setup_wifi_driver` (compilation DKMS du dongle 5GHz) ni `soundspot-mesh.service` ne sont installés — aucune radio mesh, aucun risque de conflit driver/kernel sur les nœuds qui n'en ont pas besoin.
+
+**Note `AP5G_ENABLED`** : mutuellement exclusif avec `MESH_ENABLED` (même dongle, un seul rôle à la fois — choix posé par la même question de `deploy_on_pi.sh`). Si `true`, `setup_ap5g()` (`src/install/ap5g.sh`) installe le driver du dongle, une seconde config hostapd (`hostapd-ap5g.conf`, canal 36 non-DFS, même SSID `${SPOT_NAME}`) ajoutée au `DAEMON_CONF` de hostapd (une seule instance gère les deux radios), un fragment `dnsmasq.d/soundspot-ap5g.conf` pour le sous-réseau dédié, et `soundspot-firewall.sh` applique les mêmes règles portail/NAT aux deux interfaces AP (tableau `AP_IFACES`). Pas de bridge entre les deux radios — chacune a son propre sous-réseau, routé par le Pi.
 
 **Note `IFACE_AP`/`IFACE_WAN`** : exportées par `deploy_on_pi.sh` *avant* d'appeler `install_soundspot.sh`. Elles doivent figurer dans la liste `envsubst` de chaque `install_template` qui les utilise (hostapd.conf, dnsmasq.conf, soundspot-ap.service). Toute variable absente de la liste reste **littérale** dans le fichier généré → service cassé au boot.
 
@@ -243,8 +251,9 @@ Each `install/*.sh` file exports a single `setup_*` function, sourced by `instal
 |---|---|---|
 | `colors.sh` | `log/warn/err/hdr` + `install_template` | `envsubst` avec liste explicite — variable absente = littérale dans le fichier généré |
 | `logging.sh` | `setup_logging` | Logs centralisés rsyslog + logrotate |
-| `wifi_driver.sh` | `setup_wifi_driver` | Pilote clé USB Wi-Fi 5 GHz |
+| `wifi_driver.sh` | `setup_wifi_driver` | Pilote clé USB Wi-Fi 5 GHz — appelé uniquement si `MESH_ENABLED=true` |
 | `networking.sh` | `setup_networking` | uap0, hostapd, dnsmasq, NAT iptables, ipset, firewall |
+| `ap5g.sh` | `setup_ap5g` | AP ZICMAMA bi-bande sur dongle 5GHz — appelé uniquement si `AP5G_ENABLED=true`, après `setup_networking` |
 | `captive_portal.sh` | `setup_captive_portal` | lighttpd + HTML theme |
 | `icecast.sh` | `setup_icecast` | enable + password |
 | `respeaker.sh` | `setup_respeaker` | Pilote microphone USB ReSpeaker |

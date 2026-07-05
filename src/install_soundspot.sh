@@ -29,12 +29,20 @@ source "$SCRIPT_DIR/install/zram.sh"
 source "$SCRIPT_DIR/install/autodj.sh"
 source "$SCRIPT_DIR/install/video_rtmp.sh"
 source "$SCRIPT_DIR/install/wifi_driver.sh"
+source "$SCRIPT_DIR/install/ap5g.sh"
 
 # ── Variables configurables ─────────────────────────────────
 export SPOT_NAME="${SPOT_NAME:-SoundSpot_Zicmama}"
 export DHCP_START="${DHCP_START:-192.168.10.10}"
 export DHCP_END="${DHCP_END:-192.168.10.50}"
 export SPOT_IP="${SPOT_IP:-192.168.10.1}"
+# AP 5GHz bi-bande (dongle USB, AP5G_ENABLED=true) — sous-réseau distinct routé par le Pi,
+# même principe que le mesh B.A.T.M.A.N. (10.200.0.0/16) : pas de bridge entre les deux radios.
+export AP5G_ENABLED="${AP5G_ENABLED:-false}"
+export IFACE_AP5G="${IFACE_AP5G:-}"
+export AP5G_IP="${AP5G_IP:-192.168.11.1}"
+export AP5G_DHCP_START="${AP5G_DHCP_START:-192.168.11.10}"
+export AP5G_DHCP_END="${AP5G_DHCP_END:-192.168.11.50}"
 export WIFI_SSID="${WIFI_SSID:-qo-op}"
 export WIFI_PASS="${WIFI_PASS:-0penS0urce!}"
 export WIFI_CHANNEL="${WIFI_CHANNEL:-6}"
@@ -120,9 +128,12 @@ cp "$SCRIPT_DIR/../README.md" "$INSTALL_DIR/" 2>/dev/null || true
 cp "$SCRIPT_DIR/../HOWTO.md" "$INSTALL_DIR/" 2>/dev/null || true
 
 # ── Configuration des services ───────────────────────────────
-setup_wifi_driver    # Pilote clé USB Wi-Fi 5GHz
+[ "${MESH_ENABLED:-false}" = "true" ] && setup_wifi_driver    # Pilote clé USB Wi-Fi 5GHz (mesh uniquement)
 setup_logging        # Logs centralisés
 setup_networking     # AP + IPSet + Firewall
+# setup_ap5g doit tourner APRÈS setup_networking : il complète le DAEMON_CONF
+# hostapd et dépose un fragment dnsmasq.d/ écrits par setup_networking.
+[ "${AP5G_ENABLED:-false}" = "true" ] && setup_ap5g   # AP 5GHz bi-bande (alternative au mesh)
 setup_captive_portal # Lighttpd
 # setup_video_rtmp doit tourner juste après lighttpd, pas en toute fin de liste :
 # le paquet nginx (installé plus haut avec les autres paquets apt) démarre
@@ -247,14 +258,18 @@ fi
 setup_zram
 
 # ── Fichier de configuration final ──────────────────────────
-hdr "Réseau Maillé (B.A.T.M.A.N.)"
-install_template soundspot-mesh.service /etc/systemd/system/soundspot-mesh.service '${INSTALL_DIR}'
-systemctl enable soundspot-mesh
-log "Service soundspot-mesh activé"
+if [ "${MESH_ENABLED:-false}" = "true" ]; then
+    hdr "Réseau Maillé (B.A.T.M.A.N.)"
+    install_template soundspot-mesh.service /etc/systemd/system/soundspot-mesh.service '${INSTALL_DIR}'
+    systemctl enable soundspot-mesh
+    log "Service soundspot-mesh activé"
+else
+    log "Réseau maillé (B.A.T.M.A.N.) désactivé — MESH_ENABLED=false"
+fi
 
 hdr "Finalisation"
 install_template soundspot.conf.master.env "$INSTALL_DIR/soundspot.conf" \
-    '${SPOT_NAME} ${SPOT_IP} ${DHCP_START} ${DHCP_END} ${WIFI_SSID} ${WIFI_CHANNEL} ${BT_MAC} ${BT_MACS} ${SNAPCAST_PORT} ${PRESENCE_COOLDOWN} ${PRESENCE_ENABLED} ${INSTALL_DIR} ${IFACE_AP} ${IFACE_WAN} ${SOUNDSPOT_USER} ${LOG_LEVEL} ${SOUNDSPOT_LOG} ${PICOPORT_ENABLED} ${ADMIN_PASSWORD}'
+    '${SPOT_NAME} ${SPOT_IP} ${DHCP_START} ${DHCP_END} ${WIFI_SSID} ${WIFI_CHANNEL} ${BT_MAC} ${BT_MACS} ${SNAPCAST_PORT} ${PRESENCE_COOLDOWN} ${PRESENCE_ENABLED} ${INSTALL_DIR} ${IFACE_AP} ${IFACE_WAN} ${SOUNDSPOT_USER} ${LOG_LEVEL} ${SOUNDSPOT_LOG} ${PICOPORT_ENABLED} ${MESH_ENABLED} ${AP5G_ENABLED} ${IFACE_AP5G} ${AP5G_IP} ${AP5G_DHCP_START} ${AP5G_DHCP_END} ${ADMIN_PASSWORD}'
     
 # S'assurer que le log est accessible
 touch "$SOUNDSPOT_LOG"

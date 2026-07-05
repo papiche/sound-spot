@@ -167,7 +167,7 @@ done
 
 # ── Configuration ─────────────────────────────────────────────
 [ "$AUDIO_OUTPUT" = "bluetooth" ] && setup_bluetooth
-setup_wifi_driver
+[ "${MESH_ENABLED:-false}" = "true" ] && setup_wifi_driver
 
 setup_pipewire
 
@@ -224,13 +224,23 @@ fi
 hdr "Fichier de configuration central"
 # Modifier dans src/install_satellite.sh
 install_template soundspot.conf.satellite.env "$INSTALL_DIR/soundspot.conf" \
-    '${MASTER_HOST} ${TARGET_MASTER} ${SPOT_NAME} ${SNAPCAST_PORT} ${BT_MAC} ${BT_MACS} ${INSTALL_DIR} ${SOUNDSPOT_USER} ${PICOPORT_ENABLED} ${LOG_LEVEL} ${SOUNDSPOT_LOG} ${ADMIN_PASSWORD}'
+    '${MASTER_HOST} ${TARGET_MASTER} ${SPOT_NAME} ${SNAPCAST_PORT} ${BT_MAC} ${BT_MACS} ${INSTALL_DIR} ${SOUNDSPOT_USER} ${PICOPORT_ENABLED} ${MESH_ENABLED} ${LOG_LEVEL} ${SOUNDSPOT_LOG} ${ADMIN_PASSWORD}'
 chgrp soundspot "$INSTALL_DIR/soundspot.conf" 2>/dev/null || true
 chmod 640 "$INSTALL_DIR/soundspot.conf"
 
 # ── Roaming dual-réseau (AP maître + réseau amont) ────────────
 hdr "Roaming WiFi dual-réseau"
 if command -v nmcli &>/dev/null && [ -n "${WIFI_SSID:-}" ]; then
+    # Épingle sur wlan0 toute connexion WiFi préexistante pour ce SSID (créée
+    # par cloud-init/netplan/raspi-config, sans liaison MAC) — même bug que
+    # côté maître : sans ça NetworkManager peut l'appliquer à un dongle mesh
+    # USB au lieu de la puce interne, lui volant l'interface.
+    while IFS= read -r _cn; do
+        [ "$(nmcli -g 802-11-wireless.ssid connection show "$_cn" 2>/dev/null)" = "$WIFI_SSID" ] || continue
+        nmcli connection modify "$_cn" connection.interface-name wlan0
+        log "Connexion WiFi existante '${_cn}' épinglée sur wlan0"
+    done < <(nmcli -t -f NAME,TYPE connection show 2>/dev/null | awk -F: '$2=="802-11-wireless"{print $1}')
+
     # Réseau amont (qo-op) — basse priorité
     nmcli con delete "soundspot-upstream" 2>/dev/null || true
     nmcli con add type wifi ifname wlan0 con-name "soundspot-upstream" \
@@ -288,11 +298,15 @@ if [ "${PICOPORT_ENABLED:-true}" = "true" ]; then
     log "Fleet listener activé (écoute relay maître port 9999)"
 fi
 
-# ── Résumé ────────────────────────────────────────────────────
-hdr "Réseau Maillé (B.A.T.M.A.N.)"
-install_template soundspot-mesh.service /etc/systemd/system/soundspot-mesh.service '${INSTALL_DIR}'
-systemctl enable soundspot-mesh
-log "Service soundspot-mesh activé"
+# ── Réseau Maillé (B.A.T.M.A.N.) ──────────────────────────────
+if [ "${MESH_ENABLED:-false}" = "true" ]; then
+    hdr "Réseau Maillé (B.A.T.M.A.N.)"
+    install_template soundspot-mesh.service /etc/systemd/system/soundspot-mesh.service '${INSTALL_DIR}'
+    systemctl enable soundspot-mesh
+    log "Service soundspot-mesh activé"
+else
+    log "Réseau maillé (B.A.T.M.A.N.) désactivé — MESH_ENABLED=false"
+fi
 
 hdr "Installation satellite terminée ✓"
 echo -e "
