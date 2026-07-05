@@ -128,11 +128,17 @@ EOF
             /etc/fstab
     fi
 
+    # Même taille que /tmp : 32m codé en dur a déjà bloqué apt-get sur des
+    # paquets kernel en attente de configuration (update-initramfs échoue
+    # avec "No space left on device" dès qu'un dpkg --configure se déclenche).
     if ! grep -qE "tmpfs[[:space:]]+/var/tmp[[:space:]]" /etc/fstab; then
-        echo "tmpfs  /var/tmp  tmpfs  defaults,noatime,nosuid,nodev,mode=1777,size=32m         0 0" \
+        echo "tmpfs  /var/tmp  tmpfs  defaults,noatime,nosuid,nodev,mode=1777,size=${tmp_size}  0 0" \
             >> /etc/fstab
         fstab_changed=true
-        log "/var/tmp tmpfs (32m) ajouté au fstab ✓"
+        log "/var/tmp tmpfs (${tmp_size}) ajouté au fstab ✓"
+    else
+        sed -i "s|tmpfs[[:space:]]*/var/tmp[[:space:]].*|tmpfs  /var/tmp  tmpfs  defaults,noatime,nosuid,nodev,mode=1777,size=${tmp_size}  0 0|" \
+            /etc/fstab
     fi
 
     # Monter immédiatement
