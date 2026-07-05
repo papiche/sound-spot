@@ -35,6 +35,17 @@ CONF=/opt/soundspot/soundspot.conf
 SPOT_IP="${SPOT_IP:-192.168.10.1}"
 IFACE_AP="${IFACE_AP:-uap0}"
 IFACE_WAN="${IFACE_WAN:-wlan0}"
+# Détection WAN dynamique (même logique que soundspot-firewall.sh) : la carte
+# effectivement utilisée pour la route par défaut peut différer de IFACE_WAN
+# figée dans soundspot.conf (bascule dongle, mesh BATMAN sur wlan1…) — sans
+# ça, check.sh remonte un faux négatif alors que le NAT/Internet fonctionnent.
+if ip link show eth0 2>/dev/null | grep -q "state UP"; then
+    IFACE_WAN="eth0"
+else
+    _DYN_WAN=$(ip route get 8.8.8.8 2>/dev/null \
+        | awk '/dev/{for(i=1;i<=NF;i++) if($i=="dev"){print $(i+1); exit}}')
+    [ -n "$_DYN_WAN" ] && IFACE_WAN="$_DYN_WAN"
+fi
 SPOT_NAME="${SPOT_NAME:-ZICMAMA}"
 SNAPCAST_PORT="${SNAPCAST_PORT:-1704}"
 SOUNDSPOT_USER="${SOUNDSPOT_USER:-pi}"
