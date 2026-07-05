@@ -10,12 +10,11 @@ setup_presence() {
 
     loginctl enable-linger "${SOUNDSPOT_USER}" 2>/dev/null || true
 
-    # Génère le message d'accueil statique (espeak-ng, voix FR)
-    local welcome_text="Coucou ! Je te vois. Connecte toi à mon réseau WiFi !"
-    espeak-ng -v fr+f3 -s 120 -p 45 "$welcome_text" \
-        -w "$INSTALL_DIR/welcome.wav" 2>/dev/null \
-        && log "Message d'accueil généré : ${INSTALL_DIR}/welcome.wav" \
-        || warn "espeak-ng a échoué — créer manuellement ${INSTALL_DIR}/welcome.wav"
+    # Pas de génération espeak : play_welcome.sh reste silencieux tant que
+    # welcome.wav est absent. La voix (Orpheus, via tts.sh) prend le relais
+    # dès que la constellation UPlanet est joignable — cf. presence_detector.py.
+    log "welcome.wav non généré (espeak désactivé) — Orpheus prendra le relais via tts.sh"
+    log "Pour un accueil statique hors-ligne : déposer manuellement ${INSTALL_DIR}/welcome.wav"
 
     # ── Détecteur de présence caméra (optionnel) ──────────────────────
     # Modes : motion (défaut, CPU<5%), face, audio, any

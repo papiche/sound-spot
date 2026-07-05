@@ -65,23 +65,14 @@ declare -A MSGS
 
     for id in "${!MSGS[@]}"; do
         local txt_file="$wav_dir/message_${id}.txt"
-        local wav_file="$wav_dir/message_${id}.wav"
 
         # Écrire le texte source (toujours, pour permettre l'édition)
         echo "${MSGS[$id]}" > "$txt_file"
-
-        # Générer le .wav
-        espeak-ng -v fr+f3 -s 115 -p 40 "${MSGS[$id]}" \
-            -w "$wav_file" 2>/dev/null \
-            && log "message_${id}.wav généré" \
-            || warn "espeak-ng : message_${id}.wav non généré"
-        
-        chown www-data:soundspot "$wav_file" 2>/dev/null || true
-
     done
 
     log "Textes sources dans : ${wav_dir}/ (fichiers .txt modifiables)"
-    log "Pour personnaliser un message : remplacer le .wav correspondant"
+    log "Pas de génération espeak : les .wav seront générés par Orpheus dès sa connexion"
+    log "(idle_announcer.sh, en arrière-plan) — pour un message hors-ligne, déposer un .wav manuellement"
 
     # ── Service systemd ──────────────────────────────────────────
     install_template soundspot-idle.service \

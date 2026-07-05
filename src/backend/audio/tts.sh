@@ -1,14 +1,11 @@
 #!/bin/bash
 # tts.sh — Synthèse vocale unifiée SoundSpot
 #
-# Quand Picoport est actif (IPFS + constellation UPlanet) :
-#   → Orpheus TTS (voix pierre/amelie) via localhost:5005
-#     (connexion locale ou tunnel P2P swarm via orpheus.me.sh)
-# Sinon :
-#   → espeak-ng (synthèse robot locale, sans réseau)
-#
-# La qualité de la voix est l'indicateur auditif que le nœud
-# est bien relié à sa constellation UPlanet.
+# Utilise exclusivement Orpheus TTS (voix pierre/amelie) via localhost:5005
+# (connexion locale ou tunnel P2P swarm via orpheus.me.sh). Pas de fallback
+# robot : si Orpheus est indisponible, le script échoue silencieusement —
+# c'est le silence, pas une voix espeak désagréable, qui indique que le
+# nœud n'est pas relié à sa constellation UPlanet.
 #
 # Usage :
 #   tts.sh TEXT [VOICE] [OUTFILE]
@@ -119,10 +116,6 @@ _generate_orpheus() {
     fi
 }
 
-_generate_espeak() {
-    espeak-ng -v fr+f3 -a 80 -s 115 -p 40 "$TEXT" -w "$OUTFILE" 2>/dev/null
-}
-
 # ── Annonce de première connexion constellation ──────────────────────
 _constellation_announce() {
     local flag="/dev/shm/orpheus_announced"
@@ -169,20 +162,8 @@ if _picoport_active; then
             echo "$OUTFILE"
             exit 0
         fi
-        echo "tts.sh: Orpheus KO → fallback espeak" >&2
     fi
 fi
 
-# Fallback espeak-ng (aussi vérifié dans le cache)
-_cache_check
-
-if _generate_espeak && [ -s "$OUTFILE" ]; then
-    _cache_store
-    _cache_purge
-    trap - EXIT
-    echo "$OUTFILE"
-    exit 0
-fi
-
-echo "tts.sh: échec total de la synthèse vocale" >&2
+echo "tts.sh: Orpheus indisponible — pas de voix (espeak désactivé)" >&2
 exit 1

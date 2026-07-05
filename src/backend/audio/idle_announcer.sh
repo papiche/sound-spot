@@ -8,7 +8,7 @@
 # Messages personnalisables :
 #   Textes sources  : /opt/soundspot/wav/message_NN.txt  (modifier librement)
 #   Fichiers audio  : /opt/soundspot/wav/message_NN.wav  (remplacer par vos .wav)
-#   Si .wav absent  → régénéré automatiquement depuis le .txt (espeak-ng)
+#   Si .wav absent  → généré via Orpheus dès qu'il est disponible (pas de fallback robot)
 #
 # Variables d'environnement (depuis soundspot.conf) :
 #   IDLE_ANNOUNCE_INTERVAL  Secondes entre annonces (défaut : 900 = 15 min)
@@ -60,9 +60,8 @@ play_audio() {
 }
 
 # ── Synthèse vocale TTS → WAV temporaire → lecture ───────────────
-# Utilise Orpheus (pierre/amelie) si Picoport est connecté à UPlanet,
-# sinon espeak-ng en fallback. Le changement de voix est l'indicateur
-# auditif que le nœud est bien relié à sa constellation.
+# Utilise exclusivement Orpheus (pierre/amelie) si Picoport est connecté
+# à UPlanet. Pas de fallback robot : silence si Orpheus est indisponible.
 say() {
     [ "${VOICE_ENABLED:-true}" = "false" ] && return 0
     local wav_paths
@@ -77,7 +76,7 @@ say() {
 
 # ── Jouer un message numéroté depuis wav/ ────────────────────────
 # Utilise _CYCLE_ORPHEUS (positionné une fois par cycle dans main()).
-# Priorité : Orpheus → espeak fallback.
+# Ne joue rien tant qu'Orpheus n'a pas généré le .wav (pas de fallback robot).
 play_message_file() {
     local n="$1"
     local id=$(printf '%02d' "$n")
@@ -109,21 +108,9 @@ play_message_file() {
     [ -f "$wav" ] && play_audio "$wav"
 }
 
-# ── Régénérer tous les .wav espeak au démarrage ──────────────────
-# Garantit que chaque boot commence avec les voix espeak (robot).
-# Lorsqu'Orpheus se connecte, play_message_file() les remplace par la
-# voix naturelle — c'est l'indicateur auditif que UPlanet est joignable.
-init_espeak_wavs() {
-    for txt in "$WAV_DIR"/message_*.txt; do
-        [ -f "$txt" ] || continue
-        local wav="${txt%.txt}.wav"
-        espeak-ng -v fr+f3 -s 115 -p 40 "$(cat "$txt")" -w "$wav" 2>/dev/null || true
-    done
-    ss_info "Voix espeak initialisées — Orpheus les remplacera à la connexion UPlanet"
-}
-
 # ── Régénérer tous les .wav avec Orpheus dès qu'il est disponible ──
-# Tourne en background au démarrage. Attend jusqu'à 10 min, puis abandonne.
+# Tourne en background au démarrage. Tant qu'Orpheus n'a pas répondu,
+# les messages sans .wav restent silencieux (pas de fallback robot).
 regen_orpheus_wavs_bg() {
     local port="${ORPHEUS_PORT:-5005}"
     local voice="${ORPHEUS_VOICE:-pierre}"
@@ -157,7 +144,7 @@ regen_orpheus_wavs_bg() {
         sleep 30
         waited=$(( waited + 30 ))
     done
-    ss_info "Orpheus non disponible après 10 min — messages conservés en espeak"
+    ss_info "Orpheus non disponible après 30 min — messages restent silencieux"
 }
 
 # ── Nombre de messages disponibles dans wav/ ─────────────────────
@@ -238,8 +225,7 @@ announce_time() {
 # ── Boucle principale ─────────────────────────────────────────────
 main() {
     reload_conf
-    init_espeak_wavs              # boot = espeak (immédiat)
-    regen_orpheus_wavs_bg &       # remplace par Orpheus en arrière-plan dès connexion
+    regen_orpheus_wavs_bg &       # génère les .wav via Orpheus en arrière-plan dès connexion
 
     local last_announce=0
     local msg_index=0

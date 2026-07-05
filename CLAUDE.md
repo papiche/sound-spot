@@ -196,13 +196,13 @@ wav/
 ├── tone_429hz.wav     ← bip 429.62 Hz 4s (signal de vie du nœud)
 ├── bell_429hz.wav     ← coup de cloche 2.5s (fondu progressif)
 ├── message_01.txt     ← texte source (modifiable librement)
-├── message_01.wav     ← audio généré par espeak-ng (ou remplacé manuellement)
+├── message_01.wav     ← audio généré par Orpheus dès sa connexion (ou remplacé manuellement)
 ├── message_02.txt
 ├── message_02.wav
 └── …                  (jusqu'à message_08)
 ```
 
-Pour personnaliser un message : remplacer le `.wav` correspondant par votre enregistrement. Le `.txt` est conservé comme référence. Si le `.wav` est absent ou le `.txt` plus récent, `idle_announcer.sh` régénère automatiquement.
+Pour personnaliser un message : remplacer le `.wav` correspondant par votre enregistrement. Le `.txt` est conservé comme référence. Si le `.wav` est absent, `idle_announcer.sh` le régénère automatiquement dès qu'Orpheus est joignable — pas de fallback espeak, le message reste silencieux tant qu'Orpheus n'a pas répondu.
 
 ### Systemd services on the RPi master
 
