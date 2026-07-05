@@ -93,6 +93,19 @@
   Flux RTMP drones &amp; smartphones → projecteur HDMI + Commentateur IA
 </p>
 
+<!-- ── Projecteur ─────────────────────────────────────────────── -->
+<div class="card">
+  <h2>📽️ Projecteur</h2>
+  <div class="status-line">
+    <span class="status-dot dot-off" id="proj-dot"></span>
+    <span id="proj-status-text">État inconnu</span>
+  </div>
+  <div style="display:flex;gap:10px;">
+    <button class="btn btn-play" onclick="setProjector('on')">💡 Allumer</button>
+    <button class="btn btn-stop" onclick="setProjector('off')">⏻ Éteindre</button>
+  </div>
+</div>
+
 <!-- ── Flux actifs ────────────────────────────────────────────── -->
 <div class="card" id="streams-card">
   <h2>📡 Flux entrants</h2>
@@ -101,6 +114,21 @@
   </div>
   <div style="text-align:center;margin-top:14px;">
     <button class="btn btn-stop" onclick="setStream('stop','')">Noir projecteur</button>
+  </div>
+  <p class="hint" style="margin-top:12px">
+    Pour envoyer un flux (drone DJI, Larix Broadcaster, OBS…), configurez la diffusion RTMP sur :<br>
+    <code id="rtmp-url" style="color:var(--accent)">rtmp://…/live/nom_du_flux</code><br>
+    Le flux apparaît ci-dessus dès qu'il est reçu — cliquez « Projeter » pour l'afficher.
+  </p>
+  <div style="display:flex;gap:24px;flex-wrap:wrap;justify-content:center;margin-top:14px">
+    <div style="text-align:center">
+      <img id="rtmp-qr" width="140" height="140" style="border-radius:8px;background:#fff;padding:6px" alt="QR flux RTMP">
+      <div class="hint">📡 Flux RTMP (Larix)</div>
+    </div>
+    <div style="text-align:center">
+      <img id="qoop-qr" width="140" height="140" style="border-radius:8px;background:#fff;padding:6px" alt="QR qo-op.com">
+      <div class="hint">🔗 qo-op.com</div>
+    </div>
   </div>
 </div>
 
@@ -154,41 +182,48 @@
   </p>
 </div>
 
-<!-- ── VDO.Ninja (WebRTC) ────────────────────────────────────────── -->
-<div class="card" id="vdo-card">
-  <h2>🌐 VDO.Ninja — WebRTC</h2>
-  <div class="status-line">
-    <span class="status-dot dot-off" id="vdo-dot"></span>
-    <span id="vdo-status-text">Nécessite Internet (qo-op / eth0)</span>
-  </div>
-
-  <p class="hint" style="margin-bottom:12px;">
-    Alternative sans application : diffusion directe depuis n'importe quel navigateur.<br>
-    Room : <strong id="vdo-room" style="color:var(--accent)">UPLANET</strong>
-  </p>
-
-  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
-    <button class="btn btn-play" onclick="openVdoScene()" title="Ouvrir la scène composite dans un nouvel onglet (à projeter en HDMI)">
-      📺 Scène projecteur
-    </button>
-    <button class="btn btn-now" onclick="openVdoPush()" title="Diffuser votre caméra vers la room">
-      📷 Diffuser ma caméra
-    </button>
-  </div>
-
-  <p class="hint">
-    Participants → ouvrir le lien <em>Diffuser</em> sur leur smartphone ou PC.<br>
-    Projecteur → ouvrir la <em>Scène</em> sur le RPi (navigateur Chromium HDMI).
-  </p>
-</div>
-
 <!-- ── Navigation ───────────────────────────────────────────────── -->
 <a href="macro.html" class="btn btn-nav">← Vision Macro</a>
 
 <!-- ── Scripts ──────────────────────────────────────────────────── -->
 <script>
   const API = '/api.sh';
+  const UPASSPORT = 'http://' + location.hostname + ':54321';
   let _currentStyle = 'concert';
+
+  const RTMP_URL = 'rtmp://' + location.hostname + '/live/nom_du_flux';
+  document.getElementById('rtmp-url').textContent = RTMP_URL;
+  document.getElementById('rtmp-qr').src = UPASSPORT + '/qr?data=' + encodeURIComponent(RTMP_URL);
+  document.getElementById('qoop-qr').src = UPASSPORT + '/qr?data=' + encodeURIComponent('https://qo-op.com');
+
+  // ── Projecteur ────────────────────────────────────────────────────
+  function _updateProjectorUI(state) {
+    const dot = document.getElementById('proj-dot');
+    const txt = document.getElementById('proj-status-text');
+    if (state === 'on') {
+      dot.className = 'status-dot dot-on';
+      txt.textContent = 'Allumé';
+    } else if (state === 'off') {
+      dot.className = 'status-dot dot-off';
+      txt.textContent = 'Éteint';
+    } else {
+      dot.className = 'status-dot dot-off';
+      txt.textContent = 'État inconnu';
+    }
+  }
+  function loadProjectorStatus() {
+    fetch(API + '?action=projector').then(r=>r.json()).then(d => {
+      _updateProjectorUI(d.projector);
+    }).catch(()=>{});
+  }
+  function setProjector(mode) {
+    fetch(API + '?action=projector', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: `mode=${mode}`
+    }).then(r=>r.json()).then(d => _updateProjectorUI(d.projector)).catch(()=>{});
+  }
+  loadProjectorStatus();
 
   // ── Flux VJ ──────────────────────────────────────────────────────
   function loadStreams() {
@@ -316,49 +351,11 @@
     }).catch(()=>{ btn.textContent='✗ Erreur'; btn.disabled=false; });
   }
 
-  // ── VDO.Ninja ─────────────────────────────────────────────────────
-  let _vdoRoom = 'UPLANET';
-  const VDO_BASE = 'https://vdo.copylaradio.com/';
-
-  function _vdoRoomFromName(name) {
-    return name.replace(/[^a-zA-Z0-9]/g, '').toUpperCase() || 'UPLANET';
-  }
-
-  function openVdoScene() {
-    window.open(VDO_BASE + '?scene&room=' + _vdoRoom, '_blank');
-  }
-  function openVdoPush() {
-    window.open(VDO_BASE + '?push&room=' + _vdoRoom, '_blank');
-  }
-
-  // Détecte si Internet est disponible pour mettre à jour le statut VDO
-  function checkVdoConnectivity() {
-    fetch('https://vdo.copylaradio.com/', { method: 'HEAD', mode: 'no-cors', cache: 'no-store' })
-      .then(() => {
-        document.getElementById('vdo-dot').className = 'status-dot dot-on';
-        document.getElementById('vdo-status-text').textContent = 'Internet disponible — room prête';
-      })
-      .catch(() => {
-        document.getElementById('vdo-dot').className = 'status-dot dot-off';
-        document.getElementById('vdo-status-text').textContent = 'Hors-ligne — VDO.Ninja indisponible';
-      });
-  }
-
   // ── Init + polling ────────────────────────────────────────────────
   loadStreams();
   loadCommentatorStatus();
   setInterval(loadStreams,           3000);
   setInterval(loadCommentatorStatus, 6000);
-
-  // VDO: récupère le spot_name pour la room, puis vérifie la connectivité
-  fetch(API + '?action=status').then(r => r.json()).then(d => {
-    if (d.spot_name) {
-      _vdoRoom = _vdoRoomFromName(d.spot_name);
-      document.getElementById('vdo-room').textContent = _vdoRoom;
-    }
-    checkVdoConnectivity();
-  }).catch(() => checkVdoConnectivity());
-  setInterval(checkVdoConnectivity, 30000);
 </script>
 </body>
 </html>

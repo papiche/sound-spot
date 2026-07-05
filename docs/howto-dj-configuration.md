@@ -71,6 +71,12 @@ Quand plusieurs sources sont actives, l'ordre de priorité est :
 | Retard > 5s entre Mixxx et enceintes | Réduire le buffer Snapcast dans `snapserver.conf` |
 | Audio haché (xruns) | Réseau surchargé — réduire la qualité Ogg Vorbis dans Mixxx |
 
+## 6. Envie de vidéo en plus du son ?
+
+Le SoundSpot embarque aussi une régie vidéo légère (drones, smartphones, VJing)
+indépendante du pipeline DJ ci-dessus — voir [howto-vj-drone.md](howto-vj-drone.md).
+Accessible depuis le portail via l'onglet **🎛️ VJ**.
+
 ---
 
-Voir aussi : [Architecture générale](explanation-architecture.md) · [Configuration API](reference-api-config.md)
+Voir aussi : [Architecture générale](explanation-architecture.md) · [Configuration API](reference-api-config.md) · [Régie vidéo VJ/Drone](howto-vj-drone.md)
