@@ -124,6 +124,14 @@ setup_wifi_driver    # Pilote clé USB Wi-Fi 5GHz
 setup_logging        # Logs centralisés
 setup_networking     # AP + IPSet + Firewall
 setup_captive_portal # Lighttpd
+# setup_video_rtmp doit tourner juste après lighttpd, pas en toute fin de liste :
+# le paquet nginx (installé plus haut avec les autres paquets apt) démarre
+# automatiquement avec sa config par défaut sur le port 80, en concurrence
+# directe avec lighttpd. Si un module plus loin dans cette liste échoue
+# (set -e), l'install s'arrête avant d'atteindre ce point et nginx reste
+# bloqué en conflit avec lighttpd à chaque boot. Le passer tôt réduit
+# drastiquement cette fenêtre de risque.
+setup_video_rtmp     # Serveur de flux video drone (reconfigure nginx en RTMP-only, port 1935)
 setup_icecast        # Flux DJ
 # ── install HAT (mic + speakers) ───────────────────────
 if [ "$USE_RESPEAKER" = "true" ]; then
@@ -140,7 +148,6 @@ setup_battery        # Batterie INA219 (indépendant caméra)
 setup_idle           # Clocher numérique
 setup_jukebox        # Nostr Jukebox
 setup_autodj         # Auto DJ service
-setup_video_rtmp     # Serveur de flux video drone
 
 # ── Services Master spécifiques ──────────────────────────────
 hdr "Services Master (état JSON + micro USB)"

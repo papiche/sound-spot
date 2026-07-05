@@ -12,6 +12,7 @@ sound-spot/
 ├── zicmama_play.sh      ← Script de session DJ généré par dj_mixxx_setup.sh
 ├── restart.sh           ← Redémarrage rapide des services audio
 ├── update.sh            ← Mise à jour du code depuis git
+├── fix_wifi_dongle.sh   ← Réparation manuelle driver DKMS 88x2bu (dongle RTL8822BU instable)
 ├── HOWTO.md             ← single-page guide (start here)
 ├── README.md
 ├── CLAUDE.md
