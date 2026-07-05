@@ -15,6 +15,11 @@ HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 1 \
 PICOPORT_ACTIVE="false"
 systemctl is-active --quiet picoport.service 2>/dev/null && PICOPORT_ACTIVE="true"
 
+# picoport.service (daemon swarm) actif ne veut pas dire qu'UPassport (:54321)
+# répond réellement — vérifier le service dédié.
+UPASSPORT_ACTIVE="false"
+systemctl is-active --quiet upassport.service 2>/dev/null && UPASSPORT_ACTIVE="true"
+
 # Moteur TTS actif : "orpheus" si Picoport actif ET Orpheus répond, sinon "espeak"
 TTS_ENGINE="espeak"
 if [ "$PICOPORT_ACTIVE" = "true" ]; then
@@ -71,6 +76,7 @@ jq -n \
   --argjson voice_enabled "$VOICE_ENABLED" \
   --argjson bells_enabled "$BELLS_ENABLED" \
   --argjson picoport_active "$PICOPORT_ACTIVE" \
+  --argjson upassport_active "$UPASSPORT_ACTIVE" \
   --arg cpu_load "$CPU_LOAD" \
   --argjson mem_free_kb "$MEM_FREE" \
   --argjson batt_pct "${BATT_PCT:-0}" \
@@ -97,6 +103,7 @@ jq -n \
     voice_enabled: $voice_enabled,
     bells_enabled: $bells_enabled,
     picoport_active: $picoport_active,
+    upassport_active: $upassport_active,
     cpu_load: $cpu_load,
     mem_free_kb: $mem_free_kb,
     batt_pct: $batt_pct,

@@ -549,7 +549,7 @@ function loadUplanetHeader() {
 }
 
 /* ── Init station ────────────────────────────────────── */
-let S_upassportLocal = false; // Picoport actif ⇒ UPassport (donc /earth) est servi localement
+let S_upassportLocal = false; // UPassport (port 54321) répond ⇒ /earth est servi localement
 async function initStation() {
   try {
     const d = await (await fetch(API + '?action=status')).json();
@@ -565,9 +565,9 @@ async function initStation() {
     const streamUrl = 'http://' + SPOT_HOST + ':' + port + '/live';
     document.getElementById('audio-player').src = streamUrl;
     document.getElementById('player-status').textContent = 'Flux : ' + streamUrl;
-    // UPassport n'est installé/actif que si Picoport l'est — sinon /earth local
-    // est injoignable, on retombe sur la version publique via IPNS.
-    S_upassportLocal = !!d.picoport_active;
+    // UPassport (port 54321) est un service distinct de picoport.service —
+    // on vérifie sa disponibilité réelle, sinon on retombe sur l'IPNS public.
+    S_upassportLocal = !!d.upassport_active;
     if (S_upassportLocal) loadUplanetHeader();
   } catch (_) {}
   const uplanetUrl = S_upassportLocal ? (EARTH + '/index.html') : (IPFS_GW + '/ipns/copylaradio.com/');
@@ -630,7 +630,7 @@ async function getInternet() {
   btn.disabled = true; btn.textContent = '⏳ Ouverture…'; msg.className = 'internet-msg';
   try {
     const d = await (await fetch(API + '?action=auth')).json();
-    if (d.status === 'ok' || d.ok) {
+    if (d.status === 'ok' || d.status === 'authorized' || d.ok) {
       msg.textContent = '✅ Accès Internet ouvert pour 4 heures !';
       msg.className = 'internet-msg ok';
       btn.textContent = 'Accès ouvert ✓';
