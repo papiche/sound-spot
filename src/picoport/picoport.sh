@@ -346,7 +346,7 @@ EOF
     fi
     # ───────────────────────────────────────────────────────────────
     
-    ipfs add -rwQ "$MY_NODE_DIR" | tail -n 1 | xargs ipfs name publish --lifetime=24h --ttl=1h >/dev/null 2>&1 &
+    ipfs add -rwQ "$MY_NODE_DIR"/* | tail -n 1 | xargs ipfs name publish --lifetime=24h --ttl=1h >/dev/null 2>&1 &
 
     # S'aligner sur le rythme de la constellation (5 minutes)
     sleep 300
