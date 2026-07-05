@@ -30,7 +30,22 @@ while true; do
         if [ "$DJ_ACTIVE" = "true" ]; then
             if ! systemctl is-active --quiet soundspot-decoder 2>/dev/null; then
                 ss_warn "Watchdog: Décodeur arrêté"
-                espeak-ng -v fr+f3 "Flux audio gelé. Tentative de redémarrage du décodeur." | aplay -q 2>/dev/null &
+                (
+                    ALERT_TXT="Flux audio gelé. Tentative de redémarrage du décodeur."
+                    ALERT_WAV="${INSTALL_DIR}/wav/decoder_frozen_alert.wav"
+                    # Pré-enregistré une fois via Orpheus (voix pierre), rejoué en cache
+                    # ensuite — pas d'appel TTS en direct (tunnel swarm trop lent/variable)
+                    # à chaque déclenchement du watchdog.
+                    if [ ! -s "$ALERT_WAV" ]; then
+                        TMP_WAV=$(bash "${INSTALL_DIR}/backend/audio/tts.sh" "$ALERT_TXT" "pierre" 2>/dev/null | tail -1)
+                        [ -s "$TMP_WAV" ] && cp "$TMP_WAV" "$ALERT_WAV" && rm -f "$TMP_WAV"
+                    fi
+                    if [ -s "$ALERT_WAV" ]; then
+                        paplay "$ALERT_WAV" 2>/dev/null || aplay -q "$ALERT_WAV" 2>/dev/null
+                    else
+                        espeak-ng -v fr+f3 "$ALERT_TXT" | aplay -q 2>/dev/null
+                    fi
+                ) &
                 systemctl restart soundspot-decoder
             fi
         fi

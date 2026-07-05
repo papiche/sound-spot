@@ -126,8 +126,8 @@
       <div class="hint">📡 Flux RTMP (Larix)</div>
     </div>
     <div style="text-align:center">
-      <img id="qoop-qr" width="140" height="140" style="border-radius:8px;background:#fff;padding:6px" alt="QR qo-op.com">
-      <div class="hint">🔗 qo-op.com</div>
+      <img id="qoop-qr" width="140" height="140" style="border-radius:8px;background:#fff;padding:6px" alt="QR Open Collective Monnaie Libre">
+      <div class="hint">🔗 opencollective.com/monnaie-libre</div>
     </div>
   </div>
 </div>
@@ -194,7 +194,7 @@
   const RTMP_URL = 'rtmp://' + location.hostname + '/live/nom_du_flux';
   document.getElementById('rtmp-url').textContent = RTMP_URL;
   document.getElementById('rtmp-qr').src = UPASSPORT + '/qr?data=' + encodeURIComponent(RTMP_URL);
-  document.getElementById('qoop-qr').src = UPASSPORT + '/qr?data=' + encodeURIComponent('https://qo-op.com');
+  document.getElementById('qoop-qr').src = UPASSPORT + '/qr?data=' + encodeURIComponent('https://opencollective.com/monnaie-libre');
 
   // ── Projecteur ────────────────────────────────────────────────────
   function _updateProjectorUI(state) {

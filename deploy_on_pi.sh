@@ -590,6 +590,16 @@ else
     warn "src/portal/ introuvable — le portail captif ne sera pas déployé"
 fi
 
+# Documentation (rendue par docs.html via api/core/docs.sh, attendue dans
+# ${INSTALL_DIR}/docs — jamais copiée jusqu'ici, page Documentation morte)
+if [ -d "$SCRIPT_DIR/docs" ]; then
+    cp -r "$SCRIPT_DIR/docs" "$INSTALL_DIR/"
+    chown -R www-data:www-data "$INSTALL_DIR/docs"
+    log "docs/ → $INSTALL_DIR/ ✓"
+else
+    warn "docs/ introuvable — la page Documentation du portail sera vide"
+fi
+
 # ════════════════════════════════════════════════════════════════
 #  9. Installation
 # ════════════════════════════════════════════════════════════════

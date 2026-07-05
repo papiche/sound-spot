@@ -28,6 +28,7 @@ import shutil
 import subprocess
 import sys
 import time
+import requests
 
 _LOG_LEVEL_STR = os.getenv("LOG_LEVEL", "INFO").upper()
 _LOG_LEVEL_MAP = {
@@ -66,6 +67,7 @@ INSTALL_DIR     = os.getenv("INSTALL_DIR", "/opt/soundspot")
 RELAY_PIN       = int(os.getenv("RELAY_PIN",        "17"))
 RELAY_WARN_DELAY = int(os.getenv("RELAY_WARN_DELAY", "20"))
 MASTER_IP       = os.getenv("MASTER_IP", "192.168.10.1")
+ORPHEUS_PORT    = os.getenv("ORPHEUS_PORT", "5005")
 
 WELCOME_WAV     = os.path.join(INSTALL_DIR, "welcome.wav")
 WELCOME_WAV_BAK = os.path.join(INSTALL_DIR, "welcome_normal.wav")
@@ -150,17 +152,31 @@ def backup_normal_wav():
 def generate_low_battery_wav():
     tmp = WELCOME_WAV + ".low.tmp"
     try:
-        subprocess.run(
-            ["espeak-ng", "-v", "fr+f3", "-s", "110", "-p", "40", LOW_TEXT, "-w", tmp],
-            check=True,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
+        r = requests.post(
+            f"http://127.0.0.1:{ORPHEUS_PORT}/v1/audio/speech",
+            json={"model": "orpheus", "input": LOW_TEXT, "voice": "pierre",
+                  "response_format": "wav", "speed": 1.0},
+            timeout=20,
         )
-        os.replace(tmp, WELCOME_WAV)
-        log.info("Message d'alerte batterie installé")
+        if not (r.ok and r.content):
+            raise RuntimeError(f"HTTP {r.status_code}")
+        with open(tmp, "wb") as f:
+            f.write(r.content)
     except Exception as exc:
-        log.error("Impossible de générer l'alerte vocale : %s", exc)
-        return
+        log.warning("TTS Orpheus échoué (%s) — repli espeak-ng", exc)
+        try:
+            subprocess.run(
+                ["espeak-ng", "-v", "fr+f3", "-s", "110", "-p", "40", LOW_TEXT, "-w", tmp],
+                check=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        except Exception as exc2:
+            log.error("Impossible de générer l'alerte vocale : %s", exc2)
+            return
+
+    os.replace(tmp, WELCOME_WAV)
+    log.info("Message d'alerte batterie installé")
 
     try:
         subprocess.run(

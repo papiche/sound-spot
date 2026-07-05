@@ -39,6 +39,7 @@ import os
 import signal
 import sys
 import random
+from PIL import Image
 
 try:
     import numpy as np
@@ -53,8 +54,14 @@ AUDIO_THR       = float(os.getenv("PRESENCE_AUDIO_THRESHOLD",  "0.05"))
 COOLDOWN_S      = int(os.getenv("PRESENCE_COOLDOWN",         "30"))
 BLIND_INTERVAL  = max(1, int(os.getenv("PRESENCE_BLIND_INTERVAL", "900")))
 DETECT_INTERVAL = int(os.getenv("PRESENCE_INTERVAL",         "5"))
-FRAME_W         = int(os.getenv("PRESENCE_WIDTH",            "320"))
-FRAME_H         = int(os.getenv("PRESENCE_HEIGHT",           "240"))
+# 960x540 plutôt que 320x240 : Ollama (llava) reconnaît une scène bien mieux
+# à cette résolution, et le RPi4 ciblé par mon-oeil.py (caméra + IA) a la
+# marge CPU nécessaire (détection throttlée à 1 frame analysée sur
+# PRESENCE_INTERVAL, pas sur chaque frame caméra).
+# NB: picamera2 impose un flux "lores" séparé en format YUV (pas BGR888) —
+# un flux unique reste plus simple et suffisant ici, pas de vrai flux "lores".
+FRAME_W         = int(os.getenv("PRESENCE_WIDTH",            "960"))
+FRAME_H         = int(os.getenv("PRESENCE_HEIGHT",           "540"))
 CAMERA_FPS      = int(os.getenv("PRESENCE_FPS",              "15"))
 SCALE_FACTOR    = float(os.getenv("PRESENCE_SCALE",           "1.3"))
 MIN_NEIGHBORS   = int(os.getenv("PRESENCE_NEIGHBORS",         "4"))
@@ -187,10 +194,18 @@ def release_camera(cam_type, cam):
 
 # ── Détection visuelle ────────────────────────────────────────────────
 def _save_shared_frame(frame):
-    """Écrit le frame courant dans /dev/shm pour partage avec mon-oeil.py (lecture seule caméra)."""
+    """Écrit le frame courant dans /dev/shm pour partage avec mon-oeil.py (lecture seule caméra).
+    Pillow plutôt que cv2.imwrite : ce build d'OpenCV (apt, 4.10.0) n'a pas le
+    support JPEG ("could not find a writer for the specified extension") —
+    le partage de frame échouait silencieusement à chaque appel.
+    Pas d'inversion de canaux : malgré son nom, le flux configuré en
+    "BGR888" livre déjà des données dans l'ordre RGB attendu par Pillow
+    (quirk connu de picamera2) — inverser produisait une teinte mauve
+    (rouge/bleu échangés), confirmé visuellement sur une vraie capture.
+    """
     tmp = FRAME_SHARE_PATH + ".tmp"
     try:
-        cv2.imwrite(tmp, frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
+        Image.fromarray(frame).save(tmp, "JPEG", quality=85)
         os.replace(tmp, FRAME_SHARE_PATH)
         log.debug("Frame partagé écrit → %s", FRAME_SHARE_PATH)
     except Exception as exc:
@@ -403,6 +418,15 @@ def main():
                 time.sleep(frame_sleep)
                 continue
 
+            # Partage périodique du frame pour mon-oeil.py (accès unique à la
+            # caméra) — AVANT le filtre de cooldown : sinon, pendant un
+            # cooldown (souvent > SHARED_FRAME_MAX_AGE_S de mon-oeil.py), le
+            # frame partagé devient trop vieux et mon-oeil.py bascule sur une
+            # capture directe qui échoue (caméra déjà tenue par ce process).
+            _share_count += 1
+            if _share_count % FRAME_SHARE_INTERVAL == 0:
+                _save_shared_frame(frame)
+
             now = time.monotonic()
             if now - last_trigger < COOLDOWN_S:
                 prev_frame = frame.copy()
@@ -433,11 +457,6 @@ def main():
                 _audio_shared_last[0] = now
 
             prev_frame = frame.copy()
-
-            # Partage périodique du frame pour mon-oeil.py (accès unique à la caméra)
-            _share_count += 1
-            if _share_count % FRAME_SHARE_INTERVAL == 0:
-                _save_shared_frame(frame)
 
             time.sleep(frame_sleep)
     finally:
