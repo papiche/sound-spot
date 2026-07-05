@@ -38,7 +38,7 @@ After=network.target
 Type=simple
 User=$SOUNDSPOT_USER
 WorkingDirectory=$USER_HOME/.zen/UPassport
-ExecStart=$USER_HOME/.astro/bin/python3 -m uvicorn main:app --host 0.0.0.0 --port 54321
+ExecStart=$USER_HOME/.astro/bin/python3 54321.py
 Restart=always
 RestartSec=10
 
