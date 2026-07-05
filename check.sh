@@ -143,7 +143,10 @@ fi
 # ── 2. Réseau ───────────────────────────────────────────────────
 hdr "Réseau"
 # Interface Mesh (bat0)
-if ip link show bat0 2>/dev/null | grep -q "state UP"; then
+# "ip link show bat0 up" filtre sur le flag administratif UP, pas l'operstate —
+# les interfaces virtuelles (bat0, bridges...) rapportent souvent "state UNKNOWN"
+# même quand elles sont pleinement opérationnelles.
+if ip link show bat0 up 2>/dev/null | grep -q "bat0"; then
     BAT_IP=$(ip -4 addr show bat0 2>/dev/null | awk '/inet/{print $2}' | head -1)
     NEIGHBORS=$(batctl n 2>/dev/null | grep -c "^[0-9a-f]")
     ok "Mesh bat0 actif  ${D}IP:${N} $BAT_IP  ${D}Voisins BATMAN:${N} $NEIGHBORS"

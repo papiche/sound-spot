@@ -23,8 +23,10 @@ EOF
     timeout 5 systemctl reload NetworkManager 2>/dev/null || true
 
     # 2. Interface AP SoundSpot (Gère uap0 virtuelle ou wlan1 physique + assignation IP)
-    install_template soundspot-ap.service /etc/systemd/system/soundspot-ap.service \
-        '${IFACE_AP} ${SPOT_IP}'
+    # Copie brute (pas d'envsubst) : ${IFACE_AP}/${SPOT_IP} doivent rester littéraux
+    # dans le fichier unit pour être résolus par systemd/bash à CHAQUE démarrage via
+    # EnvironmentFile=soundspot.conf — pas figés une fois pour toutes à l'install.
+    install_template soundspot-ap.service /etc/systemd/system/soundspot-ap.service
     systemctl daemon-reload
     systemctl enable soundspot-ap
     
