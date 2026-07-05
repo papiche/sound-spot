@@ -33,6 +33,7 @@ import logging
 import threading
 import os
 import shutil
+import json
 
 # ── Configuration ──────────────────────────────────────────────────────
 AUDIO_THRESHOLD    = float(os.getenv("AUDIO_THRESHOLD",    "0.03"))
@@ -40,6 +41,8 @@ COOLDOWN_S         = int(os.getenv("COOLDOWN_S",           "45"))
 OLLAMA_URL         = os.getenv("OLLAMA_URL",               "http://127.0.0.1:11434/api/generate")
 BOUCHE_URL         = os.getenv("BOUCHE_URL",               "http://192.168.10.1/api.sh?action=speak")
 VOIX_IA            = os.getenv("MON_OEIL_VOICE",           "pierre")
+UPASSPORT_URL      = os.getenv("UPASSPORT_URL",             "http://127.0.0.1:54321")
+EYE_LAST_JSON      = "/dev/shm/eye_last.json"
 
 # Frame partagé avec presence_detector.py (accès caméra sans conflit)
 SHARED_FRAME_PATH     = os.getenv("PRESENCE_SHARE_FRAME",       "/dev/shm/latest_frame.jpg")
@@ -165,6 +168,59 @@ def capture_image():
     return dest if _capture_libcamera(dest) else None
 
 
+# Voix dédiée à l'annonce (distincte de VOIX_IA utilisée pour la description)
+ANNOUNCE_VOICE = "amelie"
+
+
+def _announce_capture():
+    """Prévient le passant avant la capture — lui laisse le temps de poser.
+    Orpheus (voix ANNOUNCE_VOICE) en priorité, espeak-ng local si le portail
+    ou Orpheus est injoignable — l'annonce ne doit jamais rester silencieuse.
+    """
+    texte = "Ne bougez pas, nous allons prendre une photo dans 3, 2, 1, clic !"
+    try:
+        requests.post(BOUCHE_URL, data={"text": texte, "voice": ANNOUNCE_VOICE}, timeout=5)
+    except Exception as exc:
+        log.warning("Annonce capture (Orpheus) échouée : %s — repli espeak-ng", exc)
+        try:
+            subprocess.Popen(
+                ["espeak-ng", "-v", "fr+f2", "-s", "150", texte],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            )
+        except Exception as exc2:
+            log.error("Annonce capture (espeak-ng) échouée aussi : %s", exc2)
+    time.sleep(4)  # laisse le temps de la phrase + du décompte avant de shooter
+
+
+def _publish_to_ipfs(img_path):
+    """Publie la photo sur IPFS via UPassport (contrat /api/upload/image).
+    Retourne (cid, url) ou (None, None) si UPassport/IPFS est indisponible.
+    """
+    try:
+        with open(img_path, "rb") as f:
+            files = {"file": ("eye_capture.jpg", f, "image/jpeg")}
+            res = requests.post(f"{UPASSPORT_URL}/api/upload/image",
+                                 files=files, data={"type": "media"}, timeout=20).json()
+        if res.get("ipfs_cid"):
+            return res["ipfs_cid"], res.get("ipfs_url")
+        log.warning("Publication IPFS : pas de cid en retour (%s)", res.get("ipfs_status"))
+    except Exception as exc:
+        log.warning("Publication IPFS échouée : %s", exc)
+    return None, None
+
+
+def _write_eye_last(caption, ipfs_url, ipfs_cid):
+    """Écrit l'état pour le portail (api/core/eye.sh) — écriture atomique."""
+    tmp = EYE_LAST_JSON + ".tmp"
+    try:
+        with open(tmp, "w") as f:
+            json.dump({"caption": caption, "ipfs_url": ipfs_url,
+                       "ipfs_cid": ipfs_cid, "ts": time.time()}, f)
+        os.replace(tmp, EYE_LAST_JSON)
+    except Exception as exc:
+        log.warning("Écriture %s échouée : %s", EYE_LAST_JSON, exc)
+
+
 # ── Cycle analyse principal ────────────────────────────────────────────
 def capture_and_process():
     """Capture + envoi Ollama + diffusion vocale (non bloquant via thread)."""
@@ -175,6 +231,8 @@ def capture_and_process():
         if not check_swarm_status():
             log.warning("Cerveau IA injoignable (Ollama/Tunnel KO) — analyse annulée")
             return
+
+        _announce_capture()
 
         img_path = capture_image()
         if img_path is None:
@@ -199,6 +257,11 @@ def capture_and_process():
             requests.post(BOUCHE_URL, data={"text": texte, "voice": VOIX_IA}, timeout=5)
         except Exception as exc:
             log.warning("Envoi voix échoué : %s", exc)
+
+        cid, ipfs_url = _publish_to_ipfs(img_path)
+        if ipfs_url:
+            log.info("Photo publiée sur IPFS : %s", ipfs_url)
+        _write_eye_last(texte, ipfs_url, cid)
 
     except Exception as exc:
         log.error("Erreur cycle analyse : %s", exc)

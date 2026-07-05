@@ -256,6 +256,14 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
     <div class="card-title">🔔 Messages du clocher</div>
     <div id="messages-list" style="font-size:13px;color:var(--muted)">Chargement…</div>
   </div>
+
+  <div class="card" id="eye-card" style="display:none">
+    <div class="card-title">👁️ Dernière observation</div>
+    <a id="eye-photo-link" href="#" target="_blank">
+      <img id="eye-photo" src="" alt="Dernière photo" style="width:100%;border-radius:10px;margin-bottom:8px">
+    </a>
+    <div id="eye-caption" style="font-size:13px;color:var(--muted)"></div>
+  </div>
 </div>
 
 <!-- ══════════════════════════════════════════════════════
@@ -281,7 +289,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
   <div class="locked-zone" id="jukebox-locked">
     <div class="lock-icon">🎵🔒</div>
     <h3>Jukebox MULTIPASS</h3>
-    <p>Authentifiez-vous avec votre identité NOSTR pour ajouter des morceaux à la file du jukebox et copier depuis YouTube.</p>
+    <p>Authentifiez-vous avec votre identité NOSTR pour ajouter des morceaux à la file du jukebox.</p>
     <button class="btn-unlock" onclick="openAuthModal()">Se connecter avec NOSTR</button>
     <div style="margin-top:14px">
       <a id="jukebox-create-link" href="#" target="_blank" class="external-link" style="justify-content:center">
@@ -300,26 +308,6 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
       <a id="udrive-personal-link" href="#" target="_blank" class="external-link">
         📂 Ouvrir mon uDRIVE IPFS →
       </a>
-    </div>
-
-    <!-- ── Copie YouTube (délégation home station) ────────── -->
-    <div class="card">
-      <div class="card-title">📺 Copier depuis YouTube</div>
-      <p style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.5">
-        La copie s'effectue sur votre station Home via NOSTR. Aucun yt-dlp local.<br>
-        Un kind 1 contenant <code>#BRO #youtube &lt;URL&gt;</code> est publié sur le relay public.
-        Votre <code>UPlanet_IA_Responder.sh</code> détecte le tag et appelle <code>process_youtube.sh</code>.
-      </p>
-      <div class="jukebox-form">
-        <input class="jukebox-input" id="yt-url" type="url"
-          placeholder="https://youtube.com/watch?v=… ou mot-clé de recherche">
-        <select id="yt-fmt" style="padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:13px">
-          <option value="mp3">🎵 MP3 (uDRIVE/Music)</option>
-          <option value="mp4">🎬 MP4 (uDRIVE/Videos)</option>
-        </select>
-        <button class="btn-queue" id="btn-ytcopy" onclick="ytcopyRequest()">Copier ▶</button>
-      </div>
-      <div id="yt-msg" style="display:none;font-size:12px;margin-top:8px;padding:8px 12px;border-radius:8px"></div>
     </div>
 
     <!-- ── Jukebox IPFS direct ───────────────────────────── -->
@@ -473,7 +461,7 @@ function showTab(name) {
   document.getElementById('tl-'  + name)?.classList.add('active');
   if (name === 'admin'   && S.authenticated) loadAdminStatus();
   if (name === 'jukebox' && S.authenticated) loadUdriveAudio();
-  if (name === 'radio') loadMessages();
+  if (name === 'radio') { loadMessages(); loadEyeStatus(); }
 }
 
 /* ── bech32 ──────────────────────────────────────────── */
@@ -579,6 +567,7 @@ async function initStation() {
   const saved = localStorage.getItem('ss_npub');
   if (saved) await checkSession(saved);
   loadMessages();
+  loadEyeStatus();
 }
 function openUplanet() { window.open(S_upassportLocal ? (EARTH + '/index.html') : (IPFS_GW + '/ipns/copylaradio.com/'), '_blank'); }
 
@@ -816,66 +805,19 @@ async function loadMessages() {
   } catch (_) { document.getElementById('messages-list').textContent = 'Indisponible'; }
 }
 
-/* ── Jukebox : délégation YouTube ───────────────────── */
-async function ytcopyRequest() {
-  const input  = document.getElementById('yt-url');
-  const fmtSel = document.getElementById('yt-fmt');
-  const msg    = document.getElementById('yt-msg');
-  const btn    = document.getElementById('btn-ytcopy');
-  const url    = input.value.trim();
-  const fmt    = fmtSel ? fmtSel.value : 'mp3'; // 'mp3' ou 'mp4'
-  if (!url) return;
-  btn.disabled = true;
-  msg.style.display = 'none';
-
-  // 1. Demander le relay cible au portail (vérif NIP-42 côté serveur)
-  let relay = 'wss://relay.copylaradio.com';
+/* ── Dernière observation (mon-oeil.py + publication IPFS) ── */
+async function loadEyeStatus() {
   try {
-    const d = await (await fetch(API + '?action=yt_copy&npub=' + encodeURIComponent(S.npub))).json();
-    if (d.error) {
-      msg.textContent = '❌ ' + (d.hint || d.error);
-      msg.style.cssText = 'display:block;background:rgba(231,76,60,.1);border:1px solid rgba(231,76,60,.3);color:#f88';
-      btn.disabled = false; return;
-    }
-    if (d.relay) relay = d.relay;
+    const d = await (await fetch(API + '?action=eye')).json();
+    const card = document.getElementById('eye-card');
+    if (!d.ipfs_url) { card.style.display = 'none'; return; }
+    document.getElementById('eye-photo').src = d.ipfs_url;
+    document.getElementById('eye-photo-link').href = d.ipfs_url;
+    document.getElementById('eye-caption').textContent = d.caption || '';
+    card.style.display = '';
   } catch (_) {}
-
-  // 2. Signer un kind 1 #BRO #youtube [#mp3] <URL>
-  //    UPlanet_IA_Responder.sh : #youtube → process_youtube.sh
-  //    #mp3 → sortie uDRIVE/Music (MP3), sinon uDRIVE/Videos (MP4)
-  if (!window.nostr) {
-    msg.textContent = '❌ Extension NOSTR requise pour signer la demande';
-    msg.style.cssText = 'display:block;background:rgba(231,76,60,.1);border:1px solid rgba(231,76,60,.3);color:#f88';
-    btn.disabled = false; return;
-  }
-  try {
-    const fmtTag = fmt === 'mp3' ? ' #mp3' : '';
-    const signed = await window.nostr.signEvent({
-      kind: 1,
-      created_at: Math.floor(Date.now() / 1000),
-      tags: [['u', url]],
-      content: '#BRO #youtube' + fmtTag + ' ' + url,
-      pubkey: S.pubkeyHex,
-    });
-    await new Promise((resolve, reject) => {
-      const ws = new WebSocket(relay);
-      const tid = setTimeout(() => { ws.close(); resolve(); }, 6000);
-      ws.onopen    = () => ws.send(JSON.stringify(['EVENT', signed]));
-      ws.onmessage = e => {
-        try { if (JSON.parse(e.data)[0] === 'OK') { clearTimeout(tid); ws.close(); resolve(); } } catch(_){}
-      };
-      ws.onerror = () => { clearTimeout(tid); reject(new Error('Relay ' + relay + ' inaccessible')); };
-    });
-    const dest = fmt === 'mp3' ? 'uDRIVE/Music (MP3)' : 'uDRIVE/Videos (MP4)';
-    msg.textContent = '✅ Demande envoyée ! Votre station home va copier et synchroniser dans votre ' + dest + '.';
-    msg.style.cssText = 'display:block;background:rgba(61,186,126,.1);border:1px solid rgba(61,186,126,.3);color:#6fd17a';
-    input.value = '';
-  } catch (e) {
-    msg.textContent = '❌ ' + e.message;
-    msg.style.cssText = 'display:block;background:rgba(231,76,60,.1);border:1px solid rgba(231,76,60,.3);color:#f88';
-  }
-  btn.disabled = false;
 }
+setInterval(loadEyeStatus, 15000);
 
 /* ── Jukebox : bibliothèque uDRIVE ──────────────────── */
 async function loadUdriveAudio() {
