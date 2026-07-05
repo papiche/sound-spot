@@ -136,13 +136,16 @@ sudo -u "$SOUNDSPOT_USER" bash -c "
         ipfs config Datastore.StorageMax '2GB'
         ipfs config Routing.Type 'dhtclient'
         ipfs config --bool AutoConf.Enabled false
-        # Ouverture de la Gateway IPFS au réseau local pour le Jukebox
-        ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/8080
         ipfs config --json Experimental.Libp2pStreamMounting true
         ipfs config --json Experimental.FilestoreEnabled true
         ipfs config Logging.Level error
     fi
-    
+
+    # Réappliqué à chaque run (idempotent) : sur les nœuds déjà initialisés
+    # avant l'ajout de ce réglage, le bloc ci-dessus ne s'exécute jamais,
+    # donc la Gateway restait bloquée sur 127.0.0.1 sans que personne s'en aperçoive.
+    ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/8080
+
     # 4. Swarm Key UPlanet ORIGIN
     cat > \"\$IPFS_PATH/swarm.key\" <<EOF
 /key/swarm/psk/1.0.0/
@@ -218,10 +221,39 @@ StandardError=journal
 WantedBy=multi-user.target
 EOF
 
+# --- 6c. soundspot-strfry-proxy.service (port fixe 7777 → tunnel strfry courant) ---
+# x_strfry.sh (Astroport.ONE) choisit un port local dynamique par nœud swarm
+# (hash de l'IPFSNODEID distant) ; myRELAY (my.sh, dérivé de myIPFS) suppose
+# lui un port fixe 7777. Ce service comble l'écart et se réajuste seul en cas
+# de failover vers un autre nœud strfry du swarm.
+if [ ! -e "$INSTALL_DIR/strfry_proxy.sh" ] && [ "$(cd "$(dirname "$0")" && pwd)" != "$INSTALL_DIR" ]; then
+    cp "$(dirname "$0")/strfry_proxy.sh" "$INSTALL_DIR/strfry_proxy.sh"
+fi
+chmod +x "$INSTALL_DIR/strfry_proxy.sh"
+
+cat > /etc/systemd/system/soundspot-strfry-proxy.service <<EOF
+[Unit]
+Description=SoundSpot — Port fixe 7777 vers le tunnel IPFS p2p strfry actif
+After=network-online.target picoport.service
+
+[Service]
+Type=simple
+User=$SOUNDSPOT_USER
+Environment="IPFS_PATH=$USER_HOME/.ipfs"
+ExecStart=$INSTALL_DIR/strfry_proxy.sh
+Restart=on-failure
+RestartSec=10
+SyslogIdentifier=strfry-proxy
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
 systemctl daemon-reload
 systemctl enable --now ipfs
 systemctl enable --now picoport
-echo "✅ Picoport installé et démarré (ipfs.service CPUQuota=40% + picoport.service) !"
+systemctl enable --now soundspot-strfry-proxy
+echo "✅ Picoport installé et démarré (ipfs.service CPUQuota=40% + picoport.service + strfry-proxy) !"
 
 echo "=== 6c. Cron de maintenance quotidienne (mise à jour git + heure solaire) ==="
 # picoport_20h12.sh (généré par install_astroport_light.sh) contient les
@@ -247,7 +279,7 @@ if [ "$(cd "$(dirname "$0")" && pwd)" != "$INSTALL_DIR" ]; then
 fi
 chmod +x "$INSTALL_DIR/swarm_sync.sh"
 
-echo "=== 9. Tunnels IA Constellation (Qdrant + NextCloud) ==="
+echo "=== 9. Tunnels IA Constellation (Qdrant + NextCloud + strfry + orpheus) ==="
 # Résolution du chemin astrosystemctl (symlink ~/.local/bin ou script direct)
 _ASYS=""
 sudo -u "$SOUNDSPOT_USER" bash -c 'command -v astrosystemctl >/dev/null 2>&1' \
@@ -273,6 +305,24 @@ if find "$_SWARM_DIR" -name "x_qdrant.sh" 2>/dev/null | grep -q .; then
         echo 'QDRANT_URL="http://127.0.0.1:6333"' >> "$_PICO_CONF"
         echo "  → QDRANT_URL ajouté dans soundspot.conf"
     fi
+
+    # Clé API Qdrant = sha256(UPLANETNAME), identique sur toute la constellation
+    # (UPLANETNAME = contenu de swarm.key — Astroport.ONE/tools/my.sh:93-96,698-700 —
+    # même calcul que install/install-ai-company.docker.sh:127-131). Stockée au même
+    # endroit que le reste de l'écosystème IA : ~/.zen/ai-company/.env
+    _SWARM_KEY="$USER_HOME/.ipfs/swarm.key"
+    if [[ -s "$_SWARM_KEY" ]]; then
+        _UPLANETNAME=$(tail -n 1 "$_SWARM_KEY")
+        _QDRANT_API_KEY=$(echo -n "$_UPLANETNAME" | openssl dgst -sha256 | sed 's/^.* //')
+        _AI_ENV="$USER_HOME/.zen/ai-company/.env"
+        sudo -u "$SOUNDSPOT_USER" mkdir -p "$(dirname "$_AI_ENV")"
+        if [[ -f "$_AI_ENV" ]] && grep -q "^QDRANT_API_KEY=" "$_AI_ENV"; then
+            sudo -u "$SOUNDSPOT_USER" sed -i "s|^QDRANT_API_KEY=.*|QDRANT_API_KEY=${_QDRANT_API_KEY}|" "$_AI_ENV"
+        else
+            sudo -u "$SOUNDSPOT_USER" bash -c "echo 'QDRANT_API_KEY=${_QDRANT_API_KEY}' >> '$_AI_ENV'"
+        fi
+        echo "  → QDRANT_API_KEY calculée et inscrite dans $_AI_ENV"
+    fi
 else
     echo "ℹ Aucun Qdrant disponible dans le swarm pour l'instant"
     echo "  → Activable plus tard : sudo -u $SOUNDSPOT_USER astrosystemctl enable qdrant"
@@ -296,7 +346,42 @@ else
     echo "  → Activable plus tard : sudo -u $SOUNDSPOT_USER astrosystemctl enable nextcloud-app"
 fi
 
-# --- 9c. Aide astrosystemctl ---
+# --- 9c. strfry (relay Nostr requis par myRELAY / UPassport) ---
+# Mode "closest" : la latence prime sur la puissance de calcul pour un relay.
+# soundspot-strfry-proxy.service (voir 6c) réexpose le tunnel sur le port fixe
+# 7777 attendu par myRELAY, quel que soit le port dynamique choisi par le nœud.
+if find "$_SWARM_DIR" -name "x_strfry.sh" 2>/dev/null | grep -q .; then
+    echo "▶ strfry détecté dans le swarm — activation du tunnel persistant (mode closest)"
+    if [[ -n "$_ASYS" ]]; then
+        sudo -u "$SOUNDSPOT_USER" bash -c "$_ASYS enable strfry closest 2>/dev/null \
+            && echo '✅ Tunnel strfry activé'" \
+            || echo "⚠ astrosystemctl enable strfry closest a échoué (IPFS démarré ?)"
+    else
+        echo "⚠ astrosystemctl introuvable — relancer après démarrage d'IPFS"
+    fi
+else
+    echo "ℹ Aucun strfry disponible dans le swarm pour l'instant"
+    echo "  → Activable plus tard : sudo -u $SOUNDSPOT_USER astrosystemctl enable strfry closest"
+fi
+
+# --- 9d. orpheus (TTS — utilisé par idle_announcer.sh pour l'heure solaire/messages) ---
+# Mode "random" : génération TTS = calcul GPU comme ollama/comfyui, on répartit
+# la charge entre les nœuds du swarm plutôt que de toujours viser le plus puissant.
+if find "$_SWARM_DIR" -name "x_orpheus.sh" 2>/dev/null | grep -q .; then
+    echo "▶ orpheus détecté dans le swarm — activation du tunnel persistant (mode random)"
+    if [[ -n "$_ASYS" ]]; then
+        sudo -u "$SOUNDSPOT_USER" bash -c "$_ASYS enable orpheus random 2>/dev/null \
+            && echo '✅ Tunnel orpheus activé (port 5005)'" \
+            || echo "⚠ astrosystemctl enable orpheus random a échoué (IPFS démarré ?)"
+    else
+        echo "⚠ astrosystemctl introuvable — relancer après démarrage d'IPFS"
+    fi
+else
+    echo "ℹ Aucun orpheus disponible dans le swarm pour l'instant"
+    echo "  → Activable plus tard : sudo -u $SOUNDSPOT_USER astrosystemctl enable orpheus random"
+fi
+
+# --- 9e. Aide astrosystemctl ---
 cat << 'ASTROSYS_HELP'
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
