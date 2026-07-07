@@ -257,6 +257,11 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
     <div id="messages-list" style="font-size:13px;color:var(--muted)">Chargement…</div>
   </div>
 
+  <div class="card">
+    <div class="card-title">🎭 Sons Homer</div>
+    <div class="admin-actions" id="homer-sounds"><span class="spinner"></span></div>
+  </div>
+
   <div class="card" id="eye-card" style="display:none">
     <div class="card-title">👁️ Dernière observation</div>
     <a id="eye-photo-link" href="#" target="_blank">
@@ -461,7 +466,7 @@ function showTab(name) {
   document.getElementById('tl-'  + name)?.classList.add('active');
   if (name === 'admin'   && S.authenticated) loadAdminStatus();
   if (name === 'jukebox' && S.authenticated) loadUdriveAudio();
-  if (name === 'radio') { loadMessages(); loadEyeStatus(); }
+  if (name === 'radio') { loadMessages(); loadEyeStatus(); loadHomerSounds(); }
 }
 
 /* ── bech32 ──────────────────────────────────────────── */
@@ -568,6 +573,7 @@ async function initStation() {
   if (saved) await checkSession(saved);
   loadMessages();
   loadEyeStatus();
+  loadHomerSounds();
 }
 function openUplanet() { window.open(S_upassportLocal ? (EARTH + '/index.html') : (IPFS_GW + '/ipns/copylaradio.com/'), '_blank'); }
 
@@ -803,6 +809,27 @@ async function loadMessages() {
       el.textContent = 'Aucun message récent';
     }
   } catch (_) { document.getElementById('messages-list').textContent = 'Indisponible'; }
+}
+
+/* ── Soundboard Homer (gags, joués sur le nœud) ─────────── */
+async function loadHomerSounds() {
+  const el = document.getElementById('homer-sounds');
+  if (!el) return;
+  try {
+    const d = await (await fetch(API + '?action=homer&cmd=list')).json();
+    const sounds = d.sounds || [];
+    if (!sounds.length) {
+      el.innerHTML = '<span style="font-size:13px;color:var(--muted)">Aucun son disponible</span>';
+      return;
+    }
+    el.innerHTML = sounds.map(f => {
+      const label = f.replace(/\.mp3$/i, '').replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2');
+      return `<button class="btn-admin" onclick="playHomerSound('${f.replace(/'/g, "\\'")}')">🔊 ${label}</button>`;
+    }).join('');
+  } catch (_) { el.innerHTML = '<span style="font-size:13px;color:var(--muted)">Indisponible</span>'; }
+}
+async function playHomerSound(file) {
+  try { await fetch(API + '?action=homer&cmd=play&file=' + encodeURIComponent(file)); } catch (_) {}
 }
 
 /* ── Dernière observation (mon-oeil.py + publication IPFS) ── */
