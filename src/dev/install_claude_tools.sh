@@ -116,16 +116,14 @@ echo -e "       ${DIM}Wraps git/cargo/pytest/jest… pour n'afficher que l'essen
 ask "Installer RTK ? [o/N] : "
 read -r INPUT_RTK
 if [[ "${INPUT_RTK,,}" == "o" ]]; then
-    if RUN_AS_USER 'command -v rtk &>/dev/null'; then
-        log "RTK déjà présent : $(RUN_AS_USER 'rtk --version' 2>/dev/null || echo '?')"
-    else
-        log "Installation RTK via script officiel..."
-        if RUN_AS_USER "curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/master/install.sh | sh"; then
-            log "RTK installé ✓"
-        else
-            warn "Installation RTK échouée (curl requis, vérifier connectivité)."
-        fi
-    fi
+
+	log "Installation RTK via script officiel..."
+	if RUN_AS_USER "curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/master/install.sh | sh"; then
+		log "RTK installé ✓"
+	else
+		warn "Installation RTK échouée (curl requis, vérifier connectivité)."
+	fi
+
     # Hook global silencieux — injecte RTK.md dans le contexte Claude Code
     RUN_AS_USER "export PATH=\"$USER_LOCAL_BIN:\$HOME/.local/bin:\$PATH\"; \
          command -v rtk &>/dev/null && rtk init --global --auto-patch 2>/dev/null || true"
