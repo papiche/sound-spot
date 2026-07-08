@@ -658,6 +658,21 @@ def capture_and_process():
 # ── Callback audio ─────────────────────────────────────────────────────
 last_trigger = 0.0
 
+# Posé/rafraîchi par idle_announcer.sh (et tout autre script de lecture)
+# pendant qu'il joue du son sur les haut-parleurs du nœud — sans ça, le
+# clocher (bip/cloches/voix) est capté par ce micro et se déclenche
+# lui-même en boucle. Basé sur l'mtime (pas de nettoyage explicite requis :
+# un flag figé après un crash du script qui l'a posé s'auto-expire).
+SPEAKER_ACTIVE_FLAG = "/dev/shm/soundspot_speaker_active"
+SPEAKER_ACTIVE_MAX_AGE_S = 8
+
+
+def _speaker_active():
+    try:
+        return (time.time() - os.path.getmtime(SPEAKER_ACTIVE_FLAG)) <= SPEAKER_ACTIVE_MAX_AGE_S
+    except OSError:
+        return False
+
 
 def audio_callback(indata, frames, time_info, status):
     global last_trigger
@@ -665,6 +680,9 @@ def audio_callback(indata, frames, time_info, status):
         log.debug("sounddevice status : %s", status)
     volume_norm = float(np.linalg.norm(indata)) / max(1, len(indata) ** 0.5) * 10
     if volume_norm > AUDIO_THRESHOLD:
+        if _speaker_active():
+            log.debug("Son détecté (niveau %.2f) mais le nœud parle actuellement — ignoré", volume_norm)
+            return
         now = time.monotonic()
         if now - last_trigger > COOLDOWN_S:
             last_trigger = now

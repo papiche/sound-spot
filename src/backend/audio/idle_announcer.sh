@@ -33,6 +33,13 @@ _SS_SERVICE="idle"
 
 TTS_SH="$INSTALL_DIR/backend/audio/tts.sh"
 
+# Signale à mon-oeil.py (écoute micro) que le nœud parle par ses propres
+# haut-parleurs — sinon le bip/les cloches/la voix sont captés par le micro
+# et déclenchent une fausse détection de son (photo + annonce en boucle).
+# Rafraîchi à chaque son joué (voir play_audio) ; mon-oeil.py l'ignore dès
+# qu'il devient trop vieux (pas de nettoyage explicite requis en fin de cycle).
+SPEAKER_ACTIVE_FLAG="/dev/shm/soundspot_speaker_active"
+
 # Re-lire la configuration à chaque cycle (changements du portail pris en compte à chaud)
 reload_conf() {
     [ -f "$CONF" ] && source "$CONF"
@@ -50,6 +57,7 @@ ss_info "démarrage clocher — mode=${CLOCK_MODE:-bells} intervalle=${IDLE_ANNO
 # ── Audio : mpg123 → paplay → pw-play → aplay ─────────────────────────────
 play_audio() {
     local file="$1"
+    touch "$SPEAKER_ACTIVE_FLAG" 2>/dev/null
     if [[ "${file,,}" == *.mp3 ]]; then
         # Pour les MP3, mpg123 est le plus fiable et léger
         mpg123 -q "$file" 2>/dev/null || pw-play "$file" 2>/dev/null || true

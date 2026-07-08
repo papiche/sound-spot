@@ -560,14 +560,23 @@ function shortKey(k) { return k.slice(0, 8) + '…' + k.slice(-4); }
    piloté par ce bandeau). Chargement séquentiel requis : nacl-fast.min.js
    → nostr.bundle.js → common.js (qui charge lui-même lib_0..lib_7) →
    uplanet-header.js. */
-function _loadScriptsSequential(urls, i) {
+function _loadScriptsSequential(urls, i, onDone) {
   i = i || 0;
-  if (i >= urls.length) return;
+  if (i >= urls.length) { if (onDone) onDone(); return; }
   const s = document.createElement('script');
   s.src = urls[i];
-  s.onload = () => _loadScriptsSequential(urls, i + 1);
+  s.onload = () => _loadScriptsSequential(urls, i + 1, onDone);
   s.onerror = () => console.warn('UPlanet header: échec de chargement', urls[i]);
   document.head.appendChild(s);
+}
+// uplanet-header.js injecte #uph en position:fixed;top:5px — il chevauche notre
+// .topnav sticky (z-index inférieur mais même zone d'écran). On le repousse sous
+// notre nav plutôt que de modifier le fichier externe (dépôt UPlanet séparé).
+function _repositionUplanetBanner() {
+  const uph = document.getElementById('uph');
+  const nav = document.querySelector('.topnav');
+  if (!uph || !nav) return;
+  uph.style.top = (nav.getBoundingClientRect().height + 6) + 'px';
 }
 function loadUplanetHeader() {
   if (window.uphRefresh) return; // déjà chargé
@@ -594,7 +603,10 @@ function loadUplanetHeader() {
     EARTH + '/nostr.bundle.js',
     EARTH + '/common.js',
     EARTH + '/uplanet-header.js',
-  ]);
+  ], 0, () => {
+    _repositionUplanetBanner();
+    window.addEventListener('resize', _repositionUplanetBanner);
+  });
 }
 
 /* ── Init station ────────────────────────────────────── */
@@ -930,7 +942,7 @@ async function loadMessages() {
     const el = document.getElementById('messages-list');
     if (d.messages?.length) {
       el.innerHTML = d.messages.map(m =>
-        `<div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">${m}</div>`
+        `<div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">${m.text}</div>`
       ).join('');
     } else {
       el.textContent = 'Aucun message récent';

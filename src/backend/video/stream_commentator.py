@@ -3,7 +3,7 @@
 stream_commentator.py — Commentateur IA de flux RTMP (Ollama llava + Orpheus TTS)
 
 Surveille le flux vidéo actif (/dev/shm/current_vj). Quand un DJ ou un drone
-diffuse, capture une frame via ffmpeg, interroge Ollama (llava) selon le style
+diffuse, capture une frame via ffmpeg, interroge Ollama (vision) selon le style
 choisi, et diffuse le commentaire vocal via l'API speak du portail.
 
 Contrôle runtime (fichiers /dev/shm — modifiables à chaud par l'API) :
@@ -14,7 +14,9 @@ Contrôle runtime (fichiers /dev/shm — modifiables à chaud par l'API) :
   commentator.pid         PID du daemon (autogestion)
 
 Variables d'environnement (soundspot.conf) :
-  OLLAMA_URL      URL Ollama (défaut: http://127.0.0.1:11434/api/generate)
+  OLLAMA_URL          URL Ollama (défaut: http://127.0.0.1:11434/api/generate)
+  OLLAMA_VISION_MODEL Modèle vision Ollama (défaut: llama3.2-vision:11b — "llava" n'est
+                       pas garanti présent sur le swarm, cf. mon-oeil.py)
   BOUCHE_URL      URL API speak portail (défaut: http://192.168.10.1/api.sh?action=speak)
   MON_OEIL_VOICE  Voix Orpheus (défaut: pierre)
   RTMP_BASE       Base URL RTMP (défaut: rtmp://127.0.0.1/live/)
@@ -34,6 +36,7 @@ import requests
 
 # ── Configuration ────────────────────────────────────────────────────────
 OLLAMA_URL   = os.getenv("OLLAMA_URL",    "http://127.0.0.1:11434/api/generate")
+OLLAMA_VISION_MODEL = os.getenv("OLLAMA_VISION_MODEL", "llama3.2-vision:11b")
 BOUCHE_URL   = os.getenv("BOUCHE_URL",    "http://192.168.10.1/api.sh?action=speak")
 VOIX_IA      = os.getenv("MON_OEIL_VOICE","pierre")
 RTMP_BASE    = os.getenv("RTMP_BASE",     "rtmp://127.0.0.1/live/")
@@ -172,7 +175,7 @@ def describe_frame(style: str) -> str | None:
 
     prompt = STYLE_PROMPTS.get(style, STYLE_PROMPTS["concert"])
     payload = {
-        "model": "llava",
+        "model": OLLAMA_VISION_MODEL,
         "prompt": prompt,
         "images": [img_b64],
         "stream": False,
@@ -180,7 +183,11 @@ def describe_frame(style: str) -> str | None:
     try:
         resp = requests.post(OLLAMA_URL, json=payload, timeout=60)
         resp.raise_for_status()
-        text = resp.json().get("response", "").strip()
+        data = resp.json()
+        if "error" in data:
+            log.error("Ollama a répondu une erreur (%s) : %s", OLLAMA_VISION_MODEL, data["error"])
+            return None
+        text = data.get("response", "").strip()
         return text[:300] if text else None
     except requests.Timeout:
         log.warning("Ollama timeout — réponse trop longue")
@@ -273,7 +280,7 @@ def main():
         pass
 
     log.info("Commentateur IA démarré (pid %d)", os.getpid())
-    log.info("Ollama : %s  |  Speak : %s  |  Voix : %s", OLLAMA_URL, BOUCHE_URL, VOIX_IA)
+    log.info("Ollama : %s (%s)  |  Speak : %s  |  Voix : %s", OLLAMA_URL, OLLAMA_VISION_MODEL, BOUCHE_URL, VOIX_IA)
 
     next_run = 0.0
 
