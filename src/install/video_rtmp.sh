@@ -16,7 +16,9 @@ rtmp {
         application live {
             live on;
             record off;
+            # 192.168.10.0/24 = AP 2,4GHz | 192.168.11.0/24 = AP5G (si AP5G_ENABLED) | 10.200.0.0/16 = mesh
             allow publish 192.168.10.0/24;
+            allow publish 192.168.11.0/24;
             allow publish 10.200.0.0/16;
             allow publish 127.0.0.1;
             deny publish all;

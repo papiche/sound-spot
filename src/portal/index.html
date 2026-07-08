@@ -206,6 +206,21 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
     </div>
     <div id="auth-msg"></div>
     <button class="btn-primary" id="btn-do-auth" onclick="doNip42Auth()">Connexion NOSTR</button>
+
+    <div id="nsec-fallback" style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
+      <p class="hint" style="margin-bottom:8px">
+        📱 Pas d'extension NOSTR sur ce téléphone ? Collez votre clé <strong>nsec</strong> —
+        elle ne quitte jamais l'appareil, seule la signature est envoyée au portail.
+      </p>
+      <div style="display:flex;gap:6px">
+        <input type="password" id="nsec-input" placeholder="nsec1…" autocomplete="off" spellcheck="false"
+          style="flex:1;min-width:0;padding:8px 10px;border-radius:6px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--text);font-family:monospace;font-size:13px">
+        <button type="button" onclick="const i=document.getElementById('nsec-input');i.type=i.type==='password'?'text':'password'"
+          style="background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);cursor:pointer;padding:0 10px">👁</button>
+      </div>
+      <button class="btn-primary" id="btn-nsec-auth" style="margin-top:8px" onclick="doNsecAuth()">Connexion avec la clé</button>
+    </div>
+
     <div id="auth-logout-wrap" style="display:none;margin-top:10px;text-align:center">
       <button style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer" onclick="doLogout()">Se déconnecter</button>
     </div>
@@ -260,6 +275,31 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
   <div class="card">
     <div class="card-title">🎭 Sons Homer</div>
     <div class="admin-actions" id="homer-sounds"><span class="spinner"></span></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🎧 Diffuser en DJ (depuis un PC)</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:10px;line-height:1.6">
+      Diffusion Icecast sur <code id="dj-icecast-url" style="color:var(--cyan)"></code> —
+      format <strong>Ogg Vorbis</strong> obligatoire.
+    </p>
+    <p class="hint" style="margin-bottom:4px"><strong>Mixxx</strong> — Préférences → Live Broadcasting :</p>
+    <code style="display:block;font-size:12px;background:var(--bg3);padding:10px 12px;border-radius:6px;color:var(--cyan);margin-bottom:10px">
+      Type: Icecast2 · Hôte: <span id="dj-host">192.168.10.1</span> · Port: 8111 · Mount: /live<br>
+      Format: Ogg Vorbis · Mot de passe: hackme (sauf changé)
+    </code>
+    <p class="hint" style="margin-bottom:4px"><strong>Ligne de commande</strong> (ffmpeg, Linux/Mac) :</p>
+    <code style="display:block;font-size:12px;background:var(--bg3);padding:10px 12px;border-radius:6px;color:var(--cyan);margin-bottom:10px;overflow-x:auto;white-space:pre">ffmpeg -re -i &lt;source&gt; -c:a libvorbis -b:a 128k \
+  -content_type application/ogg -f ogg \
+  icecast://source:hackme@<span id="dj-host2">192.168.10.1</span>:8111/live</code>
+    <p class="hint" style="margin-bottom:4px"><strong>VLC</strong> (alternative sans Mixxx) :</p>
+    <code style="display:block;font-size:12px;background:var(--bg3);padding:10px 12px;border-radius:6px;color:var(--cyan);overflow-x:auto;white-space:pre">cvlc &lt;source&gt; --sout '#transcode{acodec=vorb,ab=128,channels=2,samplerate=44100}
+  :std{access=shout,mux=ogg,dst=source:hackme@<span id="dj-host3">192.168.10.1</span>:8111/live}'</code>
+    <p class="hint" style="margin-top:10px">
+      Retour casque : <code>snapclient -h <span id="dj-host4">192.168.10.1</span> -p 1704</code>
+      (latence 1-3s — utilisez la sortie Cue de votre logiciel pour beatmatcher sans latence).
+      Un seul flux DJ actif à la fois.
+    </p>
   </div>
 
   <div class="card" id="eye-card" style="display:none">
@@ -403,8 +443,17 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
       <div id="services-list" style="font-size:13px;color:var(--muted)">Chargement…</div>
       <div class="admin-actions">
         <button class="btn-admin danger" onclick="adminPost({cmd:'reset_audio'})">🔄 Reset audio</button>
-        <button class="btn-admin" onclick="loadAdminStatus()">↺ Rafraîchir</button>
+        <button class="btn-admin" onclick="loadAdminStatus();loadAudioOutputs()">↺ Rafraîchir</button>
       </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🔊 Sortie audio</div>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:10px">
+        S'applique au son diffusé (DJ/AutoDJ/Jukebox) <strong>et</strong> à la vidéo projetée
+        depuis la Régie VJ — les deux passent par la même sortie.
+      </p>
+      <div class="admin-actions" id="audio-output-list"><span class="spinner"></span></div>
     </div>
 
     <div class="card">
@@ -458,13 +507,20 @@ const IPFS_GW      = 'http://' + SPOT_HOST + ':8080';
 const EARTH        = UPASSPORT + '/earth';
 const FLEET_RELAY  = 'ws://'   + SPOT_HOST + ':9999';
 
+// Carte "Diffuser en DJ" : hôte réel (IP ou soundspot.local) au lieu du 192.168.10.1 par défaut
+document.getElementById('dj-icecast-url').textContent = 'http://' + SPOT_HOST + ':8111/live';
+['dj-host', 'dj-host2', 'dj-host3', 'dj-host4'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.textContent = SPOT_HOST;
+});
+
 /* ── Onglets ─────────────────────────────────────────── */
 function showTab(name) {
   document.querySelectorAll('.tabpane').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tablink').forEach(l => l.classList.remove('active'));
   document.getElementById('tab-' + name)?.classList.add('active');
   document.getElementById('tl-'  + name)?.classList.add('active');
-  if (name === 'admin'   && S.authenticated) loadAdminStatus();
+  if (name === 'admin'   && S.authenticated) { loadAdminStatus(); loadAudioOutputs(); }
   if (name === 'jukebox' && S.authenticated) loadUdriveAudio();
   if (name === 'radio') { loadMessages(); loadEyeStatus(); loadHomerSounds(); }
 }
@@ -651,12 +707,14 @@ function openAuthModal() {
     document.getElementById('btn-do-auth').style.display   = 'none';
     document.getElementById('auth-logout-wrap').style.display = 'block';
     document.getElementById('auth-steps').style.display = 'none';
+    document.getElementById('nsec-fallback').style.display = 'none';
   } else {
     document.getElementById('modal-title').textContent  = '🔑 Connexion MULTIPASS';
     document.getElementById('modal-desc').textContent   = 'Connectez-vous avec votre identité NOSTR pour accéder aux fonctions avancées.';
     document.getElementById('btn-do-auth').style.display   = 'block';
     document.getElementById('auth-logout-wrap').style.display = 'none';
     document.getElementById('auth-steps').style.display = 'flex';
+    document.getElementById('nsec-fallback').style.display = 'block';
     resetAuthSteps();
   }
 }
@@ -745,6 +803,75 @@ async function doNip42Auth() {
   } catch (e) {
     setStep('verify', '❌', 'err');
     setAuthMsg('Vérification échouée : ' + e.message, 'err');
+    btn.disabled = false;
+  }
+}
+
+// Chargement paresseux de nostr.bundle.js (nostr-tools) — nécessaire uniquement
+// pour signer localement avec une clé nsec collée (repli mobile sans NIP-07).
+// Servi par UPassport (/earth) : indisponible si le node UPassport (port 54321) est down.
+let _nostrToolsLoading = null;
+function _ensureNostrTools() {
+  if (window.NostrTools) return Promise.resolve();
+  if (_nostrToolsLoading) return _nostrToolsLoading;
+  _nostrToolsLoading = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = EARTH + '/nostr.bundle.js';
+    s.onload = () => resolve();
+    s.onerror = () => { _nostrToolsLoading = null; reject(new Error('Bibliothèque de signature indisponible (UPassport injoignable)')); };
+    document.head.appendChild(s);
+  });
+  return _nostrToolsLoading;
+}
+
+async function doNsecAuth() {
+  const input = document.getElementById('nsec-input');
+  const nsec = (input.value || '').trim();
+  const btn = document.getElementById('btn-nsec-auth');
+  if (!nsec.startsWith('nsec1')) {
+    setAuthMsg('Clé invalide — doit commencer par « nsec1 ».', 'err');
+    return;
+  }
+  btn.disabled = true; resetAuthSteps();
+  try {
+    await _ensureNostrTools();
+    const decoded = window.NostrTools.nip19.decode(nsec);
+    if (decoded.type !== 'nsec') throw new Error('Format de clé invalide');
+    const sk = decoded.data;
+    const pubkeyHex = window.NostrTools.getPublicKey(sk);
+    const npub = hexToNpub(pubkeyHex);
+    setStep('nip07', '✅', 'ok');
+
+    setStep('challenge', '⌛', null);
+    const d = await (await fetch(API + '?action=nip42&cmd=challenge&npub=' + encodeURIComponent(npub))).json();
+    if (!d.ok) throw new Error(d.error || 'challenge failed');
+    setStep('challenge', '✅', 'ok');
+
+    setStep('sign', '⌛', null);
+    const signedEvent = window.NostrTools.finishEvent({
+      kind: 22242,
+      created_at: Math.floor(Date.now() / 1000),
+      tags: [['relay', FLEET_RELAY], ['challenge', d.challenge]],
+      content: 'SoundSpot Auth',
+    }, sk);
+    setStep('sign', '✅', 'ok');
+
+    setStep('verify', '⌛', null);
+    const v = await (await fetch(
+      API + '?action=nip42&cmd=verify&npub=' + encodeURIComponent(npub),
+      { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(signedEvent) }
+    )).json();
+    if (!v.ok) throw new Error(v.error || 'verify failed');
+    setStep('verify', '✅', 'ok');
+
+    S.pubkeyHex = pubkeyHex; S.npub = npub; S.authenticated = true;
+    localStorage.setItem('ss_npub', npub);
+    setAuthMsg('✅ Authentifié — bienvenue sur ' + S.spotName, 'ok');
+    setTimeout(() => { closeAuthModal(); onAuthChanged(true); }, 1200);
+  } catch (e) {
+    setAuthMsg('Erreur : ' + e.message, 'err');
+  } finally {
+    input.value = ''; // la clé ne reste jamais dans le champ ni en mémoire au-delà de cette fonction
     btn.disabled = false;
   }
 }
@@ -1020,6 +1147,38 @@ async function loadAdminStatus() {
     S.clockMode = d.clock_mode || S.clockMode;
     updateClockModeUI();
   } catch (_) {}
+}
+
+async function loadAudioOutputs() {
+  const el = document.getElementById('audio-output-list');
+  if (!el) return;
+  try {
+    const sinks = await (await fetch(API + '?action=audio_output')).json();
+    if (!Array.isArray(sinks) || !sinks.length) {
+      el.innerHTML = '<span style="font-size:13px;color:var(--muted)">Aucune sortie détectée</span>';
+      return;
+    }
+    el.innerHTML = sinks.map(s =>
+      `<button class="btn-admin" ${s.active ? 'disabled style="border-color:var(--green);color:var(--green)"' : ''}
+        onclick="setAudioOutput('${s.name.replace(/'/g, "\\'")}')">
+        ${s.active ? '✅ ' : '🔈 '}${s.label}
+      </button>`
+    ).join('');
+  } catch (_) {
+    el.innerHTML = '<span style="font-size:13px;color:var(--muted)">Indisponible</span>';
+  }
+}
+async function setAudioOutput(sink) {
+  const el = document.getElementById('audio-output-list');
+  el.innerHTML = '<span class="spinner"></span> Commutation…';
+  try {
+    await fetch(API + '?action=audio_output', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: 'sink=' + encodeURIComponent(sink),
+    });
+  } catch (_) {}
+  setTimeout(loadAudioOutputs, 1500);
 }
 
 async function btScan() {

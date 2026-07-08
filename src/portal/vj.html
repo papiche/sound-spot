@@ -119,7 +119,18 @@
     Pour envoyer un flux (drone DJI, Larix Broadcaster, OBS…), configurez la diffusion RTMP sur :<br>
     <code id="rtmp-url" style="color:var(--accent)">rtmp://…/live/nom_du_flux</code><br>
     Le flux apparaît ci-dessus dès qu'il est reçu — cliquez « Projeter » pour l'afficher.
+    Le son embarqué dans le flux suit la sortie audio choisie dans l'onglet ⚙️ Admin du portail
+    (Jack / Bluetooth / HDMI) — même réglage que pour le DJ.
   </p>
+  <p class="hint" style="margin-top:10px;margin-bottom:4px"><strong>OBS Studio</strong> (Linux Mint/PC) :</p>
+  <p class="hint" style="margin-bottom:10px">
+    Paramètres → Stream → Service <em>Personnalisé…</em> → Serveur
+    <code style="color:var(--accent)" id="rtmp-server">rtmp://…/live</code> → Clé de stream = nom du flux.
+  </p>
+  <p class="hint" style="margin-bottom:4px"><strong>ffmpeg</strong> (webcam/écran, Linux) :</p>
+  <code style="display:block;font-size:12px;background:#0c0c16;padding:10px 12px;border-radius:6px;color:var(--accent);overflow-x:auto;white-space:pre" id="ffmpeg-cmd"></code>
+  <p class="hint" style="margin-top:10px;margin-bottom:4px"><strong>VLC</strong> (via l'assistant Média → Diffuser…, destination RTMP — support variable selon le paquet VLC de la distro ; ffmpeg/OBS sont plus fiables) :</p>
+  <code style="display:block;font-size:12px;background:#0c0c16;padding:10px 12px;border-radius:6px;color:var(--accent);overflow-x:auto;white-space:pre" id="vlc-cmd"></code>
   <div style="display:flex;gap:24px;flex-wrap:wrap;justify-content:center;margin-top:14px">
     <div style="text-align:center">
       <img id="rtmp-qr" width="140" height="140" style="border-radius:8px;background:#fff;padding:6px" alt="QR flux RTMP">
@@ -191,10 +202,20 @@
   const UPASSPORT = 'http://' + location.hostname + ':54321';
   let _currentStyle = 'concert';
 
-  const RTMP_URL = 'rtmp://' + location.hostname + '/live/nom_du_flux';
+  const RTMP_HOST = location.hostname;
+  const RTMP_BASE = 'rtmp://' + RTMP_HOST + '/live';
+  const RTMP_URL = RTMP_BASE + '/nom_du_flux';
   document.getElementById('rtmp-url').textContent = RTMP_URL;
   document.getElementById('rtmp-qr').src = UPASSPORT + '/qr?data=' + encodeURIComponent(RTMP_URL);
   document.getElementById('qoop-qr').src = UPASSPORT + '/qr?data=' + encodeURIComponent('https://opencollective.com/monnaie-libre');
+  document.getElementById('rtmp-server').textContent = RTMP_BASE;
+  document.getElementById('ffmpeg-cmd').textContent =
+    'ffmpeg -re -f v4l2 -i /dev/video0 -f pulse -i default \\\n' +
+    '  -c:v libx264 -preset veryfast -c:a aac -f flv \\\n' +
+    '  ' + RTMP_BASE + '/pc';
+  document.getElementById('vlc-cmd').textContent =
+    "cvlc v4l2:///dev/video0 --sout '#transcode{vcodec=h264,vb=800,acodec=aac,ab=128}\\n" +
+    "  :std{access=rtmp,mux=ffmpeg{mux=flv},dst=" + RTMP_BASE + "/pc}'";
 
   // ── Projecteur ────────────────────────────────────────────────────
   function _updateProjectorUI(state) {
