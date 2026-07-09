@@ -33,6 +33,8 @@ www-data ALL=(${SOUNDSPOT_USER}) NOPASSWD: ${USER_HOME}/.astro/bin/python3 ${USE
 www-data ALL=(${SOUNDSPOT_USER}) NOPASSWD: ${USER_HOME}/.astro/bin/python3 ${USER_HOME}/.zen/Astroport.ONE/tools/nostr_node_intercom.py verify
 www-data ALL=(${SOUNDSPOT_USER}) NOPASSWD: /bin/bash ${INSTALL_DIR}/backend/audio/tts.sh *
 www-data ALL=(${SOUNDSPOT_USER}) NOPASSWD: /usr/bin/python3 ${INSTALL_DIR}/backend/video/stream_commentator.py
+www-data ALL=(ALL) NOPASSWD: /usr/local/bin/yt-dlp *
+www-data ALL=(ALL) NOPASSWD: /usr/bin/mpv *
 SUDOEOF
     chmod 0440 /etc/sudoers.d/soundspot-www
 

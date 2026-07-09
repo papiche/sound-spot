@@ -176,6 +176,28 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
   </div>
 </nav>
 
+<!-- ── EN-TÊTE IMMÉDIATE : APPEL AUX DONS CONSTELLATION ── -->
+<div class="card" style="border: 2px solid var(--green); background: linear-gradient(135deg, rgba(61,186,126,0.15), rgba(123,97,255,0.05)); margin: 14px; border-radius: 12px;">
+  <div style="display: flex; gap: 12px; align-items: center; padding: 4px;">
+    <div style="font-size: 32px;">🌿</div>
+    <div style="flex: 1;">
+      <h4 style="color: #fff; font-size: 14px; margin-bottom: 2px;">Soutenez la Constellation Libre</h4>
+      <p style="font-size: 12px; color: var(--text); line-height: 1.4;">
+        Ce nœud fait partie d'un bien commun logiciel maintenu par vos dons. Aidez-nous à payer les serveurs et à développer la constellation.
+      </p>
+    </div>
+  </div>
+  <div style="display: flex; gap: 8px; margin-top: 12px;">
+    <a href="https://opencollective.com/monnaie-libre" target="_blank" class="btn-play" style="text-decoration: none; font-size: 12px; padding: 8px 14px; background: var(--green); color: #000; text-align: center; flex: 1; font-weight: bold; border-radius: 6px;">
+      💚 Adhérez à OpenCollective
+    </a>
+    <a href="#" onclick="showTab('jukebox'); return false" class="external-link" style="padding: 8px 12px; font-size: 12px; border-radius: 6px;">
+      🎶 Jouer un son
+    </a>
+  </div>
+</div>
+
+
 <!-- ── Modale NIP-42 ─────────────────────────────────────── -->
 <div class="modal-overlay" id="auth-modal">
   <div class="modal-box">
@@ -346,60 +368,27 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 </div>
 
 <!-- ══════════════════════════════════════════════════════
-     ONGLET Jukebox (MULTIPASS)
+     ONGLET Jukebox 
 ═══════════════════════════════════════════════════════ -->
+<!-- Remplacement de la section jukebox existante dans src/portal/index.html -->
 <div class="tabpane" id="tab-jukebox">
-  <div class="locked-zone" id="jukebox-locked">
-    <div class="lock-icon">🎵🔒</div>
-    <h3>Jukebox MULTIPASS</h3>
-    <p>Authentifiez-vous avec votre identité NOSTR pour ajouter des morceaux à la file du jukebox.</p>
-    <button class="btn-unlock" onclick="openAuthModal()">Se connecter avec NOSTR</button>
-    <div style="margin-top:14px">
-      <a id="jukebox-create-link" href="#" target="_blank" class="external-link" style="justify-content:center">
-        🆕 Créer un MULTIPASS →
-      </a>
-      <div class="hint" style="margin-top:8px">
-        Ou avec le wallet <a href="https://z.astroport.one" target="_blank">Ẑelkova</a>
-      </div>
+  <!-- Zone Playlist collaborative -->
+  <div class="card">
+    <div class="card-title">🔊 Ajouter à la Playlist collective</div>
+    <p style="font-size:12px; color:var(--muted); margin-bottom:10px;">
+      Collez un lien <strong>YouTube</strong>, un lien de fichier direct ou un CID <strong>IPFS</strong>. 
+      La constellation se charge de le diffuser sur les enceintes locales !
+    </p>
+    <div class="jukebox-form">
+      <input class="jukebox-input" id="playlist-input-url" type="url" placeholder="Lien YouTube ou URL audio/vidéo...">
+      <button class="btn-queue" onclick="addToPlaylist()">Ajouter ▶</button>
     </div>
   </div>
-  <div id="jukebox-content" style="display:none">
 
-    <!-- ── Lien uDRIVE personnel ─────────────────────────── -->
-    <div class="card">
-      <div class="card-title">💾 Mon uDRIVE</div>
-      <a id="udrive-personal-link" href="#" target="_blank" class="external-link">
-        📂 Ouvrir mon uDRIVE IPFS →
-      </a>
-    </div>
-
-    <!-- ── Jukebox IPFS direct ───────────────────────────── -->
-    <div class="card">
-      <div class="card-title">🎵 Ajouter un morceau (URL directe)</div>
-      <div class="jukebox-form">
-        <input class="jukebox-input" id="jukebox-url" type="url"
-          placeholder="http://192.168.10.1:8080/ipfs/Qm…/track.mp3">
-        <button class="btn-queue" id="btn-queue" onclick="queueSong()">Ajouter ▶</button>
-      </div>
-      <p class="hint" style="margin-top:8px">
-        Kind 1 publié sur le relay local (port 9999). File limitée à 5 morceaux.
-      </p>
-    </div>
-
-    <!-- ── Bibliothèque uDRIVE ───────────────────────────── -->
-    <div class="card">
-      <div class="card-title">🎧 Ma bibliothèque uDRIVE <button onclick="loadUdriveAudio()" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;margin-left:8px">↺</button></div>
-      <div id="udrive-audio-list" style="font-size:13px;color:var(--muted)">
-        <span class="spinner"></span> Chargement du manifest…
-      </div>
-    </div>
-
-    <!-- ── File locale ───────────────────────────────────── -->
-    <div class="card">
-      <div class="card-title">📋 File en cours</div>
-      <div class="queue-list" id="queue-list">
-        <div style="font-size:13px;color:var(--muted)">Aucun morceau en attente</div>
-      </div>
+  <div class="card">
+    <div class="card-title">📋 File d'attente actuelle</div>
+    <div class="queue-list" id="playlist-queue-container">
+      <div style="font-size:13px;color:var(--muted); text-align:center; padding: 10px;">Aucun morceau en attente</div>
     </div>
   </div>
 </div>
@@ -1004,6 +993,59 @@ async function loadEyeStatus() {
 setInterval(loadEyeStatus, 15000);
 
 /* ── Jukebox : bibliothèque uDRIVE ──────────────────── */
+async function loadPlaylist() {
+  try {
+    const r = await fetch('/api.sh?action=playlist&cmd=list');
+    const d = await r.json();
+    const container = document.getElementById('playlist-queue-container');
+    
+    if (d.playlist && d.playlist.length > 0) {
+      container.innerHTML = d.playlist.map((item, idx) => `
+        <div class="queue-item" style="display:flex; justify-content:space-between; align-items:center; padding: 8px; border-bottom: 1px solid var(--border);">
+          <span style="font-weight:bold; color:var(--cyan);">${idx + 1}. ${item.title}</span>
+          <span style="font-size:10px; color:var(--muted)">Ajouté par ${item.added_by}</span>
+        </div>
+      `).join('');
+    } else {
+      container.innerHTML = '<div style="font-size:13px;color:var(--muted); text-align:center; padding: 10px;">La playlist est vide. Ajoutez un lien !</div>';
+    }
+  } catch (e) {
+    console.error("Erreur de chargement de la playlist", e);
+  }
+}
+
+async function addToPlaylist() {
+  const input = document.getElementById('playlist-input-url');
+  const url = input.value.trim();
+  if (!url) return;
+
+  try {
+    const r = await fetch('/api.sh?action=playlist', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `cmd=add&url=${encodeURIComponent(url)}`
+    });
+    const d = await r.json();
+    if (d.status === 'ok') {
+      input.value = '';
+      alert('✓ Morceau ajouté avec succès !');
+      loadPlaylist();
+    } else {
+      alert('⚠ ' + (d.hint || d.error));
+    }
+  } catch (e) {
+    alert('Erreur de connexion au serveur.');
+  }
+}
+
+// Lancer le rafraîchissement régulier de la playlist quand l'onglet est actif
+setInterval(() => {
+  if (document.getElementById('tab-jukebox').classList.contains('active')) {
+    loadPlaylist();
+  }
+}, 5000);
+
+
 async function loadUdriveAudio() {
   const el = document.getElementById('udrive-audio-list');
   if (!S.npub || !el) return;

@@ -8,12 +8,7 @@
 # Messages personnalisables :
 #   Textes sources  : /opt/soundspot/wav/message_NN.txt  (modifier librement)
 #   Fichiers audio  : /opt/soundspot/wav/message_NN.wav  (remplacer par vos .wav)
-#   Si .wav absent  → généré via Orpheus dès qu'il est disponible (pas de fallback robot)
-#
-# Variables d'environnement (depuis soundspot.conf) :
-#   IDLE_ANNOUNCE_INTERVAL  Secondes entre annonces (défaut : 900 = 15 min)
-#   ICECAST_PORT            Port Icecast (défaut : 8111)
-#   CLOCK_MODE              "bells" (coups de cloche) ou "silent"
+#   Sons Homer      : /opt/soundspot/portal/sounds/homer/ (sélectionnés à 50% de probabilité)
 
 CONF="${CONF:-/opt/soundspot/soundspot.conf}"
 [ -f "$CONF" ] && source "$CONF"
@@ -25,22 +20,16 @@ USER_ID=$(id -u "${SOUNDSPOT_USER}" 2>/dev/null || echo 1000)
 export XDG_RUNTIME_DIR="/run/user/${USER_ID}"
 
 _SS_SERVICE="idle"
-# shellcheck source=/opt/soundspot/log.sh
 [ -f "$INSTALL_DIR/log.sh" ] && source "$INSTALL_DIR/log.sh" || {
     ss_info()  { :; }; ss_warn()  { :; }
     ss_error() { :; }; ss_debug() { :; }
 }
 
 TTS_SH="$INSTALL_DIR/backend/audio/tts.sh"
-
-# Signale à mon-oeil.py (écoute micro) que le nœud parle par ses propres
-# haut-parleurs — sinon le bip/les cloches/la voix sont captés par le micro
-# et déclenchent une fausse détection de son (photo + annonce en boucle).
-# Rafraîchi à chaque son joué (voir play_audio) ; mon-oeil.py l'ignore dès
-# qu'il devient trop vieux (pas de nettoyage explicite requis en fin de cycle).
 SPEAKER_ACTIVE_FLAG="/dev/shm/soundspot_speaker_active"
+AUDIO_LOCK="/dev/shm/soundspot_audio.lock"
 
-# Re-lire la configuration à chaque cycle (changements du portail pris en compte à chaud)
+# Re-lire la configuration à chaque cycle
 reload_conf() {
     [ -f "$CONF" ] && source "$CONF"
     ICECAST_PORT="${ICECAST_PORT:-8111}"
@@ -59,21 +48,16 @@ play_audio() {
     local file="$1"
     touch "$SPEAKER_ACTIVE_FLAG" 2>/dev/null
     if [[ "${file,,}" == *.mp3 ]]; then
-        # Pour les MP3, mpg123 est le plus fiable et léger
         mpg123 -q "$file" 2>/dev/null || pw-play "$file" 2>/dev/null || true
     else
-        # Pour les WAV et le reste
         paplay "$file" 2>/dev/null || pw-play "$file" 2>/dev/null || aplay -q "$file" 2>/dev/null || true
     fi
 }
 
-# ── Synthèse vocale TTS → WAV temporaire → lecture ───────────────
-# Utilise exclusivement Orpheus (pierre/amelie) si Picoport est connecté
-# à UPlanet. Pas de fallback robot : silence si Orpheus est indisponible.
+# ── Synthèse vocale TTS ───────────────
 say() {
     [ "${VOICE_ENABLED:-true}" = "false" ] && return 0
     local wav_paths
-    # tts.sh peut retourner 2 lignes : intro constellation + message
     wav_paths=$(bash "$TTS_SH" "$*" "${ORPHEUS_VOICE:-pierre}" 2>/dev/null)
     while IFS= read -r wav; do
         [ -f "$wav" ] || continue
@@ -82,9 +66,7 @@ say() {
     done <<< "$wav_paths"
 }
 
-# ── Jouer un message numéroté depuis wav/ ────────────────────────
-# Utilise _CYCLE_ORPHEUS (positionné une fois par cycle dans main()).
-# Ne joue rien tant qu'Orpheus n'a pas généré le .wav (pas de fallback robot).
+# ── Jouer un message collectif depuis wav/ ────────────────────────
 play_message_file() {
     local n="$1"
     local id=$(printf '%02d' "$n")
@@ -92,17 +74,14 @@ play_message_file() {
     local wav="$WAV_DIR/message_${id}.wav"
     local txt="$WAV_DIR/message_${id}.txt"
 
-    # Priorité 1 : Fichier MP3
     if [ -f "$mp3" ]; then
         ss_info "Lecture message_$id (MP3 utilisateur)"
         play_audio "$mp3"
         return 0
     fi
 
-    # Priorité 2 & 3 : Fichier WAV ou Génération dynamique (Logique d'origine)
     local owner=$(stat -c '%U' "$wav" 2>/dev/null || echo "none")
 
-    # Si Orpheus est vivant ET (le fichier appartient à www-data OU est absent)
     if [ "${_CYCLE_ORPHEUS:-false}" = "true" ] && { [ "$owner" = "www-data" ] || [ ! -f "$wav" ]; }; then
         ss_info "Promotion Orpheus pour message_$id (Source: $owner)"
         local live_wav=$(bash "$TTS_SH" "$(cat "$txt" 2>/dev/null)" "${ORPHEUS_VOICE:-pierre}" 2>/dev/null | tail -1)
@@ -116,58 +95,35 @@ play_message_file() {
     [ -f "$wav" ] && play_audio "$wav"
 }
 
-# ── Régénérer tous les .wav avec Orpheus dès qu'il est disponible ──
-# Tourne en background au démarrage. Tant qu'Orpheus n'a pas répondu,
-# les messages sans .wav restent silencieux (pas de fallback robot).
-regen_orpheus_wavs_bg() {
-    local port="${ORPHEUS_PORT:-5005}"
-    local voice="${ORPHEUS_VOICE:-pierre}"
-    local waited=0
-    while [ $waited -lt 1800 ]; do
-        if curl -s -o /dev/null -w "%{http_code}" --max-time 2 \
-            "http://localhost:${port}/docs" 2>/dev/null | grep -q "200"; then
-            ss_info "Orpheus disponible — régénération de tous les messages en ${voice}"
-            for txt in "$WAV_DIR"/message_*.txt; do
-                [ -f "$txt" ] || continue
-                local wav="${txt%.txt}.wav"
-                local tmp="/dev/shm/tts_regen_$$.wav"
-                local json_txt
-                json_txt=$(python3 -c "import sys,json; print(json.dumps(sys.stdin.read()))" \
-                           < "$txt" 2>/dev/null || echo "\"$(cat "$txt")\"")
-                if curl -sf --max-time 20 \
-                    -o "$tmp" \
-                    -H "Content-Type: application/json" \
-                    -d "{\"model\":\"orpheus\",\"input\":${json_txt},\"voice\":\"${voice}\",\"response_format\":\"wav\",\"speed\":1.0}" \
-                    "http://localhost:${port}/v1/audio/speech" 2>/dev/null \
-                    && [ -s "$tmp" ]; then
-                    mv "$tmp" "$wav"
-                    ss_info "$(basename "$wav") → orpheus/${voice}"
-                else
-                    rm -f "$tmp"
-                fi
-            done
-            ss_info "Régénération Orpheus terminée"
-            return 0
+# ── Recherche d'un message Homer au hasard ────────────────────────
+get_random_homer() {
+    local homer_dirs=(
+        "$INSTALL_DIR/portal/sounds/homer"
+        "$WAV_DIR/Homer"
+        "$INSTALL_DIR/wav/Homer"
+    )
+    local files=()
+    for d in "${homer_dirs[@]}"; do
+        if [ -d "$d" ]; then
+            while IFS= read -r f; do
+                [ -f "$f" ] && files+=("$f")
+            done < <(find "$d" -maxdepth 1 -type f -name "*.mp3" 2>/dev/null)
         fi
-        sleep 30
-        waited=$(( waited + 30 ))
     done
-    ss_info "Orpheus non disponible après 30 min — messages restent silencieux"
+    if [ ${#files[@]} -gt 0 ]; then
+        echo "${files[RANDOM % ${#files[@]}]}"
+    fi
 }
 
-# ── Nombre de messages disponibles dans wav/ ─────────────────────
 count_messages() {
     ls "$WAV_DIR"/message_*.* 2>/dev/null | grep -oP 'message_[0-9]+' | sort -u | wc -l
 }
 
-# ── Vérifier si un DJ diffuse (source active sur Icecast) ────────
 is_dj_active() {
-    # Vérifie si le montage /live existe (HTTP 200 = DJ présent)
     local code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 2 "http://127.0.0.1:${ICECAST_PORT}/live" 2>/dev/null)
     [ "$code" = "200" ]
 }
 
-# ── Coups de cloche (N × bip court avec fondu) ───────────────────
 ring_bells() {
     local n="$1" i
     local bell="$WAV_DIR/bell_429hz.wav"
@@ -177,7 +133,6 @@ ring_bells() {
     done
 }
 
-# ── Longitude depuis ~/.zen/GPS ; fallback méridien du fuseau ────
 get_solar_lon() {
     local user_home gps_file lon tz_str tz_sign tz_hh tz_mm tz_min
     user_home=$(getent passwd "${SOUNDSPOT_USER:-pi}" | cut -d: -f6 2>/dev/null || echo "/home/pi")
@@ -186,8 +141,6 @@ get_solar_lon() {
         lon=$(grep -oP '(?<=LON=)[^\s]+' "$gps_file" 2>/dev/null | head -1 || true)
         [ -n "$lon" ] && echo "$lon" && return
     fi
-    # Fallback : méridien central du fuseau système
-    # (Europe/Paris UTC+2 → 30°E → annonce heure civile si GPS absent)
     tz_str=$(date +%z)
     tz_sign=1; [[ "$tz_str" == -* ]] && tz_sign=-1
     tz_hh=$((10#${tz_str:1:2})); tz_mm=$((10#${tz_str:3:2}))
@@ -195,19 +148,15 @@ get_solar_lon() {
     awk -v tm="$tz_min" 'BEGIN{printf "%.1f\n", tm/4}'
 }
 
-# ── Heure solaire vraie : heure_légale + (longitude − méridien_fuseau) × 4min ──
-# 1° = 4 min. Retourne "H M" (entiers).
 calc_solar_time() {
     local lon="${1:-0}"
     local local_h local_m tz_str tz_sign tz_hh tz_mm tz_min correction_min solar_min
     local_h=$(date +%-H)
     local_m=$(date +%-M)
-    # Décalage UTC du fuseau système (ex: +0200 → 120 min → méridien 30°E)
     tz_str=$(date +%z)
     tz_sign=1; [[ "$tz_str" == -* ]] && tz_sign=-1
     tz_hh=$((10#${tz_str:1:2})); tz_mm=$((10#${tz_str:3:2}))
     tz_min=$(( tz_sign * (tz_hh * 60 + tz_mm) ))
-    # correction = longitude×4 min − décalage_fuseau
     correction_min=$(awk -v lon="$lon" -v tz="$tz_min" \
         'BEGIN{v=lon*4-tz; printf "%d\n", (v>=0)?int(v+0.5):int(v-0.5)}')
     solar_min=$(( local_h * 60 + local_m + correction_min ))
@@ -215,7 +164,6 @@ calc_solar_time() {
     echo "$(( solar_min / 60 )) $(( solar_min % 60 ))"
 }
 
-# ── Annonce vocale de l'heure solaire ────────────────────────────
 announce_time() {
     local lon sol_h sol_m m_str
     lon=$(get_solar_lon)
@@ -230,11 +178,8 @@ announce_time() {
     say "Il est ${sol_h} ${m_str}"
 }
 
-# ── Boucle principale ─────────────────────────────────────────────
 main() {
     reload_conf
-    regen_orpheus_wavs_bg &       # génère les .wav via Orpheus en arrière-plan dès connexion
-
     local last_announce=0
     local msg_index=0
 
@@ -250,9 +195,6 @@ main() {
         if [[ "$sol_m" =~ ^(0|15|30|45)$ ]] && [ "$elapsed" -ge 840 ]; then
             last_announce=$now
 
-            # Vérifier Orpheus UNE FOIS par cycle (évite espeak/Orpheus dans le même cycle)
-            # Pas de dépendance à picoport.service : Orpheus peut tourner via tunnel sans que
-            # le service soit marqué "active" par systemd.
             _CYCLE_ORPHEUS=false
             if curl -s -o /dev/null -w "%{http_code}" --max-time 2 \
                 "http://localhost:${ORPHEUS_PORT:-5005}/docs" 2>/dev/null | grep -q "200"; then
@@ -272,34 +214,50 @@ main() {
             if is_dj_active; then
                 ss_debug "DJ actif sur Icecast — annonce ignorée"
             else
-                ss_info "annonce h${sol_h}:$(printf '%02d' "$sol_m") mode=${CLOCK_MODE:-bells} orpheus=${_CYCLE_ORPHEUS}"
+                # ── SÉCURITÉ ANTI-CHEVAUCHEMENT : Verrouillage non-bloquant ──
+                # Si le Jukebox joue une chanson, l'annonce du clocher est annulée proprement.
+                (
+                    flock -n 9 || { ss_debug "Canal audio occupé (Jukebox ou welcome en cours). Annonce sautée."; exit 0; }
+                    
+                    ss_info "annonce h${sol_h}:$(printf '%02d' "$sol_m") mode=${CLOCK_MODE:-bells} orpheus=${_CYCLE_ORPHEUS}"
 
-                # 1. Bip 429.62 Hz — inhibé si BELLS_ENABLED=false
-                if [ "${BELLS_ENABLED:-true}" = "true" ]; then
-                    play_audio "$WAV_DIR/tone_429hz.wav"
+                    # 1. Bip 429.62 Hz
+                    if [ "${BELLS_ENABLED:-true}" = "true" ]; then
+                        play_audio "$WAV_DIR/tone_429hz.wav"
+                        sleep 1
+                    fi
+
+                    # 2. Coups de cloche à l'heure pile
+                    if [ "$sol_m" = "0" ] && [ "${CLOCK_MODE:-bells}" = "bells" ] && [ "${BELLS_ENABLED:-true}" = "true" ]; then
+                        local bells=$(( sol_h % 12 ))
+                        [ "$bells" -eq 0 ] && bells=12
+                        ring_bells "$bells"
+                        sleep 1
+                    fi
+
+                    # 3. Heure solaire vocale
+                    announce_time
                     sleep 1
-                fi
 
-                # 2. Coups de cloche à l'heure solaire pile (configurable via CLOCK_MODE + BELLS_ENABLED)
-                if [ "$sol_m" = "0" ] && [ "${CLOCK_MODE:-bells}" = "bells" ] && [ "${BELLS_ENABLED:-true}" = "true" ]; then
-                    local bells=$(( sol_h % 12 ))
-                    [ "$bells" -eq 0 ] && bells=12
-                    ss_debug "coups de cloche : ${bells}"
-                    ring_bells "$bells"
-                    sleep 1
-                fi
-
-                # 3. Heure solaire en voix (non désactivable)
-                announce_time
-                sleep 1
-
-                # 4. Message collectif en rotation depuis wav/ (non désactivable)
-                local total; total=$(count_messages)
-                if [ "$total" -gt 0 ]; then
-                    msg_index=$(( (msg_index % total) + 1 ))
-                    ss_debug "lecture message_$(printf '%02d' "$msg_index")"
-                    play_message_file "$msg_index"
-                fi
+                    # 4. Message ou gag Homer (50/50 de probabilité)
+                    local total; total=$(count_messages)
+                    if [ "$total" -gt 0 ]; then
+                        if [ $((RANDOM % 2)) -eq 0 ]; then
+                            local homer_sound=$(get_random_homer)
+                            if [ -n "$homer_sound" ]; then
+                                ss_info "Lecture d'un gag de Homer : $(basename "$homer_sound")"
+                                play_audio "$homer_sound"
+                            else
+                                # Fallback si le dossier Homer est vide ou introuvable
+                                msg_index=$(( (msg_index % total) + 1 ))
+                                play_message_file "$msg_index"
+                            fi
+                        else
+                            msg_index=$(( (msg_index % total) + 1 ))
+                            play_message_file "$msg_index"
+                        fi
+                    fi
+                ) 9>"$AUDIO_LOCK"
             fi
         fi
 
